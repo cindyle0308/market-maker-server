@@ -1,0 +1,2290 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market Maker — Trading Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+/* ============================================================ RESET ============================================================ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+/* ============================================================ THEMES ============================================================ */
+:root{
+  --bg:#06090f;--bg2:#0b111c;--bg3:#101824;--bg4:#162030;
+  --border:#1a2d46;--border2:#243d5a;
+  --text:#b0c8e4;--dim:#4a6a8a;--bright:#e0eefa;
+  --green:#00d888;--red:#ff3d5a;--yellow:#ffc840;--blue:#3a90ff;--purple:#9d60ff;
+  --card-bg:#0e1929;--card-border:#1e3555;--shadow:rgba(0,0,0,0.45);
+}
+html[data-theme="light"]{
+  --bg:#f2f5f9;--bg2:#fff;--bg3:#e8eef5;--bg4:#dce6f0;
+  --border:#c0d0e0;--border2:#90b0cc;
+  --text:#2a3f58;--dim:#7090b0;--bright:#0d1f33;
+  --green:#007744;--red:#cc1a36;--yellow:#996600;--blue:#1a5fcc;--purple:#6030cc;
+  --card-bg:#f8fbff;--card-border:#a0b8d0;--shadow:rgba(0,0,0,0.12);
+}
+html[data-theme="system"]{
+  --bg:#06090f;--bg2:#0b111c;--bg3:#101824;--bg4:#162030;
+  --border:#1a2d46;--border2:#243d5a;--text:#b0c8e4;--dim:#4a6a8a;--bright:#e0eefa;
+  --green:#00d888;--red:#ff3d5a;--yellow:#ffc840;--blue:#3a90ff;--purple:#9d60ff;
+  --card-bg:#0e1929;--card-border:#1e3555;--shadow:rgba(0,0,0,0.45);
+}
+@media(prefers-color-scheme:light){
+  html[data-theme="system"]{
+    --bg:#f2f5f9;--bg2:#fff;--bg3:#e8eef5;--bg4:#dce6f0;
+    --border:#c0d0e0;--border2:#90b0cc;--text:#2a3f58;--dim:#7090b0;--bright:#0d1f33;
+    --green:#007744;--red:#cc1a36;--yellow:#996600;--blue:#1a5fcc;--purple:#6030cc;
+    --card-bg:#f8fbff;--card-border:#a0b8d0;--shadow:rgba(0,0,0,0.12);
+  }
+}
+
+/* ============================================================ BASE ============================================================ */
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;line-height:1.5;min-height:100vh;overflow-x:hidden;transition:background 0.2s,color 0.2s;}
+.mono{font-family:'DM Mono',monospace;}
+.screen{display:none;}
+.screen.active{display:block;}
+#screen-game.active{display:flex;}
+
+/* ============================================================ SETUP SCREEN ============================================================ */
+#screen-setup{max-width:700px;margin:0 auto;padding:40px 24px;}
+.setup-topbar{display:flex;justify-content:flex-end;margin-bottom:10px;}
+.setup-logo{text-align:center;margin-bottom:32px;}
+.setup-logo h1{font-size:2.2rem;font-weight:700;color:var(--bright);text-shadow:0 0 24px rgba(58,144,255,0.3);}
+.setup-logo .sub{color:var(--dim);font-size:0.9rem;font-weight:500;letter-spacing:0.06em;margin-top:6px;}
+
+.setup-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:22px 26px;margin-bottom:14px;}
+.setup-card h3{color:var(--blue);font-size:0.75rem;font-weight:700;letter-spacing:0.14em;margin-bottom:16px;text-transform:uppercase;}
+
+/* Game type selector */
+.game-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.game-type-btn{background:var(--bg3);border:2px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;font-family:'Inter',sans-serif;text-align:left;transition:all 0.15s;}
+.game-type-btn:hover{border-color:var(--blue);}
+.game-type-btn.active{background:rgba(58,144,255,0.1);border-color:var(--blue);}
+.game-type-btn .gt-title{font-size:0.92rem;font-weight:700;color:var(--bright);margin-bottom:4px;}
+.game-type-btn .gt-desc{font-size:0.78rem;color:var(--dim);line-height:1.4;}
+.game-type-btn .gt-icon{font-size:1.4rem;margin-bottom:6px;}
+
+/* Room type */
+.room-type-row{display:flex;gap:10px;margin-bottom:14px;}
+.room-btn{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.85rem;font-weight:600;color:var(--dim);transition:all 0.15s;text-align:center;}
+.room-btn:hover{border-color:var(--blue);color:var(--text);}
+.room-btn.active{background:rgba(58,144,255,0.1);border-color:var(--blue);color:var(--blue);}
+
+.room-code-area{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:10px;}
+.room-code-input{width:100%;background:var(--bg2);border:1px solid var(--border2);color:var(--bright);padding:10px 14px;border-radius:6px;font-family:'DM Mono',monospace;font-size:1.2rem;font-weight:700;letter-spacing:0.2em;text-align:center;text-transform:uppercase;outline:none;margin-bottom:10px;}
+.room-code-input:focus{border-color:var(--blue);}
+.room-code-display{text-align:center;font-size:2rem;font-family:'DM Mono',monospace;font-weight:700;color:var(--yellow);letter-spacing:0.25em;padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;margin-bottom:10px;}
+.room-hint{font-size:0.78rem;color:var(--dim);text-align:center;line-height:1.6;}
+.room-status{font-size:0.85rem;font-weight:600;text-align:center;padding:8px;border-radius:6px;margin-top:8px;}
+.room-status.connecting{color:var(--yellow);background:rgba(255,200,64,0.1);}
+.room-status.connected{color:var(--green);background:rgba(0,216,136,0.1);}
+.room-status.error{color:var(--red);background:rgba(255,61,90,0.1);}
+.copy-link-btn{width:100%;padding:8px;background:transparent;border:1px dashed var(--border2);color:var(--dim);font-family:'Inter',sans-serif;font-size:0.8rem;border-radius:6px;cursor:pointer;transition:all 0.15s;}
+.copy-link-btn:hover{border-color:var(--blue);color:var(--blue);}
+
+.slider-row{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+.slider-row label{width:150px;color:var(--dim);font-size:0.85rem;font-weight:500;flex-shrink:0;}
+.slider-row input[type=range]{flex:1;-webkit-appearance:none;height:4px;background:var(--border2);border-radius:2px;outline:none;}
+.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--blue);cursor:pointer;box-shadow:0 0 8px rgba(58,144,255,0.4);}
+.slider-val{width:80px;text-align:right;color:var(--bright);font-weight:700;font-size:0.85rem;font-family:'DM Mono',monospace;}
+
+.round-time-grid{display:flex;gap:8px;flex-wrap:wrap;}
+.time-btn{background:var(--bg3);border:1px solid var(--border);color:var(--dim);padding:7px 16px;border-radius:20px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.85rem;font-weight:500;transition:all 0.15s;}
+.time-btn:hover{border-color:var(--blue);color:var(--text);}
+.time-btn.active{background:rgba(58,144,255,0.12);border-color:var(--blue);color:var(--blue);font-weight:700;}
+
+.start-btn{width:100%;padding:15px;background:linear-gradient(135deg,rgba(58,144,255,0.15),rgba(58,144,255,0.08));border:1px solid var(--blue);color:var(--blue);font-family:'Inter',sans-serif;font-size:1rem;font-weight:700;border-radius:10px;cursor:pointer;transition:all 0.2s;margin-top:8px;}
+.start-btn:hover{box-shadow:0 0 24px rgba(58,144,255,0.25);color:var(--bright);}
+.start-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* ============================================================ CARD PREVIEW SCREEN ============================================================ */
+#screen-card-preview{max-width:480px;margin:0 auto;padding:60px 24px;text-align:center;}
+.preview-title{font-size:1.5rem;font-weight:700;color:var(--bright);margin-bottom:8px;}
+.preview-sub{color:var(--dim);font-size:0.9rem;font-weight:500;margin-bottom:40px;line-height:1.6;}
+.preview-card-big{width:120px;height:160px;margin:0 auto 24px;background:linear-gradient(135deg,var(--bg3),var(--bg4));border:3px solid var(--blue);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:3.5rem;font-family:'DM Mono',monospace;font-weight:700;color:var(--blue);box-shadow:0 0 30px rgba(58,144,255,0.25);}
+.preview-card-big.positive{border-color:var(--green);color:var(--green);box-shadow:0 0 30px rgba(0,216,136,0.25);}
+.preview-card-big.negative{border-color:var(--red);color:var(--red);box-shadow:0 0 30px rgba(255,61,90,0.25);}
+.all-cards-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:24px;}
+.mini-card{width:52px;height:68px;background:linear-gradient(135deg,var(--bg3),var(--bg4));border:2px solid var(--blue);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:1rem;font-family:'DM Mono',monospace;font-weight:700;color:var(--blue);}
+.mini-card.positive{border-color:var(--green);color:var(--green);}
+.mini-card.negative{border-color:var(--red);color:var(--red);}
+.preview-countdown{font-size:3rem;font-family:'DM Mono',monospace;font-weight:700;color:var(--yellow);margin-bottom:8px;}
+.preview-countdown.urgent{color:var(--red);animation:pulse-red 0.5s infinite;}
+.preview-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:20px;}
+.preview-bar-fill{height:100%;background:var(--blue);border-radius:3px;transition:width 1s linear;}
+.preview-player-name{font-size:1rem;font-weight:600;color:var(--yellow);margin-bottom:6px;}
+.preview-hint{font-size:0.82rem;color:var(--dim);margin-bottom:28px;}
+.preview-btn{padding:12px 40px;background:rgba(58,144,255,0.1);border:1px solid var(--blue);color:var(--blue);font-family:'Inter',sans-serif;font-size:0.9rem;font-weight:600;border-radius:8px;cursor:pointer;transition:all 0.15s;}
+.preview-btn:hover{background:rgba(58,144,255,0.2);}
+
+/* ============================================================ GAME SCREEN ============================================================ */
+#screen-game{height:100vh;flex-direction:column;overflow:hidden;}
+
+.game-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:9px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.header-logo{font-size:0.9rem;font-weight:700;color:var(--blue);margin-right:4px;}
+.header-badge{background:var(--bg3);border:1px solid var(--border);padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:500;color:var(--dim);}
+.header-badge.round{color:var(--yellow);border-color:var(--yellow);}
+.header-badge.phase{color:var(--purple);border-color:var(--purple);}
+.header-badge.game2{color:var(--green);border-color:var(--green);}
+.header-timer{margin-left:auto;font-size:1.15rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--green);letter-spacing:0.08em;min-width:64px;text-align:right;}
+.header-timer.warning{color:var(--yellow);}
+.header-timer.danger{color:var(--red);animation:pulse-red 1s infinite;}
+@keyframes pulse-red{0%,100%{opacity:1}50%{opacity:0.5}}
+
+.theme-toggle-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:4px 12px;font-size:0.82rem;font-family:'Inter',sans-serif;font-weight:500;cursor:pointer;color:var(--text);transition:all 0.15s;white-space:nowrap;}
+.theme-toggle-btn:hover{border-color:var(--blue);color:var(--bright);}
+
+.quit-btn{background:transparent;border:1px solid rgba(255,61,90,0.3);border-radius:20px;padding:4px 12px;font-size:0.8rem;font-family:'Inter',sans-serif;font-weight:600;cursor:pointer;color:var(--red);opacity:0.7;transition:all 0.15s;}
+.quit-btn:hover{opacity:1;background:rgba(255,61,90,0.1);border-color:var(--red);}
+
+/* Community / question section */
+.community-section{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;flex-shrink:0;}
+.community-label{font-size:0.72rem;font-weight:600;letter-spacing:0.1em;color:var(--dim);text-transform:uppercase;margin-bottom:8px;}
+.community-cards-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.c-card{width:50px;height:66px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:1.05rem;font-family:'DM Mono',monospace;font-weight:700;transition:all 0.4s;}
+.c-card.hidden{color:var(--dim);font-size:1.4rem;}
+.c-card.revealed{border-color:var(--yellow);box-shadow:0 2px 10px rgba(255,200,64,0.2);}
+.c-card.revealed.positive{color:var(--green);border-color:var(--green);box-shadow:0 2px 10px rgba(0,216,136,0.2);}
+.c-card.revealed.negative{color:var(--red);border-color:var(--red);box-shadow:0 2px 10px rgba(255,61,90,0.2);}
+.c-card.revealed.zero{color:var(--dim);}
+.c-card.just-revealed{animation:flip-in 0.5s ease;}
+@keyframes flip-in{0%{transform:rotateY(90deg);opacity:0}100%{transform:rotateY(0);opacity:1}}
+.community-info{margin-left:14px;display:flex;gap:18px;align-items:center;flex-wrap:wrap;}
+.comm-stat{font-size:0.82rem;color:var(--dim);font-weight:500;}
+.comm-stat .val{color:var(--bright);font-family:'DM Mono',monospace;font-weight:700;}
+
+/* Estimathon question display */
+.question-display{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;margin-bottom:8px;}
+.question-text{font-size:0.95rem;font-weight:600;color:var(--bright);line-height:1.5;margin-bottom:6px;}
+.question-hint{font-size:0.82rem;color:var(--yellow);font-weight:500;margin-top:4px;}
+.question-hint.hidden-hint{color:var(--dim);}
+
+/* Game body */
+.game-body{flex:1;display:grid;grid-template-columns:340px 1fr;overflow:hidden;}
+.game-left{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow-y:auto;}
+
+.info-panel{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 14px;}
+.info-panel-label{font-size:0.7rem;font-weight:700;letter-spacing:0.12em;color:var(--dim);text-transform:uppercase;margin-bottom:8px;}
+.your-cards-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.your-card-small{width:40px;height:52px;background:linear-gradient(135deg,var(--bg3),var(--bg4));border:2px solid var(--blue);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;font-family:'DM Mono',monospace;font-weight:700;color:var(--blue);}
+.your-card-small.positive{border-color:var(--green);color:var(--green);}
+.your-card-small.negative{border-color:var(--red);color:var(--red);}
+.your-card-small.new-card{animation:pop-in 0.4s ease;}
+@keyframes pop-in{0%{transform:scale(0);opacity:0}70%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+.your-card-stats .stat-row{display:flex;justify-content:space-between;margin-bottom:4px;font-size:0.82rem;}
+.stat-label{color:var(--dim);font-weight:500;}
+.stat-val{color:var(--bright);font-weight:600;font-family:'DM Mono',monospace;}
+.stat-val.pos{color:var(--green);}
+.stat-val.neg{color:var(--red);}
+
+.market-panel{padding:12px 14px;border-bottom:1px solid var(--border);background:var(--bg3);}
+.market-maker-name{font-size:0.78rem;font-weight:500;color:var(--dim);margin-bottom:8px;}
+.market-maker-name span{color:var(--yellow);font-weight:700;}
+.bid-ask-display{display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--border2);margin-bottom:8px;}
+.bid-box,.ask-box{flex:1;padding:11px 10px;text-align:center;}
+.bid-box{background:rgba(255,61,90,0.07);border-right:1px solid var(--border2);}
+.ask-box{background:rgba(0,216,136,0.07);}
+.ba-label{font-size:0.68rem;font-weight:600;letter-spacing:0.08em;color:var(--dim);text-transform:uppercase;}
+.ba-price{font-size:1.5rem;font-weight:700;font-family:'DM Mono',monospace;margin-top:2px;}
+.bid-box .ba-price{color:var(--red);}
+.ask-box .ba-price{color:var(--green);}
+.ba-spread{text-align:center;font-size:0.78rem;color:var(--dim);}
+.ba-spread span{color:var(--yellow);font-family:'DM Mono',monospace;font-weight:700;}
+
+.action-panel{padding:14px;background:var(--bg2);border-bottom:1px solid var(--border);flex:1;}
+.action-title{font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);margin-bottom:12px;}
+
+.make-market-form{display:none;}
+.make-market-form.visible{display:block;}
+.mm-hint{font-size:0.82rem;font-weight:500;color:var(--dim);margin-bottom:10px;}
+.mm-inputs{display:flex;gap:10px;margin-bottom:10px;}
+.mm-input-group{flex:1;}
+.mm-input-group label{display:block;font-size:0.72rem;font-weight:700;color:var(--dim);margin-bottom:4px;letter-spacing:0.06em;text-transform:uppercase;}
+.mm-input-group input{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--bright);padding:8px 10px;border-radius:6px;font-family:'DM Mono',monospace;font-size:1rem;outline:none;text-align:center;}
+.mm-input-group input:focus{border-color:var(--blue);}
+.mm-error{color:var(--red);font-size:0.78rem;font-weight:500;margin-bottom:8px;display:none;}
+.mm-error.visible{display:block;}
+.post-market-btn{width:100%;padding:10px;background:rgba(58,144,255,0.1);border:1px solid var(--blue);color:var(--blue);font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;border-radius:7px;cursor:pointer;transition:all 0.15s;}
+.post-market-btn:hover{background:rgba(58,144,255,0.2);color:var(--bright);}
+
+.trade-now-section{display:none;}
+.trade-now-section.visible{display:block;}
+.trade-race-bar{height:5px;background:var(--border);border-radius:3px;margin-bottom:12px;overflow:hidden;}
+.trade-race-fill{height:100%;background:var(--green);border-radius:3px;transition:width 0.1s linear;}
+.trade-race-fill.urgent{background:var(--yellow);}
+.trade-race-fill.critical{background:var(--red);}
+.trade-now-btn{width:100%;padding:15px;background:rgba(0,216,136,0.08);border:2px solid var(--green);color:var(--green);font-family:'Inter',sans-serif;font-size:1rem;font-weight:700;border-radius:9px;cursor:pointer;transition:all 0.15s;animation:pulse-green 1.5s infinite;}
+.trade-now-btn:hover{background:rgba(0,216,136,0.18);}
+.trade-now-btn:disabled{opacity:0.4;cursor:not-allowed;animation:none;}
+@keyframes pulse-green{0%,100%{box-shadow:0 0 8px rgba(0,216,136,0.15)}50%{box-shadow:0 0 22px rgba(0,216,136,0.35)}}
+.race-countdown{text-align:center;font-size:0.78rem;color:var(--dim);margin-top:7px;font-weight:500;}
+.race-countdown span{color:var(--green);font-family:'DM Mono',monospace;font-weight:700;}
+.edge-indicator{margin-top:10px;padding:9px 11px;background:var(--bg3);border-radius:7px;font-size:0.82rem;font-weight:500;}
+
+.trade-exec-section{display:none;}
+.trade-exec-section.visible{display:block;}
+.trade-exec-header{font-size:0.82rem;font-weight:700;color:var(--yellow);margin-bottom:12px;}
+.trade-choice-btns{display:flex;gap:10px;margin-bottom:12px;}
+.trade-choice-btn{flex:1;padding:12px;border-radius:8px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.9rem;font-weight:700;border:2px solid;transition:all 0.15s;text-align:center;}
+.trade-choice-btn.buy{background:rgba(0,216,136,0.08);border-color:var(--green);color:var(--green);}
+.trade-choice-btn.buy:hover{background:rgba(0,216,136,0.2);}
+.trade-choice-btn.buy.selected{background:rgba(0,216,136,0.25);box-shadow:0 0 14px rgba(0,216,136,0.2);}
+.trade-choice-btn.sell{background:rgba(255,61,90,0.08);border-color:var(--red);color:var(--red);}
+.trade-choice-btn.sell:hover{background:rgba(255,61,90,0.2);}
+.trade-choice-btn.sell.selected{background:rgba(255,61,90,0.25);box-shadow:0 0 14px rgba(255,61,90,0.2);}
+.vol-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.vol-row label{color:var(--dim);font-size:0.82rem;font-weight:700;width:60px;}
+.vol-row input[type=range]{flex:1;-webkit-appearance:none;height:4px;background:var(--border2);border-radius:2px;outline:none;}
+.vol-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--yellow);cursor:pointer;}
+.vol-display{width:36px;text-align:right;color:var(--yellow);font-weight:700;font-family:'DM Mono',monospace;}
+.confirm-trade-btn{width:100%;padding:11px;background:rgba(255,200,64,0.1);border:1px solid var(--yellow);color:var(--yellow);font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;border-radius:7px;cursor:pointer;transition:all 0.15s;}
+.confirm-trade-btn:hover{background:rgba(255,200,64,0.22);}
+.confirm-trade-btn:disabled{opacity:0.4;cursor:not-allowed;}
+.exec-timer{font-size:0.78rem;color:var(--red);text-align:center;margin-top:6px;font-family:'DM Mono',monospace;font-weight:700;}
+.status-box{padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;text-align:center;color:var(--dim);font-size:0.85rem;font-weight:500;}
+
+.game-right{display:flex;flex-direction:column;overflow:hidden;}
+.players-section{border-bottom:1px solid var(--border);overflow:auto;max-height:220px;flex-shrink:0;}
+.section-header{padding:7px 14px;font-size:0.7rem;font-weight:700;letter-spacing:0.1em;color:var(--dim);text-transform:uppercase;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:2;}
+.tradelog-section{flex:1;overflow:auto;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;padding:6px 10px;font-size:0.68rem;font-weight:700;letter-spacing:0.08em;color:var(--dim);text-transform:uppercase;background:var(--bg2);border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:6px 10px;font-size:0.82rem;font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+tr.you-row td{background:rgba(58,144,255,0.05);}
+tr.maker-row td{background:rgba(255,200,64,0.05);}
+td.pos{color:var(--green);font-family:'DM Mono',monospace;font-weight:700;}
+td.neg{color:var(--red);font-family:'DM Mono',monospace;font-weight:700;}
+td.neutral{color:var(--dim);}
+td.you-badge::after{content:' 👤';font-size:0.7rem;}
+td.maker-badge::after{content:' ✦';color:var(--yellow);font-size:0.7rem;}
+
+/* ============================================================ OVERLAYS ============================================================ */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;align-items:center;justify-content:center;}
+.overlay.visible{display:flex;}
+.overlay-box{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:32px 40px;text-align:center;max-width:480px;box-shadow:0 24px 60px var(--shadow);}
+.overlay-title{font-size:1.2rem;font-weight:700;color:var(--bright);margin-bottom:10px;}
+.overlay-body{color:var(--dim);font-size:0.88rem;font-weight:500;margin-bottom:22px;line-height:1.6;}
+
+/* Quit overlay */
+.quit-btns{display:flex;gap:12px;}
+.quit-cancel{flex:1;padding:11px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;border-radius:8px;cursor:pointer;transition:all 0.15s;}
+.quit-cancel:hover{border-color:var(--blue);color:var(--blue);}
+.quit-confirm{flex:1;padding:11px;background:rgba(255,61,90,0.12);border:1px solid var(--red);color:var(--red);font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;border-radius:8px;cursor:pointer;transition:all 0.15s;}
+.quit-confirm:hover{background:rgba(255,61,90,0.25);}
+
+/* Round end overlay */
+.round-end-reveal{display:flex;gap:10px;justify-content:center;margin-bottom:16px;}
+.new-cards-row{display:flex;gap:8px;justify-content:center;margin-bottom:12px;}
+
+/* New card reveal overlay */
+.new-card-big{width:90px;height:120px;margin:0 auto 16px;background:linear-gradient(135deg,var(--bg3),var(--bg4));border:3px solid var(--purple);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-family:'DM Mono',monospace;font-weight:700;color:var(--purple);box-shadow:0 0 24px rgba(157,96,255,0.3);animation:pop-in 0.5s ease;}
+
+.continue-btn{padding:12px 36px;background:rgba(58,144,255,0.1);border:1px solid var(--blue);color:var(--blue);font-family:'Inter',sans-serif;font-size:0.9rem;font-weight:700;border-radius:8px;cursor:pointer;transition:all 0.15s;}
+.continue-btn:hover{background:rgba(58,144,255,0.22);}
+
+/* ============================================================ RESULTS SCREEN ============================================================ */
+#screen-results{max-width:820px;margin:0 auto;padding:48px 24px;}
+.results-topbar{display:flex;justify-content:flex-end;margin-bottom:16px;}
+.results-title{font-size:2rem;font-weight:700;color:var(--yellow);margin-bottom:8px;text-align:center;}
+.results-settle{color:var(--dim);font-size:0.9rem;font-weight:500;text-align:center;margin-bottom:24px;}
+.settle-val{color:var(--bright);font-size:1.3rem;font-weight:700;font-family:'DM Mono',monospace;}
+.results-community-cards{display:flex;gap:8px;justify-content:center;margin-bottom:28px;}
+.results-card{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:22px;margin-bottom:18px;}
+.results-card h3{font-size:0.75rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim);margin-bottom:16px;}
+.rank-row{display:flex;align-items:center;padding:10px 14px;border-radius:8px;margin-bottom:8px;background:var(--bg3);gap:10px;min-width:0;overflow:hidden;}
+.rank-row.rank-1{background:rgba(255,200,64,0.07);border:1px solid rgba(255,200,64,0.2);}
+.rank-row.rank-2{background:rgba(176,194,214,0.05);border:1px solid rgba(176,194,214,0.18);}
+.rank-row.rank-3{background:rgba(200,120,60,0.05);border:1px solid rgba(200,120,60,0.18);}
+.rank-num{width:28px;font-size:1.2rem;}
+.rank-name{flex:1;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.rank-cards{color:var(--dim);font-size:0.78rem;font-family:'DM Mono',monospace;}
+.rank-pos{width:80px;text-align:right;font-size:0.85rem;color:var(--dim);font-family:'DM Mono',monospace;}
+.rank-pnl{width:110px;min-width:0;text-align:right;font-size:0.92rem;font-weight:700;font-family:'DM Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.play-again-btn{width:100%;padding:14px;background:rgba(58,144,255,0.1);border:1px solid var(--blue);color:var(--blue);font-family:'Inter',sans-serif;font-size:0.9rem;font-weight:700;border-radius:10px;cursor:pointer;margin-top:20px;transition:all 0.2s;}
+.play-again-btn:hover{background:rgba(58,144,255,0.2);}
+
+/* ============================================================ TOAST ============================================================ */
+#toast-container{position:fixed;bottom:16px;right:16px;z-index:9999;display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none;}
+.toast{padding:10px 16px;background:var(--bg2);border-radius:8px;font-size:0.83rem;font-weight:500;max-width:320px;animation:slide-in 0.25s ease;border-left:3px solid;opacity:1;transition:opacity 0.4s;box-shadow:0 4px 18px var(--shadow);}
+.toast.fade-out{opacity:0;}
+.toast.trade{border-color:var(--green);}
+.toast.market{border-color:var(--blue);}
+.toast.info{border-color:var(--dim);}
+.toast.warn{border-color:var(--yellow);}
+.toast.reveal{border-color:var(--purple);}
+@keyframes slide-in{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ============================================================ DISPLAY OPTION TOGGLES ============================================================ */
+.opt-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--border);}
+.opt-row:last-child{border-bottom:none;padding-bottom:0;}
+.opt-row:first-child{padding-top:0;}
+.opt-label strong{display:block;font-size:0.88rem;font-weight:600;color:var(--bright);margin-bottom:2px;}
+.opt-label span{font-size:0.78rem;color:var(--dim);line-height:1.4;}
+.toggle-switch{position:relative;width:46px;height:26px;flex-shrink:0;}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute;}
+.toggle-track{position:absolute;inset:0;background:var(--border2);border-radius:13px;cursor:pointer;transition:background 0.2s;}
+.toggle-track::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform 0.2s;}
+.toggle-switch input:checked+.toggle-track{background:var(--blue);}
+.toggle-switch input:checked+.toggle-track::after{transform:translateX(20px);}
+
+/* AI Questions card */
+.ai-provider-row{display:flex;gap:8px;margin-bottom:12px;}
+.ai-provider-btn{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:600;color:var(--dim);text-align:center;transition:all 0.15s;}
+.ai-provider-btn:hover{border-color:var(--blue);color:var(--text);}
+.ai-provider-btn.active{background:rgba(58,144,255,0.1);border-color:var(--blue);color:var(--blue);}
+.ai-key-row{display:flex;gap:8px;align-items:center;}
+.ai-key-input{flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--bright);padding:9px 12px;border-radius:6px;font-family:'DM Mono',monospace;font-size:0.82rem;outline:none;}
+.ai-key-input:focus{border-color:var(--blue);}
+.ai-key-input::placeholder{color:var(--dim);font-family:'Inter',sans-serif;font-size:0.78rem;}
+.ai-save-btn{padding:9px 16px;background:rgba(0,216,136,0.1);border:1px solid var(--green);color:var(--green);font-family:'Inter',sans-serif;font-size:0.8rem;font-weight:700;border-radius:6px;cursor:pointer;white-space:nowrap;transition:all 0.15s;}
+.ai-save-btn:hover{background:rgba(0,216,136,0.2);}
+.ai-status-row{margin-top:8px;font-size:0.78rem;color:var(--dim);display:flex;align-items:center;gap:6px;}
+.ai-dot{width:7px;height:7px;border-radius:50%;background:var(--border2);flex-shrink:0;}
+.ai-dot.ready{background:var(--green);}
+.ai-dot.loading{background:var(--yellow);animation:pulse-anim 0.8s infinite;}
+@keyframes pulse-anim{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* Manual FV input inside info panel */
+.manual-fv-input-wrap{display:none;align-items:center;gap:8px;margin-top:2px;}
+.manual-fv-input-wrap.visible{display:flex;}
+.manual-fv-input-wrap label{font-size:0.72rem;font-weight:700;color:var(--dim);white-space:nowrap;text-transform:uppercase;letter-spacing:0.06em;}
+.manual-fv-input-wrap input{width:80px;background:var(--bg3);border:1px solid var(--yellow);color:var(--yellow);padding:4px 8px;border-radius:5px;font-family:'DM Mono',monospace;font-size:0.88rem;outline:none;text-align:center;font-weight:700;}
+.manual-fv-input-wrap input:focus{border-color:var(--bright);}
+
+/* ============================================================ UTILS ============================================================ */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+.green{color:var(--green);font-weight:600;}
+.red{color:var(--red);font-weight:600;}
+.yellow{color:var(--yellow);font-weight:600;}
+.dim{color:var(--dim);}
+.bright{color:var(--bright);font-family:'DM Mono',monospace;}
+
+/* ── Multiplayer guest view ── */
+.guest-banner{background:rgba(157,96,255,0.12);border:1px solid var(--purple);border-radius:8px;padding:8px 14px;font-size:0.82rem;font-weight:600;color:var(--purple);text-align:center;margin-bottom:10px;}
+.room-players-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.room-player-chip{background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:3px 10px;font-size:0.75rem;color:var(--dim);}
+.room-player-chip.host{border-color:var(--yellow);color:var(--yellow);}
+.room-player-chip.you{border-color:var(--blue);color:var(--blue);}
+</style>
+</head>
+<body>
+
+<!-- ============================================================ SETUP SCREEN ============================================================ -->
+<div id="screen-setup" class="screen active">
+  <div class="setup-topbar">
+    <button class="theme-toggle-btn" onclick="cycleTheme()"></button>
+  </div>
+  <div class="setup-logo">
+    <h1>⚖ Market Maker</h1>
+    <div class="sub">The Trading Game</div>
+  </div>
+
+  <!-- Game mode -->
+  <div class="setup-card">
+    <h3>Game Mode</h3>
+    <div class="game-type-grid">
+      <button class="game-type-btn active" id="gt-cards" onclick="selectGameType('cards')">
+        <div class="gt-icon">🃏</div>
+        <div class="gt-title">Card Game</div>
+        <div class="gt-desc">Trade on the sum of 6 hidden cards. Asymmetric info from your private hand.</div>
+      </button>
+      <button class="game-type-btn" id="gt-estima" onclick="selectGameType('estimathon')">
+        <div class="gt-icon">🧮</div>
+        <div class="gt-title">Estimathon</div>
+        <div class="gt-desc">Market make on real-world quantities. How many hotel rooms in Las Vegas?</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- AI Question Generation -->
+  <div class="setup-card" id="ai-questions-card" style="display:none">
+    <h3>🤖 AI Question Generation</h3>
+    <div style="font-size:0.82rem;color:var(--dim);margin-bottom:12px;line-height:1.5;">
+      Paste an API key to generate a fresh unique question every game. Leave blank to use the built-in bank of 50 questions.
+    </div>
+    <div class="ai-provider-row">
+      <button class="ai-provider-btn active" id="ai-openai-btn" onclick="selectAIProvider('openai')">OpenAI (GPT-4o mini)</button>
+      <button class="ai-provider-btn" id="ai-claude-btn" onclick="selectAIProvider('claude')">Anthropic (Claude Haiku)</button>
+    </div>
+    <div class="ai-key-row">
+      <input class="ai-key-input" id="ai-key-input" type="password" placeholder="Paste API key here (stored locally, never sent anywhere except the AI provider)">
+      <button class="ai-save-btn" onclick="saveAIKey()">Save</button>
+    </div>
+    <div class="ai-status-row">
+      <div class="ai-dot" id="ai-dot"></div>
+      <span id="ai-status-text">No key saved — using built-in questions.</span>
+    </div>
+  </div>
+
+  <!-- Room type -->
+  <div class="setup-card">
+    <h3>Room Type</h3>
+    <div class="room-type-row">
+      <button class="room-btn active" id="rt-local" onclick="selectRoomType('local')">🖥 Local / Solo</button>
+      <button class="room-btn" id="rt-host" onclick="selectRoomType('host')">🌐 Host Room</button>
+      <button class="room-btn" id="rt-join" onclick="selectRoomType('join')">🔗 Join Room</button>
+    </div>
+
+    <div id="room-local-info" class="room-hint">
+      All players on this device. Humans take turns at the same screen.
+    </div>
+
+    <div id="room-host-area" style="display:none">
+      <div class="room-code-display" id="host-code-display">—</div>
+      <div class="room-hint" style="margin-bottom:8px">Share this code or the link with friends. They open this file and click "Join Room".</div>
+      <button class="copy-link-btn" onclick="copyRoomLink()">📋 Copy shareable link</button>
+      <div class="room-status" id="host-status" style="display:none"></div>
+    </div>
+
+    <div id="room-join-area" style="display:none">
+      <input class="room-code-input" id="join-code-input" placeholder="ENTER CODE" maxlength="6" oninput="this.value=this.value.toUpperCase()">
+      <button class="post-market-btn" onclick="joinRoom()">Connect to Room</button>
+      <div class="room-status" id="join-status" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- Players -->
+  <div class="setup-card" id="players-card">
+    <h3>Players</h3>
+    <div class="slider-row">
+      <label>Total Players</label>
+      <input type="range" id="sl-total" min="2" max="20" value="8" oninput="onSliderChange()">
+      <span class="slider-val" id="sv-total">8</span>
+    </div>
+    <div class="slider-row">
+      <label>Human Players</label>
+      <input type="range" id="sl-humans" min="1" max="8" value="1" oninput="onSliderChange()">
+      <span class="slider-val" id="sv-humans">1 human + 7 bots</span>
+    </div>
+  </div>
+
+  <!-- Round time -->
+  <div class="setup-card">
+    <h3>Round Duration</h3>
+    <div class="round-time-grid">
+      <button class="time-btn" data-mins="3" onclick="selectTime(3)">3 min</button>
+      <button class="time-btn active" data-mins="5" onclick="selectTime(5)">5 min</button>
+      <button class="time-btn" data-mins="10" onclick="selectTime(10)">10 min</button>
+      <button class="time-btn" data-mins="15" onclick="selectTime(15)">15 min</button>
+      <button class="time-btn" data-mins="20" onclick="selectTime(20)">20 min</button>
+    </div>
+  </div>
+
+  <!-- Display Options -->
+  <div class="setup-card">
+    <h3>Display Options</h3>
+    <div class="opt-row">
+      <div class="opt-label">
+        <strong>Auto-calculated Fair Value</strong>
+        <span>Show your computed FV estimate (based on your cards + revealed community cards). Turn off to calculate mentally.</span>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="opt-show-fv" checked onchange="onAutoFVChange()">
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+    <div class="opt-row">
+      <div class="opt-label">
+        <strong>Deck Remaining Count</strong>
+        <span>Show how many cards are left in the deck during the game.</span>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="opt-show-deck" checked>
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+    <div class="opt-row">
+      <div class="opt-label">
+        <strong>Manual FV Input</strong>
+        <span>Enter your own Fair Value estimate instead of the auto-computed one. Your manual estimate drives the edge indicator.</span>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="opt-manual-fv">
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+  </div>
+
+  <button class="start-btn" id="start-btn" onclick="tryStartGame()">⚡ Start Game</button>
+</div>
+
+<!-- ============================================================ ESTIMATHON QUESTION PREVIEW SCREEN ============================================================ -->
+<div id="screen-estima-preview" class="screen">
+  <div style="max-width:520px;margin:0 auto;padding:40px 24px;text-align:center;">
+    <div style="text-align:left;margin-bottom:16px;">
+      <button class="quit-btn" onclick="quitFromPreview()" style="font-size:0.8rem;opacity:0.8;">← Back to Setup</button>
+    </div>
+    <div class="preview-title">🧮 Estimathon — Read the Question</div>
+    <div class="preview-sub" id="estima-prev-sub">You have 90 seconds to think through your estimate before market making begins. No hints yet.</div>
+    <div style="background:var(--bg2);border:2px solid var(--blue);border-radius:14px;padding:24px 28px;margin:0 auto 28px;text-align:left;">
+      <div style="font-size:1rem;font-weight:700;color:var(--bright);line-height:1.6;margin-bottom:10px" id="estima-prev-question"></div>
+      <div style="font-size:0.82rem;color:var(--dim);margin-top:8px">Answer unit: <strong style="color:var(--yellow)" id="estima-prev-unit"></strong></div>
+      <div style="font-size:0.78rem;color:var(--dim);margin-top:6px" id="estima-prev-mag"></div>
+    </div>
+    <div class="preview-countdown" id="estima-prev-countdown">90</div>
+    <div class="preview-bar"><div class="preview-bar-fill" id="estima-prev-bar" style="width:100%"></div></div>
+    <button class="preview-btn" onclick="skipEstimaPreview()" style="margin-top:16px">I have my estimate →</button>
+  </div>
+</div>
+
+<!-- ============================================================ CARD PREVIEW SCREEN ============================================================ -->
+<div id="screen-card-preview" class="screen">
+  <div style="max-width:480px;margin:0 auto;padding-top:20px;padding-bottom:0;padding-left:24px;padding-right:24px;text-align:left;">
+    <button class="quit-btn" onclick="quitFromPreview()" style="font-size:0.8rem;opacity:0.8;">← Back to Setup</button>
+  </div>
+  <div class="preview-title" id="prev-title">Your Cards</div>
+  <div class="preview-sub" id="prev-sub">Memorise your private cards before the round starts.<br>They give you information about what's NOT in the community deck.</div>
+
+  <!-- Show all current cards for this human player -->
+  <div class="all-cards-row" id="prev-cards-row"></div>
+
+  <div class="preview-player-name" id="prev-player-name"></div>
+  <div class="preview-hint" id="prev-hint">Your FV estimate based on these cards: <strong id="prev-fv">—</strong></div>
+
+  <div class="preview-countdown" id="prev-countdown">30</div>
+  <div class="preview-bar"><div class="preview-bar-fill" id="prev-bar-fill" style="width:100%"></div></div>
+
+  <button class="preview-btn" onclick="skipCardPreview()">I'm Ready →</button>
+</div>
+
+<!-- ============================================================ GAME SCREEN ============================================================ -->
+<div id="screen-game" class="screen">
+  <div class="game-header">
+    <button class="quit-btn" onclick="confirmQuit()" style="margin-right:8px">✕ Quit</button>
+    <span class="header-logo">⚖ MM</span>
+    <span class="header-badge round" id="hdr-round">Round 1/3</span>
+    <span class="header-badge phase" id="hdr-phase">Making Market</span>
+    <span class="header-badge game2" id="hdr-game2" style="display:none">ESTIMATHON</span>
+    <button class="theme-toggle-btn" onclick="cycleTheme()"></button>
+    <span class="header-timer" id="hdr-timer">10:00</span>
+  </div>
+
+  <!-- Community cards (Game 1) / Question (Game 2) -->
+  <div class="community-section" id="community-section">
+    <div class="community-label" id="community-label">Community Cards — Settlement = Sum of All 6</div>
+    <!-- Game 1 -->
+    <div id="game1-community">
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:12px">
+        <div class="community-cards-row" id="community-cards-row"></div>
+        <div class="community-info">
+          <div class="comm-stat">Revealed Sum: <span class="val" id="revealed-sum">—</span></div>
+          <div class="comm-stat">Hidden: <span class="val" id="hidden-count">6</span></div>
+          <div class="comm-stat">Deck Left: <span class="val" id="deck-remaining">—</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- Game 2 -->
+    <div id="game2-community" style="display:none">
+      <div class="question-display">
+        <div class="question-text" id="question-text"></div>
+        <div id="question-hints"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="game-body">
+    <div class="game-left">
+      <!-- Your cards -->
+      <div class="info-panel">
+        <div class="info-panel-label" id="your-hand-label">Your Hand</div>
+        <div class="your-cards-row" id="your-cards-row"></div>
+        <div class="your-card-stats">
+          <div class="stat-row"><span class="stat-label">Fair value estimate</span><span class="stat-val" id="your-fv">—</span></div>
+          <div class="manual-fv-input-wrap" id="manual-fv-wrap">
+            <label>My FV:</label>
+            <input type="number" id="manual-fv-input" step="0.5" placeholder="type FV" oninput="onManualFVChange()">
+          </div>
+          <div class="stat-row"><span class="stat-label">Position</span><span class="stat-val" id="your-pos">0</span></div>
+          <div class="stat-row"><span class="stat-label">MTM PnL</span><span class="stat-val" id="your-pnl">0.00</span></div>
+        </div>
+      </div>
+
+      <!-- Market display -->
+      <div class="market-panel">
+        <div class="market-maker-name">Market by: <span id="market-maker-name">—</span></div>
+        <div class="bid-ask-display">
+          <div class="bid-box"><div class="ba-label">BID · sell here</div><div class="ba-price" id="market-bid">—</div></div>
+          <div class="ask-box"><div class="ba-label">ASK · buy here</div><div class="ba-price" id="market-ask">—</div></div>
+        </div>
+        <div class="ba-spread">Spread: <span id="market-spread">—</span> &nbsp;·&nbsp; Mid: <span id="market-mid">—</span></div>
+      </div>
+
+      <!-- Action panel -->
+      <div class="action-panel">
+        <div class="action-title" id="action-title">Action</div>
+
+        <div class="make-market-form" id="make-market-form">
+          <div class="mm-hint">You're the market maker — post your bid and ask:</div>
+          <div class="mm-inputs">
+            <div class="mm-input-group"><label>Bid</label><input type="number" id="mm-bid" placeholder="e.g. 38" step="0.5"></div>
+            <div class="mm-input-group"><label>Ask</label><input type="number" id="mm-ask" placeholder="e.g. 44" step="0.5"></div>
+          </div>
+          <div class="mm-error" id="mm-error"></div>
+          <div id="maker-countdown" style="text-align:center;font-size:0.82rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--yellow);margin-bottom:6px;display:none"></div>
+          <button class="post-market-btn" onclick="humanPostMarket()">📢 Post Market</button>
+        </div>
+
+        <div class="trade-now-section" id="trade-now-section">
+          <div class="trade-race-bar"><div class="trade-race-fill" id="race-fill"></div></div>
+          <button class="trade-now-btn" id="trade-now-btn" onclick="humanClicksTradeNow()">⚡ Trade Now!</button>
+          <div class="race-countdown">Window closes in: <span id="race-time">8.0s</span></div>
+          <div class="edge-indicator" id="edge-indicator"></div>
+        </div>
+
+        <div class="trade-exec-section" id="trade-exec-section">
+          <div class="trade-exec-header">⚡ You won — confirm your trade:</div>
+          <div class="trade-choice-btns">
+            <button class="trade-choice-btn buy" onclick="selectAction('buy')">Buy<br><span id="exec-ask-price" style="font-size:0.85rem"></span></button>
+            <button class="trade-choice-btn sell" onclick="selectAction('sell')">Sell<br><span id="exec-bid-price" style="font-size:0.85rem"></span></button>
+          </div>
+          <div class="vol-row">
+            <label>Volume</label>
+            <input type="range" id="exec-vol" min="1" max="20" value="5" oninput="document.getElementById('exec-vol-display').textContent=this.value">
+            <span class="vol-display" id="exec-vol-display">5</span>
+          </div>
+          <button class="confirm-trade-btn" id="confirm-trade-btn" onclick="confirmHumanTrade()">Confirm Trade</button>
+          <div class="exec-timer" id="exec-timer"></div>
+        </div>
+
+        <div class="status-box" id="status-box">Waiting...</div>
+      </div>
+    </div>
+
+    <div class="game-right">
+      <div class="players-section">
+        <div class="section-header">Players &amp; Positions</div>
+        <table><thead><tr><th>Player</th><th>Cards</th><th>Position</th><th>Avg</th><th>MTM PnL</th></tr></thead>
+        <tbody id="players-tbody"></tbody></table>
+      </div>
+      <div class="tradelog-section">
+        <div class="section-header">Trade Log</div>
+        <table><thead><tr><th>#</th><th>Rnd</th><th>Maker</th><th>Bid</th><th>Ask</th><th>Trader</th><th>Side</th><th>Vol</th><th>Price</th></tr></thead>
+        <tbody id="tradelog-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quit overlay -->
+  <div class="overlay" id="quit-overlay">
+    <div class="overlay-box">
+      <div class="overlay-title">Quit the Game?</div>
+      <div class="overlay-body">Your trades and positions will be lost.</div>
+      <div class="quit-btns">
+        <button class="quit-cancel" onclick="cancelQuit()">Keep Playing</button>
+        <button class="quit-confirm" onclick="doQuit()">Yes, Quit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Round end overlay -->
+  <div class="overlay" id="round-end-overlay">
+    <div class="overlay-box">
+      <div class="overlay-title" id="re-title">Round Complete</div>
+      <div id="re-new-comm-section" style="display:none">
+        <div style="color:var(--dim);font-size:0.8rem;margin-bottom:8px;font-weight:500">Community cards revealed:</div>
+        <div class="round-end-reveal" id="re-comm-cards"></div>
+      </div>
+      <div id="re-new-cards-section" style="display:none">
+        <div style="color:var(--purple);font-size:0.82rem;font-weight:700;margin-bottom:8px">🃏 Each player gets a new information card!</div>
+        <div class="new-cards-row" id="re-new-cards"></div>
+        <div style="color:var(--dim);font-size:0.78rem;margin-bottom:10px;font-weight:500">Your new card: <strong id="re-your-new-card" style="color:var(--purple)">—</strong></div>
+      </div>
+      <div id="re-hint-section" style="display:none">
+        <div style="color:var(--yellow);font-size:0.82rem;font-weight:700;margin-bottom:6px">💡 New hint unlocked for Round <span id="re-hint-round">2</span>:</div>
+        <div id="re-hint-text" style="color:var(--text);font-size:0.88rem;font-style:italic;margin-bottom:10px;padding:8px;background:var(--bg3);border-radius:6px"></div>
+      </div>
+      <div class="overlay-body" id="re-body"></div>
+      <button class="continue-btn" onclick="continueAfterRoundEnd()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- New card preview overlay (shown to each human between rounds) -->
+  <div class="overlay" id="new-card-overlay">
+    <div class="overlay-box">
+      <div class="overlay-title">🃏 New Information Card!</div>
+      <div style="color:var(--dim);font-size:0.85rem;margin-bottom:18px;font-weight:500">
+        <span id="new-card-player-name"></span>, your new private card is:
+      </div>
+      <div class="new-card-big" id="new-card-display">?</div>
+      <div style="color:var(--dim);font-size:0.82rem;margin-bottom:16px">
+        Updated FV: <strong style="color:var(--bright);font-family:'DM Mono',monospace" id="new-card-fv">—</strong>
+      </div>
+      <button class="continue-btn" onclick="acknowledgeNewCard()">Got it →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ RESULTS SCREEN ============================================================ -->
+<div id="screen-results" class="screen">
+  <div class="results-topbar"><button class="theme-toggle-btn" onclick="cycleTheme()"></button></div>
+  <div class="results-title">🏆 Game Over</div>
+  <div class="results-settle">
+    Settlement Value: <span class="settle-val" id="settle-display">—</span>
+    <span id="settle-question-name" style="display:none;color:var(--dim);font-size:0.85rem;display:block;margin-top:4px"></span>
+  </div>
+  <div class="results-community-cards" id="results-comm-cards"></div>
+  <div style="max-width:820px;margin:0 auto;padding:0 24px">
+    <div class="results-card"><h3>Final Rankings</h3><div id="rankings-list"></div></div>
+    <div class="results-card">
+      <h3>Trade History</h3>
+      <table><thead><tr><th>#</th><th>Rnd</th><th>Maker</th><th>Bid</th><th>Ask</th><th>Trader</th><th>Side</th><th>Vol</th><th>Price</th></tr></thead>
+      <tbody id="results-tradelog-tbody"></tbody></table>
+    </div>
+    <button class="play-again-btn" onclick="playAgain()">↺ Play Again</button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- ============================================================ SCRIPT ============================================================ -->
+<script>
+// ═══════════════════════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════════════════════
+const THEMES = ['dark','light','system'];
+const THEME_ICONS = {dark:'🌙 Dark', light:'☀️ Light', system:'💻 System'};
+let currentTheme = localStorage.getItem('mm-theme') || 'dark';
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);currentTheme=t;localStorage.setItem('mm-theme',t);document.querySelectorAll('.theme-toggle-btn').forEach(b=>b.textContent=THEME_ICONS[t]);}
+function cycleTheme(){const next=THEMES[(THEMES.indexOf(currentTheme)+1)%THEMES.length];applyTheme(next);toast(`Theme: ${next}`,'info');}
+applyTheme(currentTheme);
+
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS — CARD GAME
+// ═══════════════════════════════════════════════════════════════
+const FULL_DECK=(()=>{const d=[];for(let i=0;i<=20;i++)d.push(i,i);for(let i=1;i<=8;i++)d.push(-i*10);return d;})(); // 50 cards
+const DECK_EV=FULL_DECK.reduce((a,b)=>a+b,0)/FULL_DECK.length; // 1.2
+const CC=6, TRADE_WIN=8000, EXEC_WIN=8000, BOT_DELAY=1800, CARD_PREVIEW_SECS=30, MAKER_SECS=10;
+
+const BOT_PROFILES=[
+  // sf=spreadFactor, th=threshold, mw=marketWeight, ag=aggressiveness
+  // ub=unitBias (how many primary units they think exist), pb=perUnitBias (per-unit value they assume)
+  // Both biases are for Estimathon: their FV = truth * (1+ub) * (1+pb) + noise
+  {name:'Algo-X',     sf:0.75,th:1.2,mw:0.15,ag:1.8, ub: 0.05, pb: 0.00, estStyle:'top-down'},
+  {name:'QuantEdge',  sf:0.55,th:0.8,mw:0.08,ag:2.2, ub:-0.10, pb:-0.05, estStyle:'conservative'},
+  {name:'HedgeFund',  sf:1.60,th:3.2,mw:0.20,ag:1.0, ub: 0.20, pb: 0.15, estStyle:'bullish'},
+  {name:'ArbBot',     sf:1.00,th:1.8,mw:0.30,ag:1.5, ub: 0.00, pb: 0.00, estStyle:'neutral'},
+  {name:'BearTrap',   sf:1.20,th:2.5,mw:0.10,ag:1.3, ub:-0.25, pb:-0.20, estStyle:'pessimistic',bias:-2.5},
+  {name:'BullRun',    sf:1.20,th:2.5,mw:0.10,ag:1.3, ub: 0.25, pb: 0.20, estStyle:'optimistic', bias:2.5},
+  {name:'GammaBot',   sf:0.90,th:1.6,mw:0.40,ag:1.6, ub: 0.10, pb:-0.10, estStyle:'many-small'},
+  {name:'DeltaOne',   sf:1.10,th:2.0,mw:0.22,ag:1.4, ub:-0.10, pb: 0.10, estStyle:'few-large'},
+  {name:'Momentum',   sf:0.85,th:1.4,mw:0.35,ag:2.0, ub: 0.15, pb: 0.05, estStyle:'trend-follower'},
+  {name:'SteadyHand', sf:1.40,th:2.8,mw:0.18,ag:0.9, ub:-0.05, pb: 0.05, estStyle:'balanced'},
+];
+
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS — ESTIMATHON QUESTIONS (50 built-in)
+// ═══════════════════════════════════════════════════════════════
+const ESTIMA_QUESTIONS=[
+  // ── Hospitality & Gaming ──────────────────────────────────────
+  {q:"How many hotel rooms are there in Las Vegas?",answer:150000,unit:"rooms",
+   hint1:"Las Vegas has over 30 major casino-hotels, many with 3,000+ rooms each.",
+   hint2:"The Strip alone accounts for roughly half the total inventory.",order:1e5},
+  {q:"How many poker tables exist in Las Vegas casinos?",answer:2500,unit:"tables",
+   hint1:"Most major casinos have between 30–100 poker tables.",
+   hint2:"There are approximately 30 card rooms and casinos spread across the city.",order:1e3},
+  {q:"How many slot machines are there in Las Vegas?",answer:170000,unit:"machines",
+   hint1:"Nevada has more slot machines per capita than anywhere in the world.",
+   hint2:"There's roughly one slot machine for every 16 Nevada residents.",order:1e5},
+  // ── Food & Drink ──────────────────────────────────────────────
+  {q:"How many hot dogs are consumed in the United States per year?",answer:20000000000,unit:"hot dogs",
+   hint1:"Americans eat more hot dogs per capita than any other country.",
+   hint2:"7 billion are consumed at summer cookouts alone.",order:1e10},
+  {q:"How many cups of coffee are drunk worldwide every day?",answer:2250000000,unit:"cups/day",
+   hint1:"Coffee is the second most traded commodity in the world after oil.",
+   hint2:"Finland has the highest per-capita consumption at roughly 4 cups per person per day.",order:1e9},
+  {q:"How many pizzas are sold in the United States per year?",answer:3000000000,unit:"pizzas",
+   hint1:"Americans eat roughly 23 pounds of pizza each per year.",
+   hint2:"About 3 billion pizzas are sold annually in the US.",order:1e9},
+  {q:"How many Starbucks stores are there worldwide?",answer:36000,unit:"stores",
+   hint1:"China is Starbucks' second largest market, with thousands of locations.",
+   hint2:"In the US alone there are over 16,000 stores.",order:1e4},
+  {q:"How many McDonald's restaurants are there worldwide?",answer:40000,unit:"locations",
+   hint1:"McDonald's operates in over 100 countries.",
+   hint2:"The US has the most locations — around 14,000.",order:1e4},
+  {q:"How many Michelin-starred restaurants are there in the world?",answer:3500,unit:"restaurants",
+   hint1:"Only a handful of cities account for most of the stars: Tokyo, Paris, New York.",
+   hint2:"Tokyo alone has more Michelin stars than any other city.",order:1e3},
+  // ── Sports & Recreation ───────────────────────────────────────
+  {q:"How many golf courses are there in the United States?",answer:17000,unit:"courses",
+   hint1:"The US has more golf courses than any other country in the world.",
+   hint2:"That's roughly one course per 20,000 people.",order:1e4},
+  {q:"How many dartboards were sold in the US in 2024?",answer:2000000,unit:"units",
+   hint1:"Darts saw a pandemic hobby boom and sales remained elevated afterwards.",
+   hint2:"The US darts market is worth roughly $80–100 million annually.",order:1e6},
+  {q:"How many recreational tennis courts are there in the United States?",answer:270000,unit:"courts",
+   hint1:"The USTA estimates about 270,000 courts across public parks, clubs and schools.",
+   hint2:"That's roughly one court per 1,200 Americans.",order:1e5},
+  {q:"How many bowling lanes are there in the United States?",answer:100000,unit:"lanes",
+   hint1:"There are approximately 5,000 bowling centers in the US.",
+   hint2:"The average bowling center has about 20 lanes.",order:1e5},
+  {q:"How many registered youth soccer players are there in the United States?",answer:3000000,unit:"players",
+   hint1:"Soccer is the most popular youth sport in the US by registration.",
+   hint2:"US Youth Soccer alone registers over 3 million players.",order:1e6},
+  // ── Transport ─────────────────────────────────────────────────
+  {q:"How many commercial flights take off worldwide every day?",answer:102000,unit:"flights/day",
+   hint1:"Pre-pandemic the number was about 115,000.",
+   hint2:"The busiest airports handle over 1,000 departures daily.",order:1e5},
+  {q:"How many cars are registered in the United States?",answer:290000000,unit:"vehicles",
+   hint1:"That's almost one car per American.",
+   hint2:"The US has more registered vehicles than any country except China.",order:1e8},
+  {q:"How many bicycles are sold in the United States each year?",answer:15000000,unit:"bikes/year",
+   hint1:"E-bike sales have surged dramatically since 2020.",
+   hint2:"About half of US bicycles are imported from Asia.",order:1e7},
+  {q:"How many Uber trips are completed worldwide every day?",answer:25000000,unit:"trips/day",
+   hint1:"Uber operates in over 70 countries and 10,000 cities.",
+   hint2:"Ride-sharing peaked during post-pandemic recovery.",order:1e7},
+  // ── Housing & Real Estate ─────────────────────────────────────
+  {q:"How many swimming pools are there in Florida?",answer:1500000,unit:"pools",
+   hint1:"Florida has more residential pools per capita than any other US state.",
+   hint2:"That's roughly 1 pool for every 14 Floridians.",order:1e6},
+  {q:"How many houses are sold in the United States each year?",answer:5000000,unit:"homes/year",
+   hint1:"This includes both existing homes and new construction.",
+   hint2:"The 2021 pandemic boom briefly pushed this above 6 million.",order:1e6},
+  {q:"How many storage unit facilities are there in the United States?",answer:50000,unit:"facilities",
+   hint1:"The US self-storage industry is worth over $40 billion annually.",
+   hint2:"There is more self-storage space per person in the US than anywhere else in the world.",order:1e4},
+  // ── Media & Tech ─────────────────────────────────────────────
+  {q:"How many books are published per year in the United States?",answer:300000,unit:"titles/year",
+   hint1:"This includes self-published works, which have grown dramatically.",
+   hint2:"Traditional publishers account for roughly 100,000 of these.",order:1e5},
+  {q:"How many active YouTube channels are there worldwide?",answer:800000000,unit:"channels",
+   hint1:"Anyone with a Google account can create a channel.",
+   hint2:"Fewer than 1 million channels have over 100,000 subscribers.",order:1e8},
+  {q:"How many apps are available on the Apple App Store?",answer:1800000,unit:"apps",
+   hint1:"Apple launched the App Store in 2008 with 500 apps.",
+   hint2:"Games make up the largest category by count.",order:1e6},
+  {q:"How many emails are sent worldwide every day?",answer:330000000000,unit:"emails/day",
+   hint1:"Spam accounts for roughly 45% of all email traffic.",
+   hint2:"Business email accounts for less than 10% of total volume.",order:1e11},
+  {q:"How many podcasts are there worldwide?",answer:4000000,unit:"podcasts",
+   hint1:"Podcast growth exploded between 2018 and 2022.",
+   hint2:"The majority have fewer than 100 listeners per episode.",order:1e6},
+  // ── Healthcare & Professionals ────────────────────────────────
+  {q:"How many dentists are there in the United States?",answer:200000,unit:"dentists",
+   hint1:"There is roughly 1 dentist per 1,650 Americans.",
+   hint2:"About 60% are in private practice.",order:1e5},
+  {q:"How many piano teachers are there in the UK?",answer:40000,unit:"teachers",
+   hint1:"Piano is the most popular instrument lesson in the UK.",
+   hint2:"Roughly 1 in 1,700 UK residents teaches piano.",order:1e4},
+  {q:"How many nurses are employed in the United States?",answer:4300000,unit:"nurses",
+   hint1:"Nursing is the largest healthcare profession in the US.",
+   hint2:"That's roughly 1.3 nurses per 100 Americans.",order:1e6},
+  {q:"How many licensed electricians are there in the United States?",answer:770000,unit:"electricians",
+   hint1:"There are roughly 3–4 electricians per 1,000 people in the US.",
+   hint2:"Demand has surged with EV charging and renewable energy installation.",order:1e5},
+  // ── Animals & Nature ─────────────────────────────────────────
+  {q:"How many chickens are alive on Earth at any given moment?",answer:33000000000,unit:"chickens",
+   hint1:"Chickens outnumber humans by roughly 4 to 1.",
+   hint2:"About 70 billion chickens are raised for meat globally per year.",order:1e10},
+  {q:"How many pet dogs are there in the United States?",answer:90000000,unit:"dogs",
+   hint1:"About 45% of US households own a dog.",
+   hint2:"That's roughly one dog per 3.5 Americans.",order:1e7},
+  {q:"How many individual ants are alive on Earth?",answer:20000000000000000,unit:"ants",
+   hint1:"A 2022 study estimated 20 quadrillion ants exist.",
+   hint2:"Their combined biomass exceeds all wild mammals and birds combined.",order:1e16},
+  {q:"How many species of fish exist on Earth?",answer:35000,unit:"species",
+   hint1:"Fish are the most diverse group of vertebrates.",
+   hint2:"New species are still discovered every year in deep ocean and remote rivers.",order:1e4},
+  // ── Money & Economy ───────────────────────────────────────────
+  {q:"How many credit cards are in circulation in the United States?",answer:1100000000,unit:"cards",
+   hint1:"The average American adult holds about 3–4 credit cards.",
+   hint2:"Visa and Mastercard together account for over 75% of cards.",order:1e9},
+  {q:"How many millionaires are there in the United States?",answer:22700000,unit:"millionaires",
+   hint1:"Roughly 7% of US adults are millionaires.",
+   hint2:"Net worth includes home equity for most millionaires.",order:1e7},
+  {q:"How many ATMs are there in the United States?",answer:470000,unit:"ATMs",
+   hint1:"ATM numbers peaked around 2019 and have declined slightly since.",
+   hint2:"Roughly half are owned by banks; the rest are independent operators.",order:1e5},
+  // ── Education & Culture ───────────────────────────────────────
+  {q:"How many universities and colleges are there in the United States?",answer:6000,unit:"institutions",
+   hint1:"This includes community colleges, private colleges, and research universities.",
+   hint2:"For-profit colleges make up a significant share of this total.",order:1e3},
+  {q:"How many public libraries are there in the United States?",answer:17000,unit:"libraries",
+   hint1:"The US has more public libraries than McDonald's.",
+   hint2:"About 1,500 of these are main libraries; the rest are branches.",order:1e4},
+  {q:"How many words are in the English language?",answer:200000,unit:"words",
+   hint1:"The Oxford English Dictionary contains about 600,000 definitions, but many are obsolete.",
+   hint2:"The average educated adult actively uses about 20,000–35,000 words.",order:1e5},
+  // ── Space & Science ───────────────────────────────────────────
+  {q:"How many satellites are currently orbiting Earth?",answer:9000,unit:"satellites",
+   hint1:"SpaceX's Starlink constellation alone accounts for thousands.",
+   hint2:"Only about half of all satellites are currently operational.",order:1e3},
+  {q:"How many known exoplanets have been confirmed as of 2024?",answer:5600,unit:"exoplanets",
+   hint1:"NASA's Kepler and TESS missions found the vast majority.",
+   hint2:"The first confirmed exoplanet discovery was in 1992.",order:1e3},
+  // ── Misc & Surprising ─────────────────────────────────────────
+  {q:"How many LEGO bricks are produced every year?",answer:100000000000,unit:"bricks/year",
+   hint1:"LEGO is the world's largest toy manufacturer by revenue.",
+   hint2:"That's about 1,140 bricks produced every second.",order:1e11},
+  {q:"How many haircuts are given in the United States every day?",answer:900000,unit:"haircuts/day",
+   hint1:"There are roughly 1 million barbers and stylists in the US.",
+   hint2:"The average American gets a haircut every 6 weeks.",order:1e6},
+  {q:"How many weddings take place in the United States each year?",answer:2200000,unit:"weddings/year",
+   hint1:"The US wedding industry is worth over $60 billion annually.",
+   hint2:"Saturday in June remains the most popular wedding slot.",order:1e6},
+  {q:"How many lightning strikes hit the Earth's surface every day?",answer:8000000,unit:"strikes/day",
+   hint1:"There are about 100 lightning strikes per second globally.",
+   hint2:"Florida is the lightning capital of the US.",order:1e6},
+  {q:"How many plastic bottles are sold worldwide every minute?",answer:1000000,unit:"bottles/minute",
+   hint1:"Only about 30% of plastic bottles are recycled globally.",
+   hint2:"Half of all plastic ever made has been produced since 2000.",order:1e6},
+  {q:"How many times is the Happy Birthday song sung worldwide each day?",answer:5000000,unit:"times/day",
+   hint1:"With roughly 8 billion people sharing ~365 birthdays, multiple people share each day.",
+   hint2:"It remains one of the most recognisable songs in any language.",order:1e6},
+  {q:"How many Google searches are made every day?",answer:8500000000,unit:"searches/day",
+   hint1:"Google processes over 8 billion queries a day as of 2024.",
+   hint2:"That's roughly 100,000 searches per second.",order:1e9},
+  {q:"How many steps does the average American walk in a year?",answer:1000000,unit:"steps/year",
+   hint1:"The average American walks about 3,000–4,000 steps per day.",
+   hint2:"Health guidelines recommend 10,000 steps per day.",order:1e6},
+];
+
+// ═══════════════════════════════════════════════════════════════
+// PLAYER CLASSES
+// ═══════════════════════════════════════════════════════════════
+class Player{
+  constructor(id,name,isHuman,firstCard){
+    this.id=id;this.name=name;this.isHuman=isHuman;
+    this.privateCards=[firstCard]; // array — grows each round
+    this.position=0;this.cash=0;
+    this.totalBought=0;this.totalSold=0;this.totalBuyVal=0;this.totalSellVal=0;
+  }
+  get privateCard(){return this.privateCards[0];}
+  avgEntry(){if(!this.position)return 0;return this.position>0?this.totalBuyVal/this.totalBought:this.totalSellVal/this.totalSold;}
+  mtmPnL(mid){return this.cash+this.position*mid;}
+  settlePnL(s){return this.cash+this.position*s;}
+}
+
+class Bot extends Player{
+  constructor(id,firstCard,p){super(id,p.name,false,firstCard);this.p=p;this.fv=null;}
+  calcFV(){
+    if(G.gameType==='estimathon'){
+      // Human-like estimation: pick a plausible "unit count" and "per-unit value"
+      // that are EACH off by up to ±60%, causing total estimates to be 40%–250% of truth
+      const truth=G.estimaQuestion.answer;
+      const logTruth=Math.log10(Math.abs(truth));
+      // Each bot picks a random "unit count" factor centered on 10^(logTruth/2) with personality bias
+      const logA=(logTruth/2)+(this.p.ub||0)*0.4+(Math.random()-0.5)*0.6;
+      const logB=(logTruth/2)+(this.p.pb||0)*0.4+(Math.random()-0.5)*0.6;
+      const factorA=Math.pow(10,logA);
+      const factorB=Math.pow(10,logB);
+      this.fv=Math.round(factorA*factorB);
+      return this.fv;
+    }
+    const rev=G.communityCards.filter((_,i)=>G.revealedIndices.includes(i));
+    const rSum=rev.reduce((s,c)=>s+c,0);
+    const nh=CC-G.revealedIndices.length;
+    const pool=unknownPool([...this.privateCards,...rev]);
+    const ev=pool.length?pool.reduce((s,c)=>s+c,0)/pool.length:DECK_EV;
+    this.fv=Math.round((rSum+nh*ev+(this.p.bias||0))*10)/10;
+    return this.fv;
+  }
+  observeMkt(bid,ask,mid){
+    if(mid===this.id||this.fv===null)return;
+    // Scale the spread normaliser to the magnitude of the prices (so tight spreads carry weight at any scale)
+    const spreadRef=G.gameType==='estimathon'?Math.abs((bid+ask)/2)*0.12:6;
+    const w=this.p.mw*Math.exp(-(ask-bid)/Math.max(1,spreadRef));
+    this.fv=Math.round((this.fv*(1-w)+((bid+ask)/2)*w)*10)/10;
+  }
+  makeMkt(){
+    if(this.fv===null)this.calcFV();
+    const nh=G.gameType==='estimathon'?0:CC-G.revealedIndices.length;
+    const uf=1+(nh/CC);
+    // Estimathon: spread is proportional to FV (6–15% of FV based on sf), not a fixed unit number
+    const h=G.gameType==='estimathon'
+      ? Math.abs(this.fv)*0.06*this.p.sf
+      : (2.5*this.p.sf*uf)/2;
+    const bid=Math.round((this.fv-h)*2)/2;
+    const ask=Math.max(Math.round((this.fv+h)*2)/2,bid+0.5);
+    return{bid,ask};
+  }
+  decide(bid,ask){
+    if(this.fv===null)this.calcFV();
+    const eb=this.fv-ask,es=bid-this.fv;
+    // Estimathon: threshold scales with FV (2% of FV * personality factor), else fixed unit threshold
+    const th=G.gameType==='estimathon'?Math.abs(this.fv)*0.02*this.p.th:this.p.th;
+    if(eb>th)return{action:'buy', volume:Math.min(20,Math.max(1,Math.round(this.p.ag*2))),edge:eb};
+    if(es>th)return{action:'sell',volume:Math.min(20,Math.max(1,Math.round(this.p.ag*2))),edge:es};
+    return null;
+  }
+  react(edge){
+    const scale=G.gameType==='estimathon'?Math.abs(this.fv||G.estimaQuestion?.answer||1000)*0.04:10;
+    const s=Math.min(1,edge/Math.max(1,scale));
+    // Estimathon: 3–10s reaction time (humans have to read, think, click)
+    // Card game: 0.4–7s
+    if(G.gameType==='estimathon'){
+      return Math.max(3000,Math.min(10000,9000-s*5500+(Math.random()-.5)*3000));
+    }
+    return Math.max(400,Math.min(7000,6000-s*5200+(Math.random()-.5)*2000));
+  }
+}
+
+function unknownPool(known){const p=[...FULL_DECK];for(const c of known){const i=p.indexOf(c);if(i!==-1)p.splice(i,1);}return p;}
+function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
+
+// ═══════════════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════════════
+let G=null;
+function freshState(){
+  return{
+    config:{numPlayers:8,numHumans:1,roundMinutes:5},
+    gameType:'cards', // 'cards' | 'estimathon'
+    players:[],humanPlayerIndices:[],
+    deck:[],communityCards:[],revealedIndices:[],
+    estimaQuestion:null,
+    phase:'setup',round:1,
+    roundEndTime:null,timerInterval:null,
+    marketMakerIdx:null,currentMarket:null,
+    tradeWindow:null,execState:null,execTimerInterval:null,
+    trades:[],tradeCounter:0,settlementValue:null,
+    newCardQueue:[], // humans waiting to see their new card
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SETUP UI
+// ═══════════════════════════════════════════════════════════════
+let selGameType='cards', selRoomType='local', selMins=5;
+let optShowFV=true, optShowDeck=true, optManualFV=false;
+let aiProvider='openai', aiApiKey='';
+
+function onAutoFVChange(){
+  const autoOn=document.getElementById('opt-show-fv').checked;
+  const manualInp=document.getElementById('opt-manual-fv');
+  const manualRow=manualInp.closest('.opt-row');
+  if(autoOn){manualInp.checked=false;manualInp.disabled=true;manualRow.style.opacity='0.4';manualRow.style.pointerEvents='none';}
+  else{manualInp.disabled=false;manualRow.style.opacity='1';manualRow.style.pointerEvents='';}
+}
+
+// ─── AI question state ───────────────────────────────────────────
+function selectAIProvider(p){
+  aiProvider=p;
+  document.getElementById('ai-openai-btn').classList.toggle('active',p==='openai');
+  document.getElementById('ai-claude-btn').classList.toggle('active',p==='claude');
+  const saved=localStorage.getItem('mm-ai-key-'+p)||'';
+  document.getElementById('ai-key-input').value=saved;
+  aiApiKey=saved;
+  refreshAIStatus();
+}
+
+function saveAIKey(){
+  const k=document.getElementById('ai-key-input').value.trim();
+  aiApiKey=k;
+  if(k)localStorage.setItem('mm-ai-key-'+aiProvider,k);
+  else localStorage.removeItem('mm-ai-key-'+aiProvider);
+  refreshAIStatus();
+  toast(k?'API key saved 🔑':'Key cleared','info');
+}
+
+function refreshAIStatus(){
+  const dot=document.getElementById('ai-dot');
+  const txt=document.getElementById('ai-status-text');
+  if(aiApiKey){dot.className='ai-dot ready';txt.textContent=`Key saved — fresh AI question will be generated each game (${aiProvider}).`;}
+  else{dot.className='ai-dot';txt.textContent='No key — using the built-in bank of 50 questions.';}
+}
+
+function setAILoading(loading){
+  const dot=document.getElementById('ai-dot');
+  const txt=document.getElementById('ai-status-text');
+  if(loading){dot.className='ai-dot loading';txt.textContent='Generating question…';}
+  else refreshAIStatus();
+}
+
+async function fetchAIQuestion(){
+  const prompt=`Generate a fun, surprising Estimathon market-making question about a real-world quantity.
+Return ONLY valid JSON in exactly this format (no extra text):
+{"q":"How many ...", "answer": <number>, "unit": "<unit>", "hint1": "<first clue>", "hint2": "<second clue>", "order": <rough order-of-magnitude starting point as a number>}
+Rules: answer must be a real approximate value, question must be answerable by estimation, make it interesting and unexpected.`;
+
+  try{
+    setAILoading(true);
+    let raw;
+    if(aiProvider==='openai'){
+      const res=await fetch('https://api.openai.com/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+aiApiKey},
+        body:JSON.stringify({model:'gpt-4o-mini',messages:[{role:'user',content:prompt}],response_format:{type:'json_object'}})
+      });
+      if(!res.ok)throw new Error('OpenAI '+res.status);
+      const data=await res.json();
+      raw=data.choices[0].message.content;
+    }else{
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':aiApiKey,'anthropic-version':'2023-06-01'},
+        body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:512,messages:[{role:'user',content:prompt}]})
+      });
+      if(!res.ok)throw new Error('Anthropic '+res.status);
+      const data=await res.json();
+      raw=data.content[0].text;
+    }
+    const q=JSON.parse(raw);
+    if(!q.q||!q.answer||!q.unit)throw new Error('Bad format');
+    if(!q.order)q.order=Math.pow(10,Math.floor(Math.log10(Math.abs(q.answer))));
+    if(!q.hint1)q.hint1='Think about the scale of related industries or activities.';
+    if(!q.hint2)q.hint2='Consider how many people are involved or affected by this quantity.';
+    setAILoading(false);
+    return q;
+  }catch(e){
+    setAILoading(false);
+    toast('AI question failed ('+e.message+') — using built-in.','warn');
+    return null;
+  }
+}
+// ═══════════════════════════════════════════════════════════════
+// SOCKET.IO MULTIPLAYER
+// ═══════════════════════════════════════════════════════════════
+let socket = null;
+let isHost = false;
+let isGuest = false;
+let guestIndex = -1;
+let guestDisplayName = 'You';
+let generatedRoomCode = '';
+let guestIsWinningTrade = false;
+
+function getSocket() {
+  if (!socket) {
+    socket = io(window.location.origin, { autoConnect: true });
+    bindSocketEvents();
+  }
+  return socket;
+}
+
+function bindSocketEvents() {
+  socket.on('connect', () => {
+    console.log('Connected to server:', socket.id);
+  });
+
+  socket.on('room_created', ({ code }) => {
+    generatedRoomCode = code;
+    isHost = true;
+    document.getElementById('host-code-display').textContent = code;
+    const statusEl = document.getElementById('host-status');
+    statusEl.style.display = 'block';
+    statusEl.className = 'room-status connected';
+    statusEl.textContent = 'Room ready! Share the code or link with friends.';
+  });
+
+  socket.on('room_updated', ({ guests }) => {
+    const statusEl = document.getElementById('host-status');
+    if (statusEl) {
+      const names = guests.map(g => g.name).join(', ');
+      statusEl.textContent = `Room live — ${guests.length} guest(s): ${names || 'none yet'}`;
+    }
+  });
+
+  socket.on('room_joined', ({ code, hostName, guestIndex: gi, guests }) => {
+    isGuest = true;
+    isHost = false;
+    guestIndex = gi;
+    generatedRoomCode = code;
+    const statusEl = document.getElementById('join-status');
+    if (statusEl) {
+      statusEl.className = 'room-status connected';
+      statusEl.textContent = `Joined! Host: ${hostName}. Waiting for game to start…`;
+    }
+    toast(`Joined room ${code} — waiting for host to start`, 'info');
+  });
+
+  socket.on('game_state', state => {
+    if (!isGuest) return;
+    applyGuestState(state);
+  });
+
+  socket.on('guest_action', action => {
+    if (!isHost || !G) return;
+    handleIncomingGuestAction(action);
+  });
+
+  socket.on('host_response', data => {
+    if (!isGuest) return;
+    handleHostResponse(data);
+  });
+
+  socket.on('host_disconnected', () => {
+    toast('Host disconnected — game ended', 'warn');
+    isGuest = false;
+    clearAllTimers();
+    G = null;
+    switchScreen('setup');
+  });
+
+  socket.on('guest_left', ({ guestName }) => {
+    toast(`${guestName} left the room`, 'info');
+  });
+
+  socket.on('chat', ({ name, message }) => {
+    toast(`💬 ${name}: ${message}`, 'info');
+  });
+
+  socket.on('connect_error', () => {
+    toast('Server connection failed — playing locally', 'warn');
+  });
+}
+
+function selectGameType(t){
+  selGameType=t;
+  document.getElementById('gt-cards').classList.toggle('active',t==='cards');
+  document.getElementById('gt-estima').classList.toggle('active',t==='estimathon');
+  document.getElementById('ai-questions-card').style.display=t==='estimathon'?'':'none';
+  document.getElementById('players-card').querySelector('h3').textContent='Players';
+}
+
+function selectRoomType(t){
+  selRoomType=t;
+  ['local','host','join'].forEach(r=>{document.getElementById('rt-'+r).classList.toggle('active',r===t);});
+  document.getElementById('room-local-info').style.display=t==='local'?'block':'none';
+  document.getElementById('room-host-area').style.display=t==='host'?'block':'none';
+  document.getElementById('room-join-area').style.display=t==='join'?'block':'none';
+  if(t==='host') initHostRoom();
+}
+
+function initHostRoom() {
+  if (generatedRoomCode) return;
+  getSocket().emit('create_room', { displayName: 'Host' });
+  const statusEl = document.getElementById('host-status');
+  statusEl.style.display = 'block';
+  statusEl.className = 'room-status connecting';
+  statusEl.textContent = 'Creating room…';
+}
+
+function joinRoom() {
+  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+  if (code.length < 4) { toast('Enter a room code first', 'warn'); return; }
+  const statusEl = document.getElementById('join-status');
+  statusEl.style.display = 'block';
+  statusEl.className = 'room-status connecting';
+  statusEl.textContent = 'Connecting…';
+  getSocket().emit('join_room', { code, displayName: guestDisplayName });
+}
+
+function copyRoomLink() {
+  const url = window.location.href.split('#')[0] + '#join=' + generatedRoomCode;
+  navigator.clipboard.writeText(url)
+    .then(() => toast('Link copied! 🎉 Send to friends', 'info'))
+    .catch(() => toast('Copy manually: ' + url, 'info'));
+}
+
+function checkUrlJoin() {
+  const hash = window.location.hash;
+  if (hash.startsWith('#join=')) {
+    const code = hash.replace('#join=', '').toUpperCase();
+    selectRoomType('join');
+    document.getElementById('join-code-input').value = code;
+    joinRoom();
+  }
+}
+
+// ── Host → broadcast state to guests ──────────────────────────
+function broadcastGameState() {
+  if (!isHost || !socket || !G) return;
+  const state = buildBroadcastState();
+  socket.emit('game_state', state);
+}
+
+function buildBroadcastState() {
+  return {
+    phase: G.phase,
+    round: G.round,
+    gameType: G.gameType,
+    currentMarket: G.currentMarket,
+    marketMakerIdx: G.marketMakerIdx,
+    communityCards: G.gameType === 'cards' ? G.communityCards : null,
+    revealedIndices: G.revealedIndices,
+    estimaQuestion: G.gameType === 'estimathon' ? {
+      q: G.estimaQuestion.q,
+      unit: G.estimaQuestion.unit,
+      hint1: G.estimaQuestion.hint1,
+      hint2: G.estimaQuestion.hint2,
+      order: G.estimaQuestion.order
+    } : null,
+    players: G.players.map(p => ({
+      name: p.name,
+      isHuman: p.isHuman,
+      position: p.position,
+      cash: p.cash,
+      avgEntry: p.avgEntry(),
+      totalBought: p.totalBought,
+      totalSold: p.totalSold
+    })),
+    trades: G.trades.slice(-20),
+    settlementValue: G.settlementValue,
+    roundEndTime: G.roundEndTime,
+  };
+}
+
+// ── Guest: apply received state ────────────────────────────────
+function applyGuestState(state) {
+  if (!isGuest) return;
+  if (!G) {
+    G = freshState();
+    G.gameType = state.gameType;
+    G.estimaQuestion = state.estimaQuestion;
+    switchScreen('game');
+    setupGameUIForGuest(state);
+  }
+
+  G.phase = state.phase;
+  G.round = state.round;
+  G.currentMarket = state.currentMarket;
+  G.marketMakerIdx = state.marketMakerIdx;
+  G.trades = state.trades || [];
+  G.settlementValue = state.settlementValue;
+  G.roundEndTime = state.roundEndTime;
+
+  if (state.communityCards) {
+    G.communityCards = state.communityCards;
+    G.revealedIndices = state.revealedIndices;
+  }
+
+  if (state.estimaQuestion) G.estimaQuestion = state.estimaQuestion;
+
+  if (state.players && state.players.length) {
+    G.players = state.players.map((p, i) => {
+      const pl = new Player(i, p.name, p.isHuman, 0);
+      pl.position = p.position;
+      pl.cash = p.cash;
+      pl.totalBought = p.totalBought || 0;
+      pl.totalSold = p.totalSold || 0;
+      pl.totalBuyVal = p.totalBuyVal || 0;
+      pl.totalSellVal = p.totalSellVal || 0;
+      return pl;
+    });
+    G.humanPlayerIndices = G.players.map((p, i) => p.isHuman ? i : -1).filter(i => i >= 0);
+  }
+
+  if (G.roundEndTime) {
+    const rem = Math.max(0, G.roundEndTime - Date.now());
+    updateTimerDisplay(rem);
+    if (!G.timerInterval) {
+      G.timerInterval = setInterval(() => {
+        const r = Math.max(0, G.roundEndTime - Date.now());
+        updateTimerDisplay(r);
+      }, 500);
+    }
+  }
+
+  document.getElementById('hdr-round').textContent = `Round ${G.round}/3`;
+  updatePhase();
+  if (G.gameType === 'cards') updateCommunityCards();
+  updatePlayersTable();
+  updateTradeLog();
+
+  if (state.currentMarket) {
+    const mk = G.players[state.marketMakerIdx];
+    updateMktDisplay(state.currentMarket.bid, state.currentMarket.ask, mk ? mk.name : '—');
+  }
+
+  if (state.phase === 'trade_window' && state.currentMarket && !guestIsWinningTrade) {
+    showGuestTradeNow(state.currentMarket.bid, state.currentMarket.ask);
+  } else if (state.phase === 'making_market') {
+    hideActions();
+    showStatus(state.marketMakerIdx >= 0 && G.players[state.marketMakerIdx]
+      ? `${G.players[state.marketMakerIdx].name} is making the market…`
+      : 'Waiting for next market…');
+  } else if (state.phase === 'settling' || state.settlementValue !== null) {
+    clearInterval(G.timerInterval);
+    G.timerInterval = null;
+    showResults();
+  }
+}
+
+function setupGameUIForGuest(state) {
+  document.getElementById('hdr-game2').style.display = state.gameType === 'estimathon' ? '' : 'none';
+  document.getElementById('game1-community').style.display = state.gameType === 'cards' ? '' : 'none';
+  document.getElementById('game2-community').style.display = state.gameType === 'estimathon' ? '' : 'none';
+  if (state.estimaQuestion) {
+    document.getElementById('question-text').textContent = state.estimaQuestion.q;
+  }
+  const banner = document.createElement('div');
+  banner.className = 'guest-banner';
+  banner.textContent = '👥 You are a guest — trade when the window opens!';
+  document.querySelector('.info-panel').prepend(banner);
+}
+
+function showGuestTradeNow(bid, ask) {
+  document.getElementById('action-title').textContent = '⚡ Trade Window — Click Fast!';
+  document.getElementById('trade-now-section').classList.add('visible');
+  document.getElementById('trade-now-btn').disabled = false;
+  document.getElementById('race-fill').style.width = '100%';
+  document.getElementById('race-time').textContent = (TRADE_WIN / 1000).toFixed(1) + 's';
+  const el = document.getElementById('edge-indicator');
+  el.innerHTML = '<span class="dim">Race to trade — fastest player wins!</span>';
+  document.getElementById('trade-now-btn').onclick = guestClicksTradeNow;
+}
+
+function guestClicksTradeNow() {
+  if (!socket || !G || !G.currentMarket) return;
+  guestIsWinningTrade = true;
+  document.getElementById('trade-now-btn').disabled = true;
+  socket.emit('guest_action', {
+    type: 'trade_now',
+    bid: G.currentMarket.bid,
+    ask: G.currentMarket.ask,
+    makerId: G.currentMarket.makerId,
+    ts: Date.now()
+  });
+  showStatus('Waiting for host to confirm…');
+}
+
+function handleHostResponse(data) {
+  guestIsWinningTrade = false;
+  if (data.type === 'trade_won') {
+    showExec(data.bid, data.ask);
+    document.getElementById('confirm-trade-btn').onclick = () => guestConfirmTrade(data);
+  } else if (data.type === 'trade_lost') {
+    toast('Someone was faster — missed this trade', 'warn');
+    hideActions();
+    showStatus('Trade window closed.');
+  }
+}
+
+function guestConfirmTrade(ctx) {
+  const action = document.querySelector('.trade-choice-btn.selected')?.classList.contains('buy') ? 'buy' : 'sell';
+  if (!action) { toast('Select buy or sell', 'warn'); return; }
+  const vol = parseInt(document.getElementById('exec-vol').value);
+  clearInterval(G.execTimerInterval); G.execTimerInterval = null;
+  socket.emit('guest_action', {
+    type: 'trade_confirm',
+    action,
+    volume: vol,
+    bid: ctx.bid,
+    ask: ctx.ask,
+    makerId: ctx.makerId
+  });
+  hideActions();
+  showStatus('Trade sent!');
+}
+
+// ── Host: handle incoming guest actions ────────────────────────
+let guestTradeWinner = null;
+
+function handleIncomingGuestAction(action) {
+  if (!G || !G.tradeWindow || !G.tradeWindow.active) return;
+
+  if (action.type === 'trade_now') {
+    if (guestTradeWinner) return;
+    guestTradeWinner = action.guestSocketId;
+    socket.emit('host_response', {
+      guestSocketId: action.guestSocketId,
+      data: { type: 'trade_won', bid: G.currentMarket.bid, ask: G.currentMarket.ask }
+    });
+    G.tradeWindow.botTimers.forEach(t => clearTimeout(t));
+    clearTimeout(G.tradeWindow.windowTimer);
+    clearInterval(G.tradeWindow.raceInterval);
+    G.tradeWindow.active = false;
+    toast(`${action.guestName} is trading!`, 'info');
+  }
+
+  if (action.type === 'trade_confirm') {
+    guestTradeWinner = null;
+    const traderIdx = G.players.findIndex(p => p.name === action.guestName);
+    if (traderIdx < 0) return;
+    execTrade(traderIdx, action.action, action.volume, action.bid, action.ask, action.makerId);
+    closeTradeWindow();
+    nextTurn(traderIdx);
+    broadcastGameState();
+  }
+}
+
+function clearAllTimers() {
+  clearInterval(G.timerInterval);
+  clearInterval(G.execTimerInterval);
+  if (mkBotT) clearTimeout(mkBotT);
+  if (makerTimer) clearInterval(makerTimer);
+  if (previewTimer) clearInterval(previewTimer);
+  if (estimaPreviewTimer) clearInterval(estimaPreviewTimer);
+}
+
+function onSliderChange(){
+  const tot=parseInt(document.getElementById('sl-total').value);
+  const sl=document.getElementById('sl-humans');
+  sl.max=tot;if(parseInt(sl.value)>tot)sl.value=tot;
+  const h=parseInt(sl.value),b=tot-h;
+  document.getElementById('sv-total').textContent=tot;
+  document.getElementById('sv-humans').textContent=`${h} human${h!==1?'s':''} + ${b} bot${b!==1?'s':''}`;
+}
+function selectTime(m){selMins=m;document.querySelectorAll('.time-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.mins)===m));}
+
+// ═══════════════════════════════════════════════════════════════
+// GAME INITIALIZATION
+// ═══════════════════════════════════════════════════════════════
+async function tryStartGame(){
+  const btn=document.getElementById('start-btn');
+  if(selGameType==='estimathon'&&aiApiKey){
+    btn.disabled=true;btn.textContent='🤖 Generating question…';
+    const aiQ=await fetchAIQuestion();
+    btn.disabled=false;btn.textContent='⚡ Start Game';
+    startGame(aiQ);
+  }else{
+    startGame(null);
+  }
+}
+
+function startGame(aiQuestion){
+  G=freshState();
+  G.config.numPlayers=parseInt(document.getElementById('sl-total').value);
+  G.config.numHumans=parseInt(document.getElementById('sl-humans').value);
+  G.config.roundMinutes=selMins;
+  G.gameType=selGameType;
+  optShowFV=document.getElementById('opt-show-fv').checked;
+  optShowDeck=document.getElementById('opt-show-deck').checked;
+  optManualFV=document.getElementById('opt-manual-fv').checked;
+  // Show/hide manual FV input box, reset state
+  document.getElementById('manual-fv-wrap').classList.toggle('visible',optManualFV);
+  const mInp=document.getElementById('manual-fv-input');
+  mInp.value='';delete mInp.dataset.touched;
+
+  // Pick question if estimathon
+  if(G.gameType==='estimathon'){
+    G.estimaQuestion=aiQuestion||shuffle(ESTIMA_QUESTIONS)[0];
+  }
+
+  let deck=shuffle(FULL_DECK);
+  const profs=shuffle(BOT_PROFILES);
+  const names=['You','Friend 2','Friend 3','Friend 4','Friend 5'];
+
+  for(let i=0;i<G.config.numHumans;i++){
+    G.players.push(new Player(i,names[i]||`Player ${i+1}`,true,deck[0]));
+    G.humanPlayerIndices.push(i);
+    deck=deck.slice(1);
+  }
+  for(let i=0;i<G.config.numPlayers-G.config.numHumans;i++){
+    G.players.push(new Bot(G.config.numHumans+i,deck[0],profs[i%profs.length]));
+    deck=deck.slice(1);
+  }
+  G.communityCards=deck.slice(0,CC);
+  G.deck=deck.slice(CC);
+
+  // Setup game UI labels
+  if(G.gameType==='estimathon'){
+    document.getElementById('hdr-game2').style.display='';
+    document.getElementById('game1-community').style.display='none';
+    document.getElementById('game2-community').style.display='';
+    document.getElementById('community-label').textContent='Question — Settlement = True Answer';
+    document.getElementById('your-hand-label').textContent='Your Estimate (private)';
+    document.getElementById('question-text').textContent=G.estimaQuestion.q;
+    document.getElementById('question-hints').innerHTML='<div class="question-hint hidden-hint">Hints unlock in rounds 2 and 3.</div>';
+  } else {
+    document.getElementById('hdr-game2').style.display='none';
+    document.getElementById('game1-community').style.display='';
+    document.getElementById('game2-community').style.display='none';
+    document.getElementById('community-label').textContent='Community Cards — Settlement = Sum of All 6';
+    document.getElementById('your-hand-label').textContent='Your Hand';
+  }
+
+  // Estimathon: 90s question preview before market making
+  if(G.gameType==='estimathon'){
+    startEstimaPreview();
+    return;
+  }
+  // Card game: show 30s card preview for each human
+  switchScreen('card-preview');
+  startCardPreview(0);
+}
+
+function receivedGameStart(state){
+  // Guest receives game state from host (online room future feature)
+  toast('Received game from host!','info');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CARD PREVIEW (30 seconds)
+// ═══════════════════════════════════════════════════════════════
+let previewTimer=null, previewHumanIdx=0, previewEndTime=0;
+
+function startCardPreview(humanIdx){
+  previewHumanIdx=humanIdx;
+  const player=G.players[G.humanPlayerIndices[humanIdx]];
+  const isNewRound=G.round>1;
+
+  document.getElementById('prev-title').textContent=isNewRound?`Round ${G.round} — New Card!`:'Your Starting Cards';
+  document.getElementById('prev-sub').textContent=isNewRound
+    ?'You received a new information card. Update your fair value estimate!'
+    :'Memorise your private cards — they tell you what\'s NOT in the community deck.';
+  document.getElementById('prev-player-name').textContent=player.name;
+
+  // Show all cards
+  const row=document.getElementById('prev-cards-row');
+  row.innerHTML='';
+  player.privateCards.forEach((v,i)=>{
+    const isNewest=i===player.privateCards.length-1&&isNewRound;
+    const cls=v>0?'positive':v<0?'negative':'';
+    row.innerHTML+=`<div class="mini-card ${cls}" style="${isNewest?'border-color:var(--purple);color:var(--purple);box-shadow:0 0 14px rgba(157,96,255,0.3)':''}">${v}</div>`;
+  });
+
+  // Compute FV
+  const fv=calcHumanFV(player);
+  document.getElementById('prev-fv').textContent=`~${fv}`;
+  document.getElementById('prev-hint').innerHTML=`Your FV estimate based on these cards: <strong style="color:var(--bright);font-family:'DM Mono',monospace">~${fv}</strong>`;
+
+  // Countdown using Date.now() so it's accurate even on slow devices
+  previewEndTime=Date.now()+CARD_PREVIEW_SECS*1000;
+  document.getElementById('prev-countdown').textContent=CARD_PREVIEW_SECS;
+  document.getElementById('prev-bar-fill').style.width='100%';
+  document.getElementById('prev-countdown').className='preview-countdown';
+
+  clearInterval(previewTimer);
+  previewTimer=setInterval(()=>{
+    const rem=Math.max(0,Math.round((previewEndTime-Date.now())/1000));
+    document.getElementById('prev-countdown').textContent=rem;
+    document.getElementById('prev-bar-fill').style.width=(rem/CARD_PREVIEW_SECS*100)+'%';
+    if(rem<=5)document.getElementById('prev-countdown').className='preview-countdown urgent';
+    if(rem<=0){clearInterval(previewTimer);nextPreviewOrStart();}
+  },500);
+}
+
+function skipCardPreview(){
+  clearInterval(previewTimer);
+  nextPreviewOrStart();
+}
+
+function quitFromPreview(){
+  clearInterval(previewTimer);
+  clearInterval(estimaPreviewTimer);
+  if(G)clearAllTimers();
+  G=null;
+  switchScreen('setup');
+  toast('Returned to setup.','info');
+}
+
+function nextPreviewOrStart(){
+  // If there are more human players to show cards to, cycle through them
+  const nextIdx=previewHumanIdx+1;
+  if(nextIdx<G.humanPlayerIndices.length){
+    startCardPreview(nextIdx);
+    return;
+  }
+  // All humans have seen cards — start the round
+  switchScreen('game');
+  startRound(G.round);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ESTIMATHON QUESTION PREVIEW (90 seconds)
+// ═══════════════════════════════════════════════════════════════
+const ESTIMA_PREVIEW_SECS=90;
+let estimaPreviewTimer=null, estimaPreviewEndTime=0;
+
+function startEstimaPreview(){
+  const q=G.estimaQuestion;
+  document.getElementById('estima-prev-question').textContent=q.q;
+  document.getElementById('estima-prev-unit').textContent=q.unit;
+  // Show order-of-magnitude hint so players don't post wildly wrong markets
+  const mag=q.order;
+  document.getElementById('estima-prev-mag').textContent=`Scale hint: answers in this range are typically around ${fmt(mag/10)} – ${fmt(mag*10)}`;
+  document.getElementById('estima-prev-sub').textContent=G.round===1
+    ?'90 seconds to form your estimate. No hints yet — use what you know!'
+    :`Round ${G.round} — new hint: ${G.round===2?q.hint1:q.hint2}`;
+  switchScreen('estima-preview');
+  estimaPreviewEndTime=Date.now()+ESTIMA_PREVIEW_SECS*1000;
+  clearInterval(estimaPreviewTimer);
+  estimaPreviewTimer=setInterval(()=>{
+    const rem=Math.max(0,Math.round((estimaPreviewEndTime-Date.now())/1000));
+    document.getElementById('estima-prev-countdown').textContent=rem;
+    document.getElementById('estima-prev-bar').style.width=(rem/ESTIMA_PREVIEW_SECS*100)+'%';
+    if(rem<=10)document.getElementById('estima-prev-countdown').className='preview-countdown urgent';
+    if(rem<=0){clearInterval(estimaPreviewTimer);switchScreen('game');startRound(G.round);}
+  },500);
+}
+
+function skipEstimaPreview(){
+  clearInterval(estimaPreviewTimer);
+  switchScreen('game');
+  startRound(G.round);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ROUND MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+function startRound(round){
+  G.round=round;G.phase='round_active';G.currentMarket=null;G.marketMakerIdx=null;
+
+  // Card game: reveal community cards
+  if(G.gameType==='cards'){
+    if(round===2)revealCards([0,1],false);
+    if(round===3)revealCards([2,3],false);
+  }
+
+  // Estimathon: show hints
+  if(G.gameType==='estimathon'){
+    const hintEl=document.getElementById('question-hints');
+    if(round===2){
+      hintEl.innerHTML=`<div class="question-hint">💡 Hint 1: ${G.estimaQuestion.hint1}</div>`;
+    } else if(round===3){
+      hintEl.innerHTML=`<div class="question-hint">💡 Hint 1: ${G.estimaQuestion.hint1}</div>
+        <div class="question-hint" style="margin-top:4px">💡 Hint 2: ${G.estimaQuestion.hint2}</div>`;
+    }
+  }
+
+  // All bots recalc FV
+  G.players.forEach(p=>{if(!p.isHuman)p.calcFV();});
+
+  G.roundEndTime=Date.now()+G.config.roundMinutes*60000;
+  G.timerInterval=setInterval(tickTimer,500);
+  updateUI();
+  if(G.gameType==='cards')updateCommunityCards();
+  selectMaker();
+  if(isHost)broadcastGameState();
+}
+
+function tickTimer(){
+  const rem=Math.max(0,G.roundEndTime-Date.now());
+  updateTimerDisplay(rem);
+  if(rem<=0){clearInterval(G.timerInterval);endRound();}
+}
+
+function endRound(){
+  cancelTradeWindow();
+  if(G.round<3){
+    showRoundEndOverlay(G.round);
+  } else {
+    settle();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ROUND END + NEW CARD DEALING
+// ═══════════════════════════════════════════════════════════════
+function showRoundEndOverlay(round){
+  document.getElementById('re-title').textContent=`Round ${round} Complete`;
+
+  // Community cards reveal (Game 1)
+  const newCommSection=document.getElementById('re-new-comm-section');
+  if(G.gameType==='cards'){
+    newCommSection.style.display='block';
+    const next=round===1?[0,1]:[2,3];
+    const el=document.getElementById('re-comm-cards');
+    el.innerHTML='';
+    next.forEach(i=>{const v=G.communityCards[i];const cls=v>0?'positive':v<0?'negative':'zero';el.innerHTML+=`<div class="c-card revealed ${cls}">${v}</div>`;});
+  } else {
+    newCommSection.style.display='none';
+  }
+
+  // Hint reveal (Game 2)
+  const hintSection=document.getElementById('re-hint-section');
+  if(G.gameType==='estimathon'){
+    hintSection.style.display='block';
+    document.getElementById('re-hint-round').textContent=round+1;
+    document.getElementById('re-hint-text').textContent=round===1?G.estimaQuestion.hint1:G.estimaQuestion.hint2;
+  } else {
+    hintSection.style.display='none';
+  }
+
+  // Deal new cards to all players — silently (private info, revealed individually later)
+  const newCardsSection=document.getElementById('re-new-cards-section');
+  if(G.gameType==='cards'&&G.deck.length>=G.players.length){
+    newCardsSection.style.display='block';
+    G.players.forEach(p=>{
+      const newCard=G.deck[0];G.deck=G.deck.slice(1);
+      p.privateCards.push(newCard);
+    });
+    document.getElementById('re-new-cards').innerHTML='<div style="font-size:0.85rem;color:var(--purple);font-weight:600">🃏 Each player received 1 new private card — only they will see it.</div>';
+    document.getElementById('re-your-new-card').textContent='';
+  } else {
+    newCardsSection.style.display='none';
+  }
+
+  const s=G.gameType==='cards'?(round===1?[0,1]:[2,3]).map(i=>G.communityCards[i]).reduce((a,b)=>a+b,0):0;
+  document.getElementById('re-body').textContent=
+    G.gameType==='cards'
+      ?`Those two cards add ${s>=0?'+':''}${s} to the known sum. Round ${round+1} starts now.`
+      :`Round ${round+1} starts with a new hint unlocked.`;
+
+  document.getElementById('round-end-overlay').classList.add('visible');
+}
+
+function continueAfterRoundEnd(){
+  document.getElementById('round-end-overlay').classList.remove('visible');
+  G.round++;
+  if(G.gameType==='cards'){
+    switchScreen('card-preview');
+    startCardPreview(0);
+  } else {
+    startEstimaPreview();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MARKET MAKING TURNS
+// ═══════════════════════════════════════════════════════════════
+let mkBotT=null;
+let makerTimer=null, makerEndTime=0;
+function selectMaker(pref){
+  if(mkBotT){clearTimeout(mkBotT);mkBotT=null;}
+  cancelTradeWindow();hideActions();
+  const idx=pref!==undefined?pref:Math.floor(Math.random()*G.players.length);
+  G.marketMakerIdx=idx;G.phase='making_market';
+  const maker=G.players[idx];
+  updatePhase();updateMakerName(maker.name);
+  if(maker.isHuman){
+    showMakeForm();
+    toast(`Your turn to make a market!`,'market');
+  }else{
+    showStatus(`${maker.name} is thinking…`);
+    document.getElementById('trade-now-section').classList.add('visible');
+    document.getElementById('trade-now-btn').disabled=true;
+    document.getElementById('race-fill').style.width='100%';
+    mkBotT=setTimeout(()=>{
+      if(G.phase!=='making_market'||G.marketMakerIdx!==idx)return;
+      const m=maker.makeMkt();postMkt(m.bid,m.ask,idx);
+    },BOT_DELAY+(Math.random()-.5)*800);
+  }
+  updatePlayersTable();
+  if(isHost)broadcastGameState();
+}
+
+function showMakeForm(){
+  if(isGuest){showStatus('Guest: wait for host to post the market.');return;}
+  hideActions();
+  document.getElementById('action-title').textContent='📢 Your Turn: Make a Market';
+  document.getElementById('make-market-form').classList.add('visible');
+  if(optShowFV||optManualFV){
+    const fv=getEffectiveFV(G.players[G.humanPlayerIndices[0]]);
+    const spread=G.gameType==='estimathon'?fv*0.1:4;
+    document.getElementById('mm-bid').value=Math.round((fv-spread/2)*2)/2;
+    document.getElementById('mm-ask').value=Math.round((fv+spread/2)*2)/2;
+  }else{
+    // FV hidden — player enters their own bid/ask from scratch
+    document.getElementById('mm-bid').value='';
+    document.getElementById('mm-ask').value='';
+  }
+  document.getElementById('mm-error').classList.remove('visible');
+  // 10s maker timer
+  clearInterval(makerTimer);
+  makerEndTime=Date.now()+MAKER_SECS*1000;
+  const mkCd=document.getElementById('maker-countdown');
+  mkCd.style.display='block';
+  makerTimer=setInterval(()=>{
+    const rem=Math.max(0,Math.round((makerEndTime-Date.now())/1000));
+    mkCd.textContent=`⏱ ${rem}s to post`;
+    mkCd.style.color=rem<=3?'var(--red)':'var(--yellow)';
+    if(rem<=0){clearInterval(makerTimer);mkCd.style.display='none';toast('Time up — auto-posting market!','warn');humanPostMarket();}
+  },500);
+}
+
+function humanPostMarket(){
+  if(isGuest)return;
+  const bid=parseFloat(document.getElementById('mm-bid').value);
+  const ask=parseFloat(document.getElementById('mm-ask').value);
+  const err=document.getElementById('mm-error');
+  if(isNaN(bid)||isNaN(ask)){err.textContent='Enter valid numbers';err.classList.add('visible');return;}
+  if(bid>=ask){err.textContent='Bid must be less than Ask';err.classList.add('visible');return;}
+  if(ask-bid>ask*0.8+50){err.textContent='Spread is too wide';err.classList.add('visible');return;}
+  err.classList.remove('visible');
+  postMkt(bid,ask,G.humanPlayerIndices[0]);
+}
+
+function postMkt(bid,ask,makerId){
+  G.currentMarket={bid,ask,makerId};G.phase='trade_window';
+  updateMktDisplay(bid,ask,G.players[makerId].name);updatePhase();
+  toast(`${G.players[makerId].name}: ${fmt(bid)} / ${fmt(ask)}`,'market');
+  G.players.forEach(p=>{if(!p.isHuman)p.observeMkt(bid,ask,makerId);});
+  openTradeWindow(bid,ask,makerId);updatePlayersTable();
+  broadcastGameState();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TRADE WINDOW
+// ═══════════════════════════════════════════════════════════════
+function openTradeWindow(bid,ask,makerId){
+  hideActions();
+  G.tradeWindow={active:true,bid,ask,makerId,openTime:Date.now(),botTimers:[],windowTimer:null,raceInterval:null};
+  const humanIsntMaker=G.humanPlayerIndices[0]!==makerId;
+  if(humanIsntMaker)showTradeNow(bid,ask);
+  else showStatus('You made the market — waiting for others…');
+
+  G.players.forEach((pl,idx)=>{
+    if(idx===makerId||pl.isHuman)return;
+    const dec=pl.decide(bid,ask);if(!dec)return;
+    const t=setTimeout(()=>{
+      if(!G.tradeWindow||!G.tradeWindow.active)return;
+      execTrade(idx,dec.action,dec.volume,bid,ask,makerId);
+      closeTradeWindow();hideActions();
+      showStatus(`${pl.name} traded — now making market…`);
+      toast(`${pl.name} was fastest! ${dec.action.toUpperCase()} ×${dec.volume}`,'info');
+      nextTurn(idx);
+    },pl.react(dec.edge));
+    G.tradeWindow.botTimers.push(t);
+  });
+
+  G.tradeWindow.windowTimer=setTimeout(()=>{
+    if(!G.tradeWindow||!G.tradeWindow.active)return;
+    closeTradeWindow();toast('No takers — rotating market maker.','info');nextTurn(null);
+  },TRADE_WIN);
+
+  G.tradeWindow.raceInterval=setInterval(()=>{
+    if(!G.tradeWindow||!G.tradeWindow.active)return;
+    const el=Date.now()-G.tradeWindow.openTime;
+    const fr=Math.max(0,1-el/TRADE_WIN);
+    const fill=document.getElementById('race-fill');
+    fill.style.width=(fr*100)+'%';
+    fill.className='trade-race-fill'+(fr<.3?' critical':fr<.6?' urgent':'');
+    document.getElementById('race-time').textContent=Math.max(0,(TRADE_WIN-el)/1000).toFixed(1)+'s';
+  },100);
+}
+
+function showTradeNow(bid,ask){
+  document.getElementById('action-title').textContent='⚡ Trade Window — Be Fast!';
+  document.getElementById('trade-now-section').classList.add('visible');
+  document.getElementById('trade-now-btn').disabled=false;
+  document.getElementById('race-fill').style.width='100%';
+  document.getElementById('race-time').textContent=(TRADE_WIN/1000).toFixed(1)+'s';
+  const el=document.getElementById('edge-indicator');
+  if(!optShowFV&&!optManualFV){
+    el.innerHTML=`<span class="dim">FV hidden — calculate mentally and decide.</span>`;
+  }else{
+    const fv=getEffectiveFV(G.players[G.humanPlayerIndices[0]]);
+    const eb=fv-ask,es=bid-fv;
+    const label=optManualFV?'Your FV':'Your FV';
+    if(eb>1)el.innerHTML=`<span class="green">📈 ${label} ~${fmt(fv)}: BUY edge +${eb.toFixed(1)}</span>`;
+    else if(es>1)el.innerHTML=`<span class="red">📉 ${label} ~${fmt(fv)}: SELL edge +${es.toFixed(1)}</span>`;
+    else el.innerHTML=`<span class="dim">${label} ~${fmt(fv)} — near fair value</span>`;
+  }
+}
+
+function humanClicksTradeNow(){
+  if(!G.tradeWindow||!G.tradeWindow.active)return;
+  G.tradeWindow.botTimers.forEach(t=>clearTimeout(t));
+  clearTimeout(G.tradeWindow.windowTimer);clearInterval(G.tradeWindow.raceInterval);
+  G.tradeWindow.active=false;
+  showExec(G.currentMarket.bid,G.currentMarket.ask);
+}
+
+function showExec(bid,ask){
+  hideActions();
+  document.getElementById('action-title').textContent='⚡ You Won — Confirm Your Trade!';
+  document.getElementById('trade-exec-section').classList.add('visible');
+  document.querySelectorAll('.trade-choice-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('exec-ask-price').textContent=`@ ${fmt(ask)}`;
+  document.getElementById('exec-bid-price').textContent=`@ ${fmt(bid)}`;
+  document.getElementById('exec-vol').value=5;document.getElementById('exec-vol-display').textContent='5';
+  document.getElementById('confirm-trade-btn').disabled=true;
+  G.execState={selectedAction:null,bid,ask,makerId:G.currentMarket.makerId};
+  let rem=EXEC_WIN;const tEl=document.getElementById('exec-timer');
+  tEl.textContent=`${rem/1000}s to decide`;
+  G.execTimerInterval=setInterval(()=>{
+    rem-=500;tEl.textContent=`${Math.max(0,rem/1000).toFixed(0)}s to decide`;
+    if(rem<=0){clearInterval(G.execTimerInterval);G.execTimerInterval=null;toast('Out of time — forfeited!','warn');cancelExec();}
+  },500);
+}
+
+function selectAction(a){
+  G.execState.selectedAction=a;
+  document.querySelectorAll('.trade-choice-btn').forEach(b=>b.classList.remove('selected'));
+  document.querySelector(`.trade-choice-btn.${a}`).classList.add('selected');
+  document.getElementById('confirm-trade-btn').disabled=false;
+}
+
+function confirmHumanTrade(){
+  if(!G.execState||!G.execState.selectedAction)return;
+  clearInterval(G.execTimerInterval);G.execTimerInterval=null;
+  const{selectedAction,bid,ask,makerId}=G.execState;
+  const vol=parseInt(document.getElementById('exec-vol').value);
+  execTrade(G.humanPlayerIndices[0],selectedAction,vol,bid,ask,makerId);
+  G.execState=null;closeTradeWindow();nextTurn(G.humanPlayerIndices[0]);
+}
+
+function cancelExec(){G.execState=null;clearInterval(G.execTimerInterval);G.execTimerInterval=null;closeTradeWindow();nextTurn(null);}
+function closeTradeWindow(){
+  if(!G.tradeWindow)return;G.tradeWindow.active=false;
+  G.tradeWindow.botTimers.forEach(t=>clearTimeout(t));
+  if(G.tradeWindow.windowTimer)clearTimeout(G.tradeWindow.windowTimer);
+  if(G.tradeWindow.raceInterval)clearInterval(G.tradeWindow.raceInterval);
+  G.tradeWindow=null;
+}
+function cancelTradeWindow(){closeTradeWindow();if(G.execTimerInterval){clearInterval(G.execTimerInterval);G.execTimerInterval=null;}G.execState=null;}
+let nextT=null;
+function nextTurn(newIdx){
+  if(G.phase==='settling')return;
+  if(nextT)clearTimeout(nextT);
+  nextT=setTimeout(()=>{
+    if(!['round_active','trade_window','making_market'].includes(G.phase))return;
+    G.phase='making_market';
+    const ni=newIdx!==null?newIdx:(G.marketMakerIdx!==null?(G.marketMakerIdx+1)%G.players.length:0);
+    selectMaker(ni);
+  },600);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TRADE EXECUTION
+// ═══════════════════════════════════════════════════════════════
+function execTrade(traderIdx,action,vol,bid,ask,makerId){
+  const tr=G.players[traderIdx],mk=G.players[makerId];
+  const price=action==='buy'?ask:bid;
+  if(action==='buy'){
+    tr.position+=vol;tr.cash-=price*vol;tr.totalBought+=vol;tr.totalBuyVal+=price*vol;
+    mk.position-=vol;mk.cash+=price*vol;mk.totalSold+=vol;mk.totalSellVal+=price*vol;
+  }else{
+    tr.position-=vol;tr.cash+=price*vol;tr.totalSold+=vol;tr.totalSellVal+=price*vol;
+    mk.position+=vol;mk.cash-=price*vol;mk.totalBought+=vol;mk.totalBuyVal+=price*vol;
+  }
+  G.tradeCounter++;
+  G.trades.push({num:G.tradeCounter,round:G.round,makerId,makerName:mk.name,bid,ask,traderId:traderIdx,traderName:tr.name,action,volume:vol,price,time:new Date().toLocaleTimeString()});
+  toast(`${tr.name} ${action==='buy'?'🟢 bought':'🔴 sold'} ${vol} @ ${fmt(price)} from ${mk.name}`,'trade');
+  updateTradeLog();updatePlayersTable();updateYourStats();
+  if(isHost)broadcastGameState();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SETTLEMENT
+// ═══════════════════════════════════════════════════════════════
+function settle(){
+  G.phase='settling';clearInterval(G.timerInterval);cancelTradeWindow();
+  if(G.gameType==='cards'){
+    G.revealedIndices=[0,1,2,3,4,5];
+    G.settlementValue=G.communityCards.reduce((a,b)=>a+b,0);
+    updateCommunityCards();
+  } else {
+    G.settlementValue=G.estimaQuestion.answer;
+  }
+  toast(`Settlement: ${fmt(G.settlementValue)}`,'reveal');
+  if(isHost)broadcastGameState();
+  setTimeout(showResults,1600);
+}
+
+function showResults(){
+  if(isHost)broadcastGameState();
+  switchScreen('results');
+  document.getElementById('settle-display').textContent=fmt(G.settlementValue);
+  if(G.gameType==='estimathon'){
+    const sn=document.getElementById('settle-question-name');
+    sn.style.display='block';
+    sn.textContent=G.estimaQuestion.q;
+    document.getElementById('results-comm-cards').style.display='none';
+  } else {
+    document.getElementById('results-comm-cards').style.display='flex';
+    const ce=document.getElementById('results-comm-cards');
+    ce.innerHTML='';
+    G.communityCards.forEach(v=>{const cls=v>0?'positive':v<0?'negative':'zero';ce.innerHTML+=`<div class="c-card revealed ${cls}">${v}</div>`;});
+  }
+  const sorted=[...G.players].sort((a,b)=>b.settlePnL(G.settlementValue)-a.settlePnL(G.settlementValue));
+  const medals=['🥇','🥈','🥉'];
+  document.getElementById('rankings-list').innerHTML=sorted.map((p,i)=>{
+    const pnl=p.settlePnL(G.settlementValue);
+    const cardsStr=p.privateCards.map(c=>c>0?'+'+c:c).join(', ');
+    return`<div class="rank-row ${i<3?'rank-'+(i+1):''}">
+      <span class="rank-num">${medals[i]||i+1}</span>
+      <span class="rank-name">${p.name}${p.isHuman?' 👤':''}</span>
+      <span class="rank-cards">[${cardsStr}]</span>
+      <span class="rank-pos">${p.position>0?'+':''}${p.position}</span>
+      <span class="rank-pnl ${pnl>=0?'green':'red'}">${(pnl>=0?'+':'')+fmt(pnl)}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('results-tradelog-tbody').innerHTML=G.trades.map(t=>
+    `<tr><td>${t.num}</td><td>${t.round}</td><td>${t.makerName}</td><td class="red">${fmt(t.bid)}</td><td class="green">${fmt(t.ask)}</td><td>${t.traderName}</td><td class="${t.action==='buy'?'green':'red'}">${t.action.toUpperCase()}</td><td>${t.volume}</td><td class="bright">${fmt(t.price)}</td></tr>`
+  ).join('');
+}
+
+function playAgain(){clearAllTimers();G=null;switchScreen('setup');}
+
+// ═══════════════════════════════════════════════════════════════
+// CARD REVEALS
+// ═══════════════════════════════════════════════════════════════
+function revealCards(indices,animate=true){
+  const fresh=indices.filter(i=>!G.revealedIndices.includes(i));
+  G.revealedIndices.push(...fresh);updateCommunityCards(animate?fresh:[]);
+}
+
+function updateCommunityCards(newRev=[]){
+  if(G.gameType!=='cards')return;
+  const row=document.getElementById('community-cards-row');row.innerHTML='';let rs=0;
+  for(let i=0;i<CC;i++){
+    const d=document.createElement('div');
+    if(G.revealedIndices.includes(i)){const v=G.communityCards[i];rs+=v;const cls=v>0?'positive':v<0?'negative':'zero';d.className=`c-card revealed ${cls}${newRev.includes(i)?' just-revealed':''}`;d.textContent=v;}
+    else{d.className='c-card hidden';d.textContent='?';}
+    row.appendChild(d);
+  }
+  document.getElementById('revealed-sum').textContent=G.revealedIndices.length?rs:'—';
+  document.getElementById('hidden-count').textContent=CC-G.revealedIndices.length;
+  const deckStatEl=document.getElementById('deck-remaining');
+  deckStatEl.textContent=G.deck.length;
+  deckStatEl.closest('.comm-stat').style.display=optShowDeck?'':'none';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HUMAN FAIR VALUE
+// ═══════════════════════════════════════════════════════════════
+function calcHumanFV(h){
+  if(G.gameType==='estimathon'){
+    // Human's FV = their own subjective estimate (shown as mid of any recent market, else use question order-of-magnitude)
+    if(G.currentMarket)return(G.currentMarket.bid+G.currentMarket.ask)/2;
+    return G.estimaQuestion.order; // order-of-magnitude starting point
+  }
+  const rev=G.communityCards.filter((_,i)=>G.revealedIndices.includes(i));
+  const pool=unknownPool([...h.privateCards,...rev]);
+  const ev=pool.length?pool.reduce((s,c)=>s+c,0)/pool.length:DECK_EV;
+  return Math.round((rev.reduce((s,c)=>s+c,0)+(CC-G.revealedIndices.length)*ev)*10)/10;
+}
+
+// Returns FV to use for edge calculations — manual input if enabled, else computed
+function getEffectiveFV(player){
+  if(optManualFV){
+    const inp=document.getElementById('manual-fv-input');
+    const v=parseFloat(inp&&inp.value);
+    if(!isNaN(v))return v;
+  }
+  return calcHumanFV(player);
+}
+
+// Called whenever user types in the manual FV box — refreshes edge indicator live
+function onManualFVChange(){
+  const inp=document.getElementById('manual-fv-input');
+  inp.dataset.touched='1';
+  // Refresh edge indicator if trade window is open
+  if(G&&G.tradeWindow&&G.tradeWindow.active&&G.currentMarket){
+    const{bid,ask}=G.currentMarket;
+    const fv=getEffectiveFV(G.players[G.humanPlayerIndices[0]]);
+    const eb=fv-ask,es=bid-fv;
+    const el=document.getElementById('edge-indicator');
+    if(eb>1)el.innerHTML=`<span class="green">📈 FV ~${fmt(fv)}: BUY edge +${eb.toFixed(1)}</span>`;
+    else if(es>1)el.innerHTML=`<span class="red">📉 FV ~${fmt(fv)}: SELL edge +${es.toFixed(1)}</span>`;
+    else el.innerHTML=`<span class="dim">FV ~${fmt(fv)} — near fair value</span>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UI UPDATES
+// ═══════════════════════════════════════════════════════════════
+function fmt(n){
+  if(n===null||n===undefined)return'—';
+  if(Math.abs(n)>=1e9)return(n/1e9).toFixed(1)+'B';
+  if(Math.abs(n)>=1e6)return(n/1e6).toFixed(1)+'M';
+  if(Math.abs(n)>=1e3)return(n/1e3).toFixed(1)+'k';
+  return n.toFixed?n.toFixed(1):n;
+}
+
+function updateUI(){updatePhase();if(G.gameType==='cards')updateCommunityCards();updatePlayersTable();updateTradeLog();updateYourStats();document.getElementById('hdr-round').textContent=`Round ${G.round}/3`;}
+function updatePhase(){const m={making_market:'Making Market',trade_window:'Trade Window',round_active:'Round Active',settling:'Settling'};document.getElementById('hdr-phase').textContent=m[G.phase]||G.phase;}
+function updateTimerDisplay(ms){const s=`${Math.floor(ms/60000)}:${Math.floor((ms%60000)/1000).toString().padStart(2,'0')}`;const el=document.getElementById('hdr-timer');el.textContent=s;el.className='header-timer'+(ms<30000?' danger':ms<60000?' warning':'');}
+function updateMktDisplay(bid,ask,name){document.getElementById('market-bid').textContent=fmt(bid);document.getElementById('market-ask').textContent=fmt(ask);document.getElementById('market-spread').textContent=fmt(ask-bid);document.getElementById('market-mid').textContent=fmt((bid+ask)/2);document.getElementById('market-maker-name').textContent=name;}
+function updateMakerName(n){document.getElementById('market-maker-name').textContent=n;}
+
+function updateYourStats(){
+  if(!G)return;const h=G.players[G.humanPlayerIndices[0]];if(!h)return;
+  const fv=calcHumanFV(h);
+  const mid=G.currentMarket?(G.currentMarket.bid+G.currentMarket.ask)/2:0;
+  const pnl=h.mtmPnL(mid);const pos=h.position;
+
+  // Cards: show hand. Estimathon: hide card row (no private cards)
+  const cardRow=document.getElementById('your-cards-row');
+  cardRow.innerHTML='';
+  if(G.gameType!=='estimathon'){
+    h.privateCards.forEach(v=>{
+      const cls=v>0?'positive':v<0?'negative':'';
+      cardRow.innerHTML+=`<div class="your-card-small ${cls}">${v}</div>`;
+    });
+  }
+
+  // Relabel FV row based on game type
+  const labelEl=document.querySelector('.stat-label');
+  if(labelEl)labelEl.textContent=G.gameType==='estimathon'?'My estimate (note)':'Fair value estimate';
+
+  const fvEl=document.getElementById('your-fv');
+  if(G.gameType==='estimathon'){
+    // Estimathon: no auto-calculated FV. Only optional manual note.
+    if(optManualFV){
+      fvEl.textContent='✏ my note';fvEl.style.color='var(--yellow)';
+      const mInp=document.getElementById('manual-fv-input');
+      if(!mInp.dataset.touched)mInp.placeholder='type your estimate';
+    }else{
+      fvEl.textContent='—';fvEl.style.color='var(--dim)';
+    }
+  }else{
+    if(optManualFV){
+      fvEl.textContent='✏ manual';fvEl.style.color='var(--yellow)';
+      const mInp=document.getElementById('manual-fv-input');
+      if(!mInp.dataset.touched)mInp.value=fv;
+    }else if(optShowFV){
+      fvEl.textContent=`~${fmt(fv)}`;fvEl.style.color='';
+    }else{
+      fvEl.textContent='?';fvEl.style.color='var(--dim)';
+    }
+  }
+  const pEl=document.getElementById('your-pos');pEl.textContent=pos>0?`+${pos}`:pos;pEl.className='stat-val '+(pos>0?'pos':pos<0?'neg':'');
+  const lEl=document.getElementById('your-pnl');lEl.textContent=(pnl>=0?'+':'')+pnl.toFixed(2);lEl.className='stat-val '+(pnl>=0?'pos':'neg');
+}
+
+function updatePlayersTable(){
+  if(!G)return;const mid=G.currentMarket?(G.currentMarket.bid+G.currentMarket.ask)/2:0;
+  document.getElementById('players-tbody').innerHTML=G.players.map((p,i)=>{
+    const pnl=p.mtmPnL(mid),pos=p.position,avg=p.avgEntry();
+    const cardsStr=p.isHuman?p.privateCards.map(c=>c>0?'+'+c:c).join(' '):'?';
+    return`<tr class="${p.isHuman?'you-row':i===G.marketMakerIdx?'maker-row':''}">
+      <td class="${p.isHuman?'you-badge':i===G.marketMakerIdx?'maker-badge':''}">${p.name}</td>
+      <td class="dim" style="font-family:'DM Mono',monospace">${cardsStr}</td>
+      <td class="${pos>0?'pos':pos<0?'neg':'neutral'}">${pos>0?'+':''}${pos}</td>
+      <td class="dim" style="font-family:'DM Mono',monospace">${avg?fmt(avg):'—'}</td>
+      <td class="${pnl>=0?'pos':'neg'}">${(pnl>=0?'+':'')+pnl.toFixed(1)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function updateTradeLog(){
+  if(!G)return;
+  document.getElementById('tradelog-tbody').innerHTML=[...G.trades].reverse().map(t=>
+    `<tr><td class="dim">${t.num}</td><td class="dim">${t.round}</td><td>${t.makerName}</td><td class="red">${fmt(t.bid)}</td><td class="green">${fmt(t.ask)}</td><td>${t.traderName}</td><td class="${t.action==='buy'?'green':'red'}">${t.action.toUpperCase()}</td><td class="yellow">${t.volume}</td><td class="bright">${fmt(t.price)}</td></tr>`
+  ).join('');
+}
+
+function showStatus(msg){const el=document.getElementById('status-box');el.textContent=msg;el.style.display='block';}
+function hideActions(){
+  clearInterval(makerTimer);
+  const mkCd=document.getElementById('maker-countdown');if(mkCd)mkCd.style.display='none';
+  ['make-market-form','trade-now-section','trade-exec-section'].forEach(id=>document.getElementById(id).classList.remove('visible'));
+  document.getElementById('status-box').style.display='none';
+  document.getElementById('action-title').textContent='Action';
+}
+function toast(msg,type='info'){const el=document.createElement('div');el.className=`toast ${type}`;el.textContent=msg;document.getElementById('toast-container').appendChild(el);setTimeout(()=>{el.classList.add('fade-out');setTimeout(()=>el.remove(),500);},3500);}
+function switchScreen(n){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(`screen-${n}`).classList.add('active');}
+
+// ═══════════════════════════════════════════════════════════════
+// QUIT
+// ═══════════════════════════════════════════════════════════════
+function confirmQuit(){document.getElementById('quit-overlay').classList.add('visible');}
+function cancelQuit(){document.getElementById('quit-overlay').classList.remove('visible');}
+function doQuit(){document.getElementById('quit-overlay').classList.remove('visible');clearAllTimers();G=null;switchScreen('setup');toast('Game ended.','info');}
+
+function clearAllTimers(){
+  if(!G)return;
+  clearInterval(G.timerInterval);
+  cancelTradeWindow();
+  if(mkBotT)clearTimeout(mkBotT);
+  if(nextT)clearTimeout(nextT);
+  clearInterval(previewTimer);
+  clearInterval(estimaPreviewTimer);
+  clearInterval(makerTimer);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+onSliderChange();
+checkUrlJoin();
+// Load saved AI key
+(function(){
+  const saved=localStorage.getItem('mm-ai-key-openai')||localStorage.getItem('mm-ai-key-claude')||'';
+  if(saved){
+    // Figure out which provider
+    if(localStorage.getItem('mm-ai-key-claude')&&!localStorage.getItem('mm-ai-key-openai')){
+      aiProvider='claude';
+      document.getElementById('ai-openai-btn').classList.remove('active');
+      document.getElementById('ai-claude-btn').classList.add('active');
+    }
+    aiApiKey=localStorage.getItem('mm-ai-key-'+aiProvider)||'';
+    document.getElementById('ai-key-input').value=aiApiKey;
+  }
+  refreshAIStatus();
+})();
+</script>
+</body>
+</html>
