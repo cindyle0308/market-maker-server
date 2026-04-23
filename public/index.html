@@ -1742,19 +1742,23 @@ function applyGuestState(state) {
 // ── Helper: apply player state from broadcast ──
 function applyPlayerState(state) {
   if (!state.players || !state.players.length) return;
-  // Preserve private cards for our own player slot
-  const myCards = (guestPlayerIndex >= 0 && G.players[guestPlayerIndex])
-    ? [...G.players[guestPlayerIndex].privateCards] : [];
+  // Preserve private cards — from existing slot or pending buffer
+  const myCards = (guestPlayerIndex >= 0 && G.players[guestPlayerIndex] && G.players[guestPlayerIndex].privateCards.length)
+    ? [...G.players[guestPlayerIndex].privateCards]
+    : (window._guestPendingCards || []);
   G.players = state.players.map((p, i) => {
     const pl = new Player(i, p.name, p.isHuman, 0);
     pl.position = p.position; pl.cash = p.cash;
     pl.totalBought = p.totalBought || 0; pl.totalSold = p.totalSold || 0;
     pl.totalBuyVal = p.totalBuyVal || 0; pl.totalSellVal = p.totalSellVal || 0;
-    // Restore our own private cards (not sent in shared broadcast)
     if (i === guestPlayerIndex && myCards.length) pl.privateCards = myCards;
     return pl;
   });
   G.humanPlayerIndices = G.players.map((p, i) => p.isHuman ? i : -1).filter(i => i >= 0);
+  // Clear pending card buffer once applied
+  if (guestPlayerIndex >= 0 && G.players[guestPlayerIndex] && G.players[guestPlayerIndex].privateCards.length) {
+    window._guestPendingCards = null;
+  }
 }
 
 function setupGameUIForGuest(state) {
@@ -2024,8 +2028,12 @@ function handleHostResponse(data) {
   // ── Private cards delivery ──
   if (data.type === 'private_cards') {
     if (!G) { G = freshState(); }
+    // Store in buffer (game_state may not have arrived yet, creating players array)
+    window._guestPendingCards = data.cards;
+    // Apply now if player slot exists
     if (guestPlayerIndex >= 0 && G.players[guestPlayerIndex]) {
       G.players[guestPlayerIndex].privateCards = data.cards;
+      window._guestPendingCards = null;
     }
     // If we were waiting for cards to start a preview, do it now
     if (guestPendingPreviewState) {
