@@ -519,6 +519,11 @@ td.maker-badge::after{content:' ✦';color:var(--yellow);font-size:0.7rem;}
     </div>
 
     <div id="room-join-area" style="display:none">
+      <div style="font-size:0.78rem;color:var(--dim);margin-bottom:6px">Your display name in the game:</div>
+      <input class="room-code-input" id="join-name-input" placeholder="Your name" maxlength="20"
+        style="font-size:1rem;letter-spacing:0;text-transform:none;margin-bottom:8px"
+        oninput="guestDisplayName=this.value.trim()||'Guest'">
+      <div style="font-size:0.78rem;color:var(--dim);margin-bottom:6px;margin-top:4px">Room code:</div>
       <input class="room-code-input" id="join-code-input" placeholder="ENTER CODE" maxlength="6" oninput="this.value=this.value.toUpperCase()">
       <button class="post-market-btn" onclick="joinRoom()">Connect to Room</button>
       <div class="room-status" id="join-status" style="display:none"></div>
@@ -817,6 +822,21 @@ td.maker-badge::after{content:' ✦';color:var(--yellow);font-size:0.7rem;}
 </div>
 
 <div id="toast-container"></div>
+
+<!-- ─── Guest Card Preview Overlay (shown on game screen when round starts) ─── -->
+<div class="overlay" id="guest-card-overlay">
+  <div class="overlay-box" style="max-width:440px;text-align:left;">
+    <div class="overlay-title" id="gco-title">Your Starting Cards</div>
+    <p class="overlay-body" id="gco-sub" style="margin-bottom:16px"></p>
+    <div class="all-cards-row" id="gco-cards-row" style="justify-content:center;margin-bottom:16px"></div>
+    <div style="text-align:center;font-size:0.85rem;color:var(--dim);margin-bottom:20px">
+      Your FV estimate: <strong style="color:var(--bright);font-family:'DM Mono',monospace" id="gco-fv"></strong>
+    </div>
+    <div style="display:flex;justify-content:center;">
+      <button class="preview-btn" onclick="dismissGuestCardPreview()">Got it — Start Trading →</button>
+    </div>
+  </div>
+</div>
 
 <!-- ─── History / Stats Modal ─── -->
 <div class="history-modal" id="history-modal">
@@ -1274,12 +1294,30 @@ function bindSocketEvents() {
   });
 
   socket.on('room_updated', ({ guests }) => {
-    connectedGuests = guests; // keep list up to date for host
+    connectedGuests = guests;
     const statusEl = document.getElementById('host-status');
     if (statusEl) {
-      const names = guests.map(g => g.name).join(', ');
-      statusEl.textContent = `Room live — ${guests.length} guest(s): ${names || 'none yet'}`;
+      if (guests.length === 0) {
+        statusEl.textContent = 'Room ready — waiting for players to join…';
+      } else if (guests.length === 1) {
+        statusEl.textContent = `🟢 ${guests[0].name} joined — ${1 + guests.length} humans total`;
+      } else {
+        const names = guests.map(g => g.name).join(', ');
+        statusEl.textContent = `🟢 ${guests.length} guests: ${names} — ${1 + guests.length} humans total`;
+      }
     }
+    // Update the player slider to show locked human count + adjustable bots
+    refreshHostPlayerDisplay();
+  });
+
+  // Host broadcasted a quit — guests should also quit
+  socket.on('host_quit', () => {
+    if (!isGuest) return;
+    toast('Host ended the game.', 'warn');
+    clearAllTimers();
+    G = null; guestPlayerIndex = -1; guestLastRoundSeen = 0;
+    isGuest = false;
+    switchScreen('setup');
   });
 
   socket.on('room_joined', ({ code, hostName, guestIndex: gi, guests }) => {
@@ -1297,6 +1335,11 @@ function bindSocketEvents() {
 
   socket.on('game_state', state => {
     if (!isGuest) return;
+    if (state.phase === 'host_quit') {
+      toast('Host ended the game.', 'warn');
+      clearAllTimers(); G=null; guestPlayerIndex=-1; guestLastRoundSeen=0; isGuest=false;
+      switchScreen('setup'); return;
+    }
     applyGuestState(state);
   });
 
@@ -1350,7 +1393,8 @@ function selectRoomType(t){
 
 function initHostRoom() {
   if (generatedRoomCode) return;
-  getSocket().emit('create_room', { displayName: 'Host' });
+  const displayName = (currentUser && (currentUser.displayName || currentUser.email)) || 'Host';
+  getSocket().emit('create_room', { displayName });
   const statusEl = document.getElementById('host-status');
   statusEl.style.display = 'block';
   statusEl.className = 'room-status connecting';
@@ -1360,11 +1404,13 @@ function initHostRoom() {
 function joinRoom() {
   const code = document.getElementById('join-code-input').value.trim().toUpperCase();
   if (code.length < 4) { toast('Enter a room code first', 'warn'); return; }
+  const displayName = (currentUser && (currentUser.displayName || currentUser.email)) || guestDisplayName || 'Guest';
+  guestDisplayName = displayName;
   const statusEl = document.getElementById('join-status');
   statusEl.style.display = 'block';
   statusEl.className = 'room-status connecting';
   statusEl.textContent = 'Connecting…';
-  getSocket().emit('join_room', { code, displayName: guestDisplayName });
+  getSocket().emit('join_room', { code, displayName });
 }
 
 function copyRoomLink() {
@@ -1393,8 +1439,13 @@ function broadcastGameState() {
 
 function buildBroadcastState() {
   // guestPlayerMap: maps each guest's guestIndex (0,1,2…) to their player index in G.players
-  // Host is always player 0; guest 0 → player 1, guest 1 → player 2, etc.
   const guestPlayerMap = connectedGuests.reduce((m,g)=>{ m[g.index]=g.index+1; return m; }, {});
+  // guestPrivateCards: send each guest their own private hand so they can see their card + compute FV
+  const guestPrivateCards = {};
+  connectedGuests.forEach(g => {
+    const pi = g.index + 1;
+    if (G.players[pi]) guestPrivateCards[g.index] = G.players[pi].privateCards;
+  });
   return {
     phase: G.phase,
     round: G.round,
@@ -1423,8 +1474,11 @@ function buildBroadcastState() {
     settlementValue: G.settlementValue,
     roundEndTime: G.roundEndTime,
     guestPlayerMap,
+    guestPrivateCards,
   };
 }
+
+let guestLastRoundSeen = 0; // track which rounds guest has already seen card preview for
 
 // ── Guest: apply received state ────────────────────────────────
 function applyGuestState(state) {
@@ -1433,23 +1487,34 @@ function applyGuestState(state) {
     G = freshState();
     G.gameType = state.gameType;
     G.estimaQuestion = state.estimaQuestion;
-    // Resolve which player slot is "mine" using guestPlayerMap
+    // Resolve which player slot is "mine"
     if (state.guestPlayerMap && guestIndex in state.guestPlayerMap) {
       guestPlayerIndex = state.guestPlayerMap[guestIndex];
     }
     switchScreen('game');
     setupGameUIForGuest(state);
   }
-  // If still in 'starting' phase, just show a waiting overlay and return
+
+  // Apply my private cards from host (so FV and card display work)
+  if (state.guestPrivateCards && guestIndex in state.guestPrivateCards && guestPlayerIndex >= 0 && G.players[guestPlayerIndex]) {
+    G.players[guestPlayerIndex].privateCards = state.guestPrivateCards[guestIndex];
+  }
+
+  // If still in 'starting' phase show waiting state, update player list
   if (state.phase === 'starting') {
     showStatus('⏳ Host is starting the game…');
-    // Update player list so guests can see who's in the game
     if (state.players && state.players.length) {
       G.players = state.players.map((p,i)=>{ const pl=new Player(i,p.name,p.isHuman,0); pl.position=p.position; pl.cash=p.cash; return pl; });
       G.humanPlayerIndices = G.players.map((p,i)=>p.isHuman?i:-1).filter(i=>i>=0);
       updatePlayersTable();
     }
     return;
+  }
+
+  // Show card preview overlay for guest when a new round starts with fresh cards
+  if (state.phase === 'round_active' && state.round > guestLastRoundSeen && guestPlayerIndex >= 0 && G.players[guestPlayerIndex] && G.players[guestPlayerIndex].privateCards.length > 0) {
+    guestLastRoundSeen = state.round;
+    showGuestCardPreview(state.round);
   }
 
   G.phase = state.phase;
@@ -1518,16 +1583,61 @@ function applyGuestState(state) {
 }
 
 function setupGameUIForGuest(state) {
+  // Set up game UI exactly like local play — guest is a full participant
   document.getElementById('hdr-game2').style.display = state.gameType === 'estimathon' ? '' : 'none';
   document.getElementById('game1-community').style.display = state.gameType === 'cards' ? '' : 'none';
   document.getElementById('game2-community').style.display = state.gameType === 'estimathon' ? '' : 'none';
-  if (state.estimaQuestion) {
-    document.getElementById('question-text').textContent = state.estimaQuestion.q;
+  if (state.gameType === 'estimathon') {
+    document.getElementById('community-label').textContent = 'Question — Settlement = True Answer';
+    document.getElementById('your-hand-label').textContent = 'Your Estimate (private)';
+    if (state.estimaQuestion) document.getElementById('question-text').textContent = state.estimaQuestion.q;
+    document.getElementById('question-hints').innerHTML = '<div class="question-hint hidden-hint">Hints unlock in rounds 2 and 3.</div>';
+  } else {
+    document.getElementById('community-label').textContent = 'Community Cards — Settlement = Sum of All 6';
+    document.getElementById('your-hand-label').textContent = 'Your Hand';
   }
-  const banner = document.createElement('div');
-  banner.className = 'guest-banner';
-  banner.textContent = '👥 You are a guest — trade when the window opens!';
-  document.querySelector('.info-panel').prepend(banner);
+  // Read display options from setup screen (guest can set these before joining)
+  optShowFV  = document.getElementById('opt-show-fv').checked;
+  optShowDeck = document.getElementById('opt-show-deck').checked;
+  optManualFV = document.getElementById('opt-manual-fv').checked;
+  document.getElementById('manual-fv-wrap').classList.toggle('visible', optManualFV);
+}
+
+// ── Guest card preview overlay (shown when round starts) ───────
+function showGuestCardPreview(round) {
+  if (guestPlayerIndex < 0 || !G.players[guestPlayerIndex]) return;
+  const player = G.players[guestPlayerIndex];
+  const cards = player.privateCards;
+  if (!cards || cards.length === 0) return;
+
+  const overlay = document.getElementById('guest-card-overlay');
+  const isNewRound = round > 1;
+  document.getElementById('gco-title').textContent = isNewRound ? `Round ${round} — New Card!` : 'Your Starting Cards';
+  document.getElementById('gco-sub').textContent = isNewRound
+    ? 'You received a new information card. Update your fair value estimate!'
+    : 'These are your private cards — they tell you about the hidden community cards.';
+
+  const row = document.getElementById('gco-cards-row');
+  row.innerHTML = cards.map((v, i) => {
+    const isNewest = i === cards.length - 1 && isNewRound;
+    const cls = v > 0 ? 'positive' : v < 0 ? 'negative' : '';
+    const style = isNewest ? 'border-color:var(--purple);color:var(--purple);box-shadow:0 0 14px rgba(157,96,255,0.3)' : '';
+    return `<div class="mini-card ${cls}" style="${style}">${v}</div>`;
+  }).join('');
+
+  // Show FV estimate
+  const fv = calcHumanFV(player);
+  document.getElementById('gco-fv').textContent = G.gameType === 'estimathon' ? '—' : `~${fv}`;
+  overlay.classList.add('visible');
+
+  // Auto-dismiss after 20 seconds
+  if (window._gcoDismissTimer) clearTimeout(window._gcoDismissTimer);
+  window._gcoDismissTimer = setTimeout(dismissGuestCardPreview, 20000);
+}
+
+function dismissGuestCardPreview() {
+  document.getElementById('guest-card-overlay').classList.remove('visible');
+  if (window._gcoDismissTimer) { clearTimeout(window._gcoDismissTimer); window._gcoDismissTimer = null; }
 }
 
 function showGuestTradeNow(bid, ask) {
@@ -1630,7 +1740,28 @@ function onSliderChange(){
   sl.max=tot;if(parseInt(sl.value)>tot)sl.value=tot;
   const h=parseInt(sl.value),b=tot-h;
   document.getElementById('sv-total').textContent=tot;
-  document.getElementById('sv-humans').textContent=`${h} human${h!==1?'s':''} + ${b} bot${b!==1?'s':''}`;
+  if(isHost && connectedGuests.length>0){
+    refreshHostPlayerDisplay();
+  } else {
+    document.getElementById('sv-humans').textContent=`${h} human${h!==1?'s':''} + ${b} bot${b!==1?'s':''}`;
+  }
+}
+
+function refreshHostPlayerDisplay(){
+  if(!isHost || connectedGuests.length===0) return;
+  const numHumans = 1 + connectedGuests.length;
+  const tot = Math.max(parseInt(document.getElementById('sl-total').value), numHumans);
+  document.getElementById('sl-total').value = tot;
+  document.getElementById('sv-total').textContent = tot;
+  // Lock humans slider to reflect actual count
+  const sl = document.getElementById('sl-humans');
+  sl.value = numHumans; sl.max = tot;
+  const bots = tot - numHumans;
+  const guestLabel = connectedGuests.length === 1
+    ? connectedGuests[0].name
+    : connectedGuests.map(g=>g.name).join(', ');
+  document.getElementById('sv-humans').textContent =
+    `${numHumans} humans (you + ${guestLabel}) + ${bots} bot${bots!==1?'s':''}`;
 }
 function selectTime(m){selMins=m;document.querySelectorAll('.time-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.mins)===m));}
 
@@ -2396,7 +2527,17 @@ function switchScreen(n){document.querySelectorAll('.screen').forEach(s=>s.class
 // ═══════════════════════════════════════════════════════════════
 function confirmQuit(){document.getElementById('quit-overlay').classList.add('visible');}
 function cancelQuit(){document.getElementById('quit-overlay').classList.remove('visible');}
-function doQuit(){document.getElementById('quit-overlay').classList.remove('visible');clearAllTimers();G=null;switchScreen('setup');toast('Game ended.','info');}
+function doQuit(){
+  document.getElementById('quit-overlay').classList.remove('visible');
+  clearAllTimers();
+  // If host, notify all guests the game is ending
+  if(isHost && socket && generatedRoomCode){
+    socket.emit('game_state', { phase:'host_quit' });
+  }
+  G=null; guestPlayerIndex=-1; guestLastRoundSeen=0;
+  switchScreen('setup');
+  toast('Game ended.','info');
+}
 
 function clearAllTimers(){
   if(!G)return;
@@ -2454,8 +2595,12 @@ try {
     if (user) {
       document.getElementById('auth-signed-out').style.display='none';
       document.getElementById('auth-signed-in').style.display='';
-      document.getElementById('auth-user-name').textContent = user.displayName || user.email || 'Player';
+      const displayName = user.displayName || user.email || 'Player';
+      document.getElementById('auth-user-name').textContent = displayName;
       document.getElementById('auth-user-email').textContent = user.email || '';
+      // Pre-fill the join room name input
+      const nameInp = document.getElementById('join-name-input');
+      if (nameInp && !nameInp.value) { nameInp.value = displayName; guestDisplayName = displayName; }
     } else {
       document.getElementById('auth-signed-out').style.display='';
       document.getElementById('auth-signed-in').style.display='none';
