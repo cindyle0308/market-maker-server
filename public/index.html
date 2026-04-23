@@ -626,7 +626,23 @@ td.maker-badge::after{content:' ✦';color:var(--yellow);font-size:0.7rem;}
   <div class="all-cards-row" id="prev-cards-row"></div>
 
   <div class="preview-player-name" id="prev-player-name"></div>
-  <div class="preview-hint" id="prev-hint">Your FV estimate based on these cards: <strong id="prev-fv">—</strong></div>
+
+  <!-- Shown only when auto FV is ON -->
+  <div class="preview-hint" id="prev-hint" style="display:none">
+    Your FV estimate: <strong style="color:var(--bright);font-family:'DM Mono',monospace" id="prev-fv">—</strong>
+  </div>
+
+  <!-- Shown only when manual FV input is ON -->
+  <div id="prev-manual-fv-area" style="display:none;max-width:320px;margin:0 auto 10px;text-align:center;">
+    <div style="font-size:0.82rem;color:var(--dim);margin-bottom:8px;line-height:1.5;">
+      Enter your Fair Value estimate — it will carry over to the trading screen and you can adjust it any time.
+    </div>
+    <input type="number" id="prev-manual-fv-input" step="0.5" placeholder="My FV estimate…"
+      style="width:160px;padding:10px 14px;background:var(--bg2);border:2px solid var(--yellow);color:var(--yellow);
+             border-radius:8px;font-family:'DM Mono',monospace;font-size:1.2rem;font-weight:700;text-align:center;
+             outline:none;"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();skipCardPreview();}">
+  </div>
 
   <div class="preview-countdown" id="prev-countdown">30</div>
   <div class="preview-bar"><div class="preview-bar-fill" id="prev-bar-fill" style="width:100%"></div></div>
@@ -703,8 +719,10 @@ td.maker-badge::after{content:' ✦';color:var(--yellow);font-size:0.7rem;}
         <div class="make-market-form" id="make-market-form">
           <div class="mm-hint">You're the market maker — post your bid and ask:</div>
           <div class="mm-inputs">
-            <div class="mm-input-group"><label>Bid</label><input type="number" id="mm-bid" placeholder="e.g. 38" step="0.5"></div>
-            <div class="mm-input-group"><label>Ask</label><input type="number" id="mm-ask" placeholder="e.g. 44" step="0.5"></div>
+            <div class="mm-input-group"><label>Bid</label><input type="number" id="mm-bid" placeholder="e.g. 38" step="0.5"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();postMarket();}"></div>
+            <div class="mm-input-group"><label>Ask</label><input type="number" id="mm-ask" placeholder="e.g. 44" step="0.5"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();postMarket();}"></div>
           </div>
           <div class="mm-error" id="mm-error"></div>
           <div id="maker-countdown" style="text-align:center;font-size:0.82rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--yellow);margin-bottom:6px;display:none"></div>
@@ -729,7 +747,7 @@ td.maker-badge::after{content:' ✦';color:var(--yellow);font-size:0.7rem;}
             <input type="range" id="exec-vol" min="1" max="20" value="5" oninput="document.getElementById('exec-vol-display').textContent=this.value">
             <span class="vol-display" id="exec-vol-display">5</span>
           </div>
-          <button class="confirm-trade-btn" id="confirm-trade-btn" onclick="confirmHumanTrade()">Confirm Trade</button>
+          <button class="confirm-trade-btn" id="confirm-trade-btn" onclick="confirmHumanTrade()">Confirm Trade &nbsp;<span style="font-size:0.72rem;opacity:0.6">(or Enter)</span></button>
           <div class="exec-timer" id="exec-timer"></div>
         </div>
 
@@ -1891,10 +1909,26 @@ function startCardPreview(humanIdx){
     row.innerHTML+=`<div class="mini-card ${cls}" style="${isNewest?'border-color:var(--purple);color:var(--purple);box-shadow:0 0 14px rgba(157,96,255,0.3)':''}">${v}</div>`;
   });
 
-  // Compute FV
-  const fv=calcHumanFV(player);
-  document.getElementById('prev-fv').textContent=`~${fv}`;
-  document.getElementById('prev-hint').innerHTML=`Your FV estimate based on these cards: <strong style="color:var(--bright);font-family:'DM Mono',monospace">~${fv}</strong>`;
+  // FV hint — only show if auto FV is enabled; hide entirely if manual or neither
+  const hintEl = document.getElementById('prev-hint');
+  const manualArea = document.getElementById('prev-manual-fv-area');
+  const manualInp = document.getElementById('prev-manual-fv-input');
+  if (optManualFV) {
+    hintEl.style.display = 'none';
+    manualArea.style.display = '';
+    // Preserve any previously typed value; otherwise clear for a fresh card
+    if (!isNewRound) manualInp.value = '';
+    setTimeout(()=>manualInp.focus(), 100);
+  } else if (optShowFV) {
+    const fv = calcHumanFV(player);
+    document.getElementById('prev-fv').textContent = `~${fv}`;
+    hintEl.style.display = '';
+    manualArea.style.display = 'none';
+  } else {
+    // Both off — show nothing
+    hintEl.style.display = 'none';
+    manualArea.style.display = 'none';
+  }
 
   // Countdown using Date.now() so it's accurate even on slow devices
   previewEndTime=Date.now()+CARD_PREVIEW_SECS*1000;
@@ -1914,6 +1948,15 @@ function startCardPreview(humanIdx){
 
 function skipCardPreview(){
   clearInterval(previewTimer);
+  // Carry manual FV value from preview screen → game screen input
+  if (optManualFV) {
+    const previewVal = document.getElementById('prev-manual-fv-input').value.trim();
+    if (previewVal) {
+      const gameInp = document.getElementById('manual-fv-input');
+      gameInp.value = previewVal;
+      gameInp.dataset.touched = '1';
+    }
+  }
   nextPreviewOrStart();
 }
 
@@ -2549,6 +2592,23 @@ function clearAllTimers(){
   clearInterval(estimaPreviewTimer);
   clearInterval(makerTimer);
 }
+
+// ── Global Enter-key shortcuts ─────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const active = document.activeElement;
+  // Don't fire when user is typing in a text/number input (except bid/ask which have their own handlers)
+  if (active && (active.id === 'mm-bid' || active.id === 'mm-ask')) return; // handled inline
+  if (active && active.tagName === 'INPUT' && active.type !== 'range') return; // typing in other inputs
+
+  // Confirm trade if exec section is visible
+  const execSection = document.getElementById('trade-exec-section');
+  const confirmBtn = document.getElementById('confirm-trade-btn');
+  if (execSection && execSection.classList.contains('visible') && confirmBtn && !confirmBtn.disabled) {
+    e.preventDefault();
+    if (isGuest) confirmBtn.click(); else confirmHumanTrade();
+  }
+});
 
 // ═══════════════════════════════════════════════════════════════
 // INIT
