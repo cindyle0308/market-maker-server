@@ -5,7 +5,9 @@ const socketIO = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
-  cors: { origin: '*', methods: ['GET', 'POST'] }
+  cors: { origin: '*', methods: ['GET', 'POST'] },
+  pingTimeout: 30000,
+  pingInterval: 10000
 });
 
 // Serve static files from public directory
@@ -61,7 +63,7 @@ io.on('connection', (socket) => {
     socket.emit('room_created', { code });
   });
 
-  // JOIN ROOM — guest joins
+  // JOIN ROOM — guest joins (also handles reconnection by matching name)
   socket.on('join_room', ({ code, displayName }) => {
     code = code.toUpperCase();
     const room = rooms[code];
@@ -71,7 +73,31 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Add guest to room
+    // Check if this is a reconnecting guest (same name already in room)
+    const existingGuest = room.guests.find(g => g.name === displayName);
+    if (existingGuest) {
+      // Update socket ID — treat as reconnect
+      const oldSocketId = existingGuest.socketId;
+      existingGuest.socketId = socket.id;
+      socket.join(code);
+      console.log(`${displayName} reconnected to room ${code}`);
+
+      socket.emit('room_joined', {
+        code,
+        hostName: room.hostName,
+        guestIndex: existingGuest.index,
+        guests: room.guests.map(g => ({ name: g.name, index: g.index })),
+        reconnected: true
+      });
+
+      // Notify host of updated socket IDs
+      io.to(room.hostSocketId).emit('room_updated', {
+        guests: room.guests.map(g => ({ name: g.name, index: g.index, socketId: g.socketId }))
+      });
+      return;
+    }
+
+    // New guest joining
     const guestIndex = room.guests.length;
     room.guests.push({
       socketId: socket.id,
@@ -92,12 +118,12 @@ io.on('connection', (socket) => {
       guests: room.guests.map(g => ({ name: g.name, index: g.index }))
     });
 
-    // Notify host of new guest
+    // Notify host of new guest — include socketId so host can send private messages
     io.to(room.hostSocketId).emit('room_updated', {
-      guests: room.guests.map(g => ({ name: g.name, index: g.index }))
+      guests: room.guests.map(g => ({ name: g.name, index: g.index, socketId: g.socketId }))
     });
 
-    // Notify other guests
+    // Notify other guests — no socketIds exposed to guests
     socket.to(code).emit('room_updated', {
       guests: room.guests.map(g => ({ name: g.name, index: g.index }))
     });
@@ -143,6 +169,30 @@ io.on('connection', (socket) => {
   // HOST RESPONSE — host responds to specific guest
   socket.on('host_response', ({ guestSocketId, data }) => {
     io.to(guestSocketId).emit('host_response', data);
+  });
+
+  // REMOVE GUEST — host explicitly removes a guest
+  socket.on('remove_guest', ({ guestSocketId }) => {
+    const roomCode = Object.keys(rooms).find(code => rooms[code].hostSocketId === socket.id);
+    if (!roomCode) return;
+    const room = rooms[roomCode];
+    if (room.hostSocketId !== socket.id) return;
+
+    const guest = room.guests.find(g => g.socketId === guestSocketId);
+    if (!guest) return;
+
+    // Remove from room
+    room.guests = room.guests.filter(g => g.socketId !== guestSocketId);
+
+    // Notify the kicked guest
+    io.to(guestSocketId).emit('host_response', { type: 'kicked' });
+
+    // Send updated list to host
+    io.to(room.hostSocketId).emit('room_updated', {
+      guests: room.guests.map(g => ({ name: g.name, index: g.index, socketId: g.socketId }))
+    });
+
+    console.log(`${guest.name} removed from room ${roomCode} by host`);
   });
 
   // CHAT — broadcast to whole room
@@ -205,6 +255,11 @@ io.on('connection', (socket) => {
 
       // Notify host
       io.to(room.hostSocketId).emit('guest_left', { guestName });
+
+      // Also send updated room list so host can re-sync
+      io.to(room.hostSocketId).emit('room_updated', {
+        guests: room.guests.map(g => ({ name: g.name, index: g.index, socketId: g.socketId }))
+      });
 
       console.log(`${guestName} left room ${guestRoomCode}`);
     }

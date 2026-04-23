@@ -208,7 +208,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .question-hint.hidden-hint{color:var(--dim);}
 
 /* Game body */
-.game-body{flex:1;display:grid;grid-template-columns:340px 1fr;overflow:hidden;}
+.game-body{flex:1;display:grid;grid-template-columns:1.5fr 3.5fr;overflow:hidden;}
 .game-left{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow-y:auto;}
 
 .info-panel{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 14px;}
@@ -292,7 +292,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .status-box{padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;text-align:center;color:var(--dim);font-size:0.85rem;font-weight:500;}
 
 .game-right{display:flex;flex-direction:column;overflow:hidden;}
-.players-section{border-bottom:1px solid var(--border);overflow:auto;max-height:220px;flex-shrink:0;}
+.players-section{border-bottom:1px solid var(--border);overflow:auto;max-height:160px;flex-shrink:0;}
 .section-header{padding:7px 14px;font-size:0.7rem;font-weight:700;letter-spacing:0.1em;color:var(--dim);text-transform:uppercase;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:2;}
 .tradelog-section{flex:1;overflow:auto;}
 table{width:100%;border-collapse:collapse;}
@@ -512,6 +512,7 @@ td.maker-badge::after{content:' ✦';color:var(--yellow);font-size:0.7rem;}
         <div class="eg">e.g. You hold +15. Community shows +3, +7 (2 revealed). You know those 3 cards aren't in the remaining 4 hidden slots → adjust EV upward.</div>
         <h5>Market Making</h5><p>Each turn a player posts <strong>Bid / Ask</strong>. Everyone else races to trade. The market maker takes the other side of any trade.</p>
         <div class="eg">Market 38 / 44 · Your FV = 48 → BUY at 44, edge = +4. Your FV = 32 → SELL at 38, edge = +6.</div>
+        <h5>Turn Flow</h5><p>Someone posts a market → you race to trade → <strong>if you trade, you become the new market maker</strong> → someone else trades with you → they become maker → and so on. If no one trades within the window, the maker role rotates automatically to the next player.</p>
         <h5>Three Rounds</h5><p>After each round: 2 community cards are <strong>revealed</strong> and each player gets a <strong>new private card</strong>. Re-estimate FV each round.</p>
         <h5>Settlement</h5><p>All 6 community cards are revealed. P&amp;L = (Settlement − Avg Entry) × Position.</p>
       </div>
@@ -526,6 +527,7 @@ td.maker-badge::after{content:' ✦';color:var(--yellow);font-size:0.7rem;}
         <h5>Preview (90 seconds)</h5><p>Before each round you get 90 seconds to form your own estimate. No hints in round 1.</p>
         <h5>Market Making</h5><p>Each turn, a player posts a Bid / Ask. If you think the true answer is <em>above</em> the ask — buy. If <em>below</em> the bid — sell.</p>
         <div class="eg">Q: "How many Starbucks locations worldwide?" — If your estimate is 36,000 and the market is 30k/34k, BUY has edge.</div>
+        <h5>Turn Flow</h5><p>Someone posts a market → you race to trade → <strong>if you trade, you become the new market maker</strong> → someone else trades with you → they become maker → and so on. If no one trades within the window, the maker role rotates to the next player.</p>
         <h5>Hints</h5><p>A new hint unlocks each round, narrowing the true range. Adjust your estimate and your aggression accordingly.</p>
         <h5>Settlement</h5><p>After round 3, the true answer is revealed. P&amp;L = (True Answer − AvgEntry) × Position.</p>
       </div>
@@ -938,8 +940,9 @@ td.maker-badge::after{content:' ✦';color:var(--yellow);font-size:0.7rem;}
 // ═══════════════════════════════════════════════════════════════
 const THEMES = ['dark','light','system'];
 const THEME_ICONS = {dark:'🌙 Dark', light:'☀️ Light', system:'💻 System'};
-let currentTheme = localStorage.getItem('mm-theme') || 'system';
-function applyTheme(t){document.documentElement.setAttribute('data-theme',t);currentTheme=t;localStorage.setItem('mm-theme',t);document.querySelectorAll('.theme-toggle-btn').forEach(b=>b.textContent=THEME_ICONS[t]);}
+// v2 key forces reset — old 'mm-theme' cached 'light' for existing users
+let currentTheme = localStorage.getItem('mm-theme-v2') || 'system';
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);currentTheme=t;localStorage.setItem('mm-theme-v2',t);document.querySelectorAll('.theme-toggle-btn').forEach(b=>b.textContent=THEME_ICONS[t]);}
 function cycleTheme(){const next=THEMES[(THEMES.indexOf(currentTheme)+1)%THEMES.length];applyTheme(next);toast(`Theme: ${next}`,'info');}
 applyTheme(currentTheme);
 
@@ -1226,10 +1229,10 @@ class Bot extends Player{
       const base=(1400-normalized*700)*spd;
       return Math.max(150,Math.min(2000,base+(Math.random()-.5)*400));
     }
-    // Estimathon: ~0.4–2.5s scaled by bot speed
+    // Estimathon: avg ~500–600ms (human-like), faster on bigger edge
     const scale=Math.abs(this.fv||G.estimaQuestion?.answer||1000)*0.04;
     const s=Math.min(1,edge/Math.max(1,scale));
-    return Math.max(150,Math.min(2500,(2200-s*1900)*spd+(Math.random()-.5)*600));
+    return Math.max(200,Math.min(1500,(800-s*300)*spd+(Math.random()-.5)*600));
   }
 }
 
@@ -1371,7 +1374,14 @@ let guestPendingPreviewState = null; // store phase state while waiting for priv
 
 function getSocket() {
   if (!socket) {
-    socket = io(window.location.origin, { autoConnect: true });
+    socket = io(window.location.origin, {
+      autoConnect: true,
+      reconnection: true,
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 3000,
+      reconnectionAttempts: 30,
+      timeout: 10000
+    });
     bindSocketEvents();
   }
   return socket;
@@ -1380,6 +1390,27 @@ function getSocket() {
 function bindSocketEvents() {
   socket.on('connect', () => {
     console.log('Connected to server:', socket.id);
+  });
+
+  socket.on('reconnect', (attempt) => {
+    console.log('Reconnected after', attempt, 'attempts');
+    // Re-join room if we were in one
+    if (isGuest && generatedRoomCode && guestDisplayName) {
+      socket.emit('join_room', { code: generatedRoomCode, displayName: guestDisplayName });
+      toast('Reconnected! Syncing…', 'info');
+    }
+  });
+
+  socket.on('reconnect_attempt', () => {
+    console.log('Attempting to reconnect…');
+  });
+
+  socket.on('disconnect', (reason) => {
+    console.log('Socket disconnected:', reason);
+    if (reason === 'io server disconnect') {
+      // Server forced disconnect — try to reconnect manually
+      socket.connect();
+    }
   });
 
   socket.on('room_created', ({ code }) => {
@@ -1459,7 +1490,9 @@ function bindSocketEvents() {
   });
 
   socket.on('guest_left', ({ guestName }) => {
-    toast(`${guestName} left the room`, 'info');
+    toast(`${guestName} left the room`, 'warn');
+    // room_updated follows from server — but also update players table immediately if game is running
+    if (isHost && G) updatePlayersTable();
   });
 
   socket.on('chat', ({ name, message }) => {
@@ -1508,10 +1541,13 @@ function initHostRoom() {
 }
 
 function joinRoom() {
+  // Must have a real name before joining
+  const nameVal = document.getElementById('join-name-input').value.trim();
+  if (!nameVal) { toast('Please enter your name first!', 'warn'); document.getElementById('join-name-input').focus(); return; }
+  guestDisplayName = nameVal;
   const code = document.getElementById('join-code-input').value.trim().toUpperCase();
   if (code.length < 4) { toast('Enter a room code first', 'warn'); return; }
-  const displayName = (currentUser && (currentUser.displayName || currentUser.email)) || guestDisplayName || 'Guest';
-  guestDisplayName = displayName;
+  const displayName = nameVal;
   const statusEl = document.getElementById('join-status');
   statusEl.style.display = 'block';
   statusEl.className = 'room-status connecting';
@@ -1541,23 +1577,20 @@ function checkUrlJoin() {
   if (!hash.startsWith('#join=')) return;
   const code = hash.replace('#join=','').toUpperCase().trim();
   if (!code) return;
-  // Switch to join tab and pre-fill code
+  // Switch to join tab and pre-fill code — user must enter their name before clicking Connect
   selectRoomType('join');
   document.getElementById('join-code-input').value = code;
-  // Give socket time to connect before joining
-  const doJoin = () => {
-    const displayName = (currentUser && (currentUser.displayName || currentUser.email)) || guestDisplayName || 'Guest';
-    getSocket().emit('join_room', { code, displayName });
-    const statusEl = document.getElementById('join-status');
-    statusEl.style.display = 'block';
-    statusEl.className = 'room-status connecting';
-    statusEl.textContent = 'Connecting to room…';
-  };
-  // Wait for socket to be ready
-  const s = getSocket();
-  if (s.connected) { doJoin(); }
-  else { s.once('connect', doJoin); }
-  // Remove hash so refresh doesn't re-trigger join
+  // Pre-fill name from logged-in user if available
+  setTimeout(() => {
+    const nameInp = document.getElementById('join-name-input');
+    if (nameInp && !nameInp.value && currentUser) {
+      nameInp.value = currentUser.displayName || currentUser.email || '';
+      guestDisplayName = nameInp.value;
+    }
+    // Focus name if empty, else focus the connect button
+    if (nameInp && !nameInp.value) nameInp.focus();
+  }, 300);
+  // Remove hash so refresh doesn't re-trigger
   history.replaceState(null, '', window.location.pathname + window.location.search);
 }
 
@@ -1881,6 +1914,9 @@ function startGuestSyncedCardPreview(endTime, round) {
   }
 
   switchScreen('card-preview');
+  // Reset button for each fresh preview
+  const skipBtn = document.getElementById('card-preview-skip-btn');
+  if (skipBtn) { skipBtn.textContent = "I'm Ready →"; skipBtn.disabled = false; }
 
   // Use server-synced endTime for countdown
   const now = Date.now();
@@ -1911,7 +1947,12 @@ function skipCardPreviewAny() {
 
 function guestCardPreviewDone() {
   clearInterval(previewTimer);
-  switchScreen('game');
+  // Tell host we're ready — host will start the round when everyone is done
+  if(socket && isGuest) socket.emit('guest_action', { type: 'preview_done' });
+  // Show "waiting for host" instead of immediately jumping to game
+  const btn=document.getElementById('card-preview-skip-btn');
+  if(btn){btn.textContent='⏳ Waiting for host to start…';btn.disabled=true;}
+  // Game screen switch happens when host broadcasts game state (applyGuestState handles it)
   // Update your stats display now we have cards
   if (G) updateYourStats();
 }
@@ -2007,11 +2048,13 @@ function updateHostReadyDisplay() {
 // ── Kick guest ──
 function kickGuest(socketId, name) {
   if (!confirm(`Remove ${name} from the room?`)) return;
-  if (socket) socket.emit('host_response', { guestSocketId: socketId, data: { type: 'kicked' } });
+  // Tell server to remove (server notifies guest + sends updated room_updated back to us)
+  if (socket) socket.emit('remove_guest', { guestSocketId: socketId });
+  // Update local list immediately for responsiveness
   connectedGuests = connectedGuests.filter(g => g.socketId !== socketId);
   updateHostReadyDisplay();
   refreshHostPlayerDisplay();
-  toast(`${name} removed from room`, 'info');
+  toast(`${name} removed from room`, 'warn');
 }
 
 // ── Leave room (guest) ──
@@ -2185,6 +2228,23 @@ function handleIncomingGuestAction(action) {
     if (g) { g.ready = action.ready; updateHostReadyDisplay(); }
     return;
   }
+
+  // ── preview_done: guest finished card/estima preview and is ready to start ──
+  if (action.type === 'preview_done') {
+    hostPreviewReadyGuests.add(action.guestSocketId);
+    checkAllPreviewReady();
+    return;
+  }
+
+  // ── guest_quit: guest left the game mid-round ──
+  if (action.type === 'guest_quit') {
+    connectedGuests = connectedGuests.filter(g => g.socketId !== action.guestSocketId);
+    updateHostReadyDisplay();
+    refreshHostPlayerDisplay();
+    if (G) updatePlayersTable();
+    toast(`${action.guestName} quit the game.`, 'warn');
+    return;
+  }
 }
 
 function clearAllTimers() {
@@ -2329,6 +2389,21 @@ function receivedGameStart(state){
 // CARD PREVIEW (30 seconds)
 // ═══════════════════════════════════════════════════════════════
 let previewTimer=null, previewHumanIdx=0, previewEndTime=0;
+let hostPreviewReadyGuests=new Set(), hostPreviewWaiting=false;
+
+function checkAllPreviewReady(){
+  if(!hostPreviewWaiting||!isHost) return;
+  const allDone = connectedGuests.every(g => hostPreviewReadyGuests.has(g.socketId));
+  if(allDone || connectedGuests.length===0){
+    hostPreviewWaiting=false;
+    hostPreviewReadyGuests.clear();
+    // Update button in case still visible
+    const btn=document.getElementById('card-preview-skip-btn');
+    if(btn){btn.textContent='Starting…';btn.disabled=true;}
+    switchScreen('game');
+    startRound(G.round);
+  }
+}
 
 function startCardPreview(humanIdx){
   previewHumanIdx=humanIdx;
@@ -2378,6 +2453,11 @@ function startCardPreview(humanIdx){
   document.getElementById('prev-bar-fill').style.width='100%';
   document.getElementById('prev-countdown').className='preview-countdown';
 
+  // Reset the Ready button for each new preview
+  const skipBtnH = document.getElementById('card-preview-skip-btn');
+  if (skipBtnH) { skipBtnH.textContent = "I'm Ready →"; skipBtnH.disabled = false; }
+  hostPreviewWaiting = false;
+
   clearInterval(previewTimer);
   previewTimer=setInterval(()=>{
     const rem=Math.max(0,Math.round((previewEndTime-Date.now())/1000));
@@ -2412,7 +2492,19 @@ function quitFromPreview(){
 }
 
 function nextPreviewOrStart(){
-  // If there are more human players to show cards to, cycle through them
+  // In multiplayer (host+guests): host only previews their own cards (idx 0).
+  // Guest slots are handled separately on each guest's own device.
+  if(isHost && connectedGuests.length>0){
+    // Host done — wait for all guests to send preview_done
+    hostPreviewWaiting=true;
+    hostPreviewReadyGuests.clear();
+    const btn=document.getElementById('card-preview-skip-btn');
+    if(btn){btn.textContent='⏳ Waiting for guests…';btn.disabled=true;}
+    // Check immediately in case no guests or all already ready
+    checkAllPreviewReady();
+    return;
+  }
+  // Local/solo: cycle through all human players
   const nextIdx=previewHumanIdx+1;
   if(nextIdx<G.humanPlayerIndices.length){
     startCardPreview(nextIdx);
@@ -3081,6 +3173,13 @@ function doQuit(){
   // If host, notify all guests the game is ending
   if(isHost && socket && generatedRoomCode){
     socket.emit('game_state', { phase:'host_quit' });
+  }
+  // If guest, notify host we're leaving the game
+  if(isGuest && socket){
+    socket.emit('guest_action', { type: 'guest_quit' });
+    isGuest = false;
+    generatedRoomCode = '';
+    guestIndex = -1;
   }
   G=null; guestPlayerIndex=-1; guestLastRoundSeen=0;
   switchScreen('setup');
