@@ -504,12 +504,16 @@ td.maker-badge::after{content:' ✦';color:var(--yellow);font-size:0.7rem;}
         <h4>📖 How to Play — Card Game</h4><span class="rules-chevron" id="rules-chevron-cards">▼</span>
       </div>
       <div class="rules-body" id="rules-body-cards">
-        <h5>Objective</h5><p>Maximise your P&amp;L at settlement. The settlement value is the <strong>sum of all 6 community cards</strong>.</p>
-        <h5>Your Hand</h5><p>Each player holds <strong>private cards</strong> drawn from the same deck. They tell you about cards that are <em>not</em> in the community — giving you an information edge.</p>
-        <h5>Market Making</h5><p>Each turn, a random player (human or bot) posts a <strong>Bid / Ask</strong> spread. Everyone else races to trade against it.</p>
-        <div class="eg">Bid 38 / Ask 44 → if you think FV &gt; 44, BUY (profitable edge).</div>
-        <h5>Three Rounds</h5><p>After each round, 2 community cards are <strong>revealed</strong>, and each player receives a <strong>new private card</strong>. Update your FV estimate each round.</p>
-        <h5>Settlement</h5><p>After round 3, all 6 community cards are revealed. Each unit of position is worth the settlement sum. P&amp;L = (Settlement − AvgEntry) × Position.</p>
+        <h5>The Deck (50 cards)</h5>
+        <p>Two copies each of <strong>0–20</strong> (positive cards) · Eight negative cards: <strong>−10, −20, −30, −40, −50, −60, −70, −80</strong> · Deck mean ≈ <strong>1.2</strong></p>
+        <h5>Setup</h5><p>6 cards go face-down as the <strong>community</strong>. Each player is dealt <strong>1 private card</strong> from the same deck — giving you a clue about what's <em>not</em> in the community.</p>
+        <h5>Objective</h5><p>The settlement value is the <strong>sum of all 6 community cards</strong>. Buy low, sell high around your fair value estimate.</p>
+        <h5>Fair Value</h5><p>Use your private card(s) + any revealed community cards to narrow down the remaining unknowns. Your FV = revealed sum + (hidden count × expected value of remaining cards).</p>
+        <div class="eg">e.g. You hold +15. Community shows +3, +7 (2 revealed). You know those 3 cards aren't in the remaining 4 hidden slots → adjust EV upward.</div>
+        <h5>Market Making</h5><p>Each turn a player posts <strong>Bid / Ask</strong>. Everyone else races to trade. The market maker takes the other side of any trade.</p>
+        <div class="eg">Market 38 / 44 · Your FV = 48 → BUY at 44, edge = +4. Your FV = 32 → SELL at 38, edge = +6.</div>
+        <h5>Three Rounds</h5><p>After each round: 2 community cards are <strong>revealed</strong> and each player gets a <strong>new private card</strong>. Re-estimate FV each round.</p>
+        <h5>Settlement</h5><p>All 6 community cards are revealed. P&amp;L = (Settlement − Avg Entry) × Position.</p>
       </div>
     </div>
     <!-- Rules: Estimathon -->
