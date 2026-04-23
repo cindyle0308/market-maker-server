@@ -3140,7 +3140,11 @@ async function signInGoogle(){
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
     await fbAuth.signInWithPopup(provider);
-  } catch(e){ showAuthError(e.message); }
+  } catch(e){
+    // Silently ignore if user simply closed the popup
+    if(e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') return;
+    showAuthError(e.message);
+  }
 }
 
 async function signInEmail(){
