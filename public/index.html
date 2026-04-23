@@ -1206,11 +1206,11 @@ class Bot extends Player{
     const scale=G.gameType==='estimathon'?Math.abs(this.fv||G.estimaQuestion?.answer||1000)*0.04:10;
     const s=Math.min(1,edge/Math.max(1,scale));
     // Estimathon: 3–10s reaction time (humans have to read, think, click)
-    // Card game: 0.4–7s
+    // Card game: 0.3–5s (snappy — original timing)
     if(G.gameType==='estimathon'){
       return Math.max(3000,Math.min(10000,9000-s*5500+(Math.random()-.5)*3000));
     }
-    return Math.max(400,Math.min(7000,6000-s*5200+(Math.random()-.5)*2000));
+    return Math.max(300,Math.min(5000,4500-s*4000+(Math.random()-.5)*1500));
   }
 }
 
