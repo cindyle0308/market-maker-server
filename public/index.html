@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="system">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -938,7 +938,7 @@ td.maker-badge::after{content:' ✦';color:var(--yellow);font-size:0.7rem;}
 // ═══════════════════════════════════════════════════════════════
 const THEMES = ['dark','light','system'];
 const THEME_ICONS = {dark:'🌙 Dark', light:'☀️ Light', system:'💻 System'};
-let currentTheme = localStorage.getItem('mm-theme') || 'dark';
+let currentTheme = localStorage.getItem('mm-theme') || 'system';
 function applyTheme(t){document.documentElement.setAttribute('data-theme',t);currentTheme=t;localStorage.setItem('mm-theme',t);document.querySelectorAll('.theme-toggle-btn').forEach(b=>b.textContent=THEME_ICONS[t]);}
 function cycleTheme(){const next=THEMES[(THEMES.indexOf(currentTheme)+1)%THEMES.length];applyTheme(next);toast(`Theme: ${next}`,'info');}
 applyTheme(currentTheme);
