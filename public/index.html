@@ -1196,10 +1196,12 @@ class Bot extends Player{
   decide(bid,ask){
     if(this.fv===null)this.calcFV();
     const eb=this.fv-ask,es=bid-this.fv;
-    // Estimathon: threshold scales with FV (2% of FV * personality factor), else fixed unit threshold
-    const th=G.gameType==='estimathon'?Math.abs(this.fv)*0.02*this.p.th:this.p.th;
+    // Card game: lower thresholds (FV ~5–10 range, so raw th of 1.2 is too strict — scale down to ~30%)
+    // Estimathon: threshold scales with FV magnitude
+    const th=G.gameType==='estimathon'
+      ?Math.abs(this.fv)*0.02*this.p.th
+      :Math.max(0.25,this.p.th*0.3);
     if(eb>th){
-      // Card game: volume proportional to edge (original behaviour); Estimathon: fixed by aggressiveness
       const vol=G.gameType==='estimathon'
         ?Math.min(20,Math.max(1,Math.round(this.p.ag*2)))
         :Math.min(20,Math.max(1,Math.round(eb*this.p.ag)));
@@ -1215,15 +1217,15 @@ class Bot extends Player{
   }
   react(edge){
     if(G.gameType!=='estimathon'){
-      // Card game: original fast timing — 200ms (huge edge) → 2500ms (tiny edge)
-      const normalized=Math.min(1,edge/12);
-      const base=2200-normalized*1900;
-      return Math.max(200,Math.min(2500,base+(Math.random()-.5)*800));
+      // Card game: ~0.8s at high edge, ~1.5s at low edge
+      const normalized=Math.min(1,edge/5);
+      const base=1400-normalized*700;
+      return Math.max(150,Math.min(1600,base+(Math.random()-.5)*400));
     }
-    // Estimathon: 3–10s (humans need time to read, think, click)
+    // Estimathon: slightly faster — ~0.5s at high edge, ~2.5s at low edge
     const scale=Math.abs(this.fv||G.estimaQuestion?.answer||1000)*0.04;
     const s=Math.min(1,edge/Math.max(1,scale));
-    return Math.max(3000,Math.min(10000,9000-s*5500+(Math.random()-.5)*3000));
+    return Math.max(200,Math.min(2500,2200-s*1900+(Math.random()-.5)*600));
   }
 }
 
