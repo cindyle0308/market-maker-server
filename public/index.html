@@ -2544,12 +2544,16 @@ async function loadMyHistory(){
   const el=document.getElementById('history-content');
   el.innerHTML='<div style="color:var(--dim);text-align:center;padding:16px">Loading…</div>';
   try {
+    // No orderBy — avoids composite index requirement; sort client-side instead
     const snap = await fbDb.collection('game_results')
       .where('uid','==',currentUser.uid)
-      .orderBy('ts','desc').limit(20).get();
-    if(snap.empty){ el.innerHTML='<div style="color:var(--dim);text-align:center;padding:16px">No games yet. Play one!</div>'; return; }
-    el.innerHTML = snap.docs.map(d=>{
-      const g=d.data();
+      .limit(50).get();
+    if(snap.empty){ el.innerHTML='<div style="color:var(--dim);text-align:center;padding:16px">No games yet — play one and your history will appear here!</div>'; return; }
+    const docs = snap.docs
+      .map(d=>d.data())
+      .sort((a,b)=>{ const ta=a.ts?.toMillis?.()||0; const tb=b.ts?.toMillis?.()||0; return tb-ta; })
+      .slice(0,20);
+    el.innerHTML = docs.map(g=>{
       const sign=g.pnl>=0?'+':'';
       const dateStr = g.ts ? new Date(g.ts.toDate()).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'}) : '—';
       return `<div class="history-game-row">
@@ -2564,12 +2568,12 @@ async function loadLeaderboard(){
   const el=document.getElementById('history-content');
   el.innerHTML='<div style="color:var(--dim);text-align:center;padding:16px">Loading…</div>';
   try {
-    const snap = await fbDb.collection('leaderboard_summary')
-      .orderBy('totalPnl','desc').limit(20).get();
+    // Fetch all leaderboard entries and sort client-side (avoids needing an index)
+    const snap = await fbDb.collection('leaderboard_summary').limit(100).get();
     if(snap.empty){ el.innerHTML='<div style="color:var(--dim);text-align:center;padding:16px">No rankings yet. Be the first!</div>'; return; }
     const medals=['🥇','🥈','🥉'];
-    el.innerHTML = snap.docs.map((d,i)=>{
-      const lb=d.data();
+    const sorted = snap.docs.map(d=>d.data()).sort((a,b)=>(b.totalPnl||0)-(a.totalPnl||0)).slice(0,20);
+    el.innerHTML = sorted.map((lb,i)=>{
       return `<div class="leaderboard-row">
         <div class="lb-rank">${medals[i]||'#'+(i+1)}</div>
         <div class="lb-name">${lb.displayName||'—'}<span style="font-size:0.72rem;color:var(--dim);margin-left:8px">${lb.gamesPlayed||0} games</span></div>
