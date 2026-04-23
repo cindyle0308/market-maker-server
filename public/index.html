@@ -951,19 +951,19 @@ const DECK_EV=FULL_DECK.reduce((a,b)=>a+b,0)/FULL_DECK.length; // 1.2
 const CC=6, TRADE_WIN=8000, EXEC_WIN=8000, BOT_DELAY=1800, BOT_DELAY_CARDS=600, CARD_PREVIEW_SECS=30, MAKER_SECS=10;
 
 const BOT_PROFILES=[
-  // sf=spreadFactor, th=threshold, mw=marketWeight, ag=aggressiveness
-  // ub=unitBias (how many primary units they think exist), pb=perUnitBias (per-unit value they assume)
-  // Both biases are for Estimathon: their FV = truth * (1+ub) * (1+pb) + noise
-  {name:'Algo-X',     sf:0.75,th:1.2,mw:0.15,ag:1.8, ub: 0.05, pb: 0.00, estStyle:'top-down'},
-  {name:'QuantEdge',  sf:0.55,th:0.8,mw:0.08,ag:2.2, ub:-0.10, pb:-0.05, estStyle:'conservative'},
-  {name:'HedgeFund',  sf:1.60,th:3.2,mw:0.20,ag:1.0, ub: 0.20, pb: 0.15, estStyle:'bullish'},
+  // sf=spreadFactor, th=threshold (used for estimathon only — card game uses uniform 0.4)
+  // mw=marketWeight, ag=aggressiveness (1.2–1.8 range for balanced volumes)
+  // ub/pb = estimathon FV biases
+  {name:'Algo-X',     sf:0.75,th:1.2,mw:0.15,ag:1.6, ub: 0.05, pb: 0.00, estStyle:'top-down'},
+  {name:'QuantEdge',  sf:0.55,th:0.8,mw:0.08,ag:1.8, ub:-0.10, pb:-0.05, estStyle:'conservative'},
+  {name:'HedgeFund',  sf:1.60,th:3.2,mw:0.20,ag:1.3, ub: 0.20, pb: 0.15, estStyle:'bullish'},
   {name:'ArbBot',     sf:1.00,th:1.8,mw:0.30,ag:1.5, ub: 0.00, pb: 0.00, estStyle:'neutral'},
-  {name:'BearTrap',   sf:1.20,th:2.5,mw:0.10,ag:1.3, ub:-0.25, pb:-0.20, estStyle:'pessimistic',bias:-2.5},
-  {name:'BullRun',    sf:1.20,th:2.5,mw:0.10,ag:1.3, ub: 0.25, pb: 0.20, estStyle:'optimistic', bias:2.5},
-  {name:'GammaBot',   sf:0.90,th:1.6,mw:0.40,ag:1.6, ub: 0.10, pb:-0.10, estStyle:'many-small'},
+  {name:'BearTrap',   sf:1.20,th:2.5,mw:0.10,ag:1.4, ub:-0.25, pb:-0.20, estStyle:'pessimistic',bias:-2.5},
+  {name:'BullRun',    sf:1.20,th:2.5,mw:0.10,ag:1.4, ub: 0.25, pb: 0.20, estStyle:'optimistic', bias:2.5},
+  {name:'GammaBot',   sf:0.90,th:1.6,mw:0.40,ag:1.5, ub: 0.10, pb:-0.10, estStyle:'many-small'},
   {name:'DeltaOne',   sf:1.10,th:2.0,mw:0.22,ag:1.4, ub:-0.10, pb: 0.10, estStyle:'few-large'},
-  {name:'Momentum',   sf:0.85,th:1.4,mw:0.35,ag:2.0, ub: 0.15, pb: 0.05, estStyle:'trend-follower'},
-  {name:'SteadyHand', sf:1.40,th:2.8,mw:0.18,ag:0.9, ub:-0.05, pb: 0.05, estStyle:'balanced'},
+  {name:'Momentum',   sf:0.85,th:1.4,mw:0.35,ag:1.7, ub: 0.15, pb: 0.05, estStyle:'trend-follower'},
+  {name:'SteadyHand', sf:1.40,th:2.8,mw:0.18,ag:1.2, ub:-0.05, pb: 0.05, estStyle:'balanced'},
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -1196,11 +1196,12 @@ class Bot extends Player{
   decide(bid,ask){
     if(this.fv===null)this.calcFV();
     const eb=this.fv-ask,es=bid-this.fv;
-    // Card game: lower thresholds (FV ~5–10 range, so raw th of 1.2 is too strict — scale down to ~30%)
+    // Card game: uniform threshold for all bots so no bot is unfairly inactive
+    // Personality shows through volume (aggressiveness) and spread, not trade frequency
     // Estimathon: threshold scales with FV magnitude
     const th=G.gameType==='estimathon'
       ?Math.abs(this.fv)*0.02*this.p.th
-      :Math.max(0.25,this.p.th*0.3);
+      :0.4;
     if(eb>th){
       const vol=G.gameType==='estimathon'
         ?Math.min(20,Math.max(1,Math.round(this.p.ag*2)))
