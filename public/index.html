@@ -779,9 +779,9 @@ td.maker-badge::after{content:' ✦';color:var(--yellow);font-size:0.7rem;}
           <div class="mm-hint">You're the market maker — post your bid and ask:</div>
           <div class="mm-inputs">
             <div class="mm-input-group"><label>Bid</label><input type="number" id="mm-bid" placeholder="e.g. 38" step="0.5"
-              onkeydown="if(event.key==='Enter'){event.preventDefault();postMarket();}"></div>
+              onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('mm-ask').focus();}"></div>
             <div class="mm-input-group"><label>Ask</label><input type="number" id="mm-ask" placeholder="e.g. 44" step="0.5"
-              onkeydown="if(event.key==='Enter'){event.preventDefault();postMarket();}"></div>
+              onkeydown="if(event.key==='Enter'){event.preventDefault();humanPostMarket();}"></div>
           </div>
           <div class="mm-error" id="mm-error"></div>
           <div id="maker-countdown" style="text-align:center;font-size:0.82rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--yellow);margin-bottom:6px;display:none"></div>
