@@ -9,6 +9,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
 /* ============================================================ RESET ============================================================ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -49,6 +53,45 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .screen{display:none;}
 .screen.active{display:block;}
 #screen-game.active{display:flex;}
+
+/* ============================================================ AUTH CARD ============================================================ */
+.auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:14px;}
+.auth-card h3{color:var(--blue);font-size:0.75rem;font-weight:700;letter-spacing:0.14em;margin-bottom:14px;text-transform:uppercase;}
+.auth-input{width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--border2);color:var(--bright);border-radius:7px;font-family:'Inter',sans-serif;font-size:0.85rem;outline:none;margin-bottom:8px;}
+.auth-input:focus{border-color:var(--blue);}
+.auth-row{display:flex;gap:8px;margin-bottom:8px;}
+.auth-btn{flex:1;padding:9px 12px;border-radius:7px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.83rem;font-weight:600;transition:all 0.15s;}
+.auth-btn-primary{background:rgba(58,144,255,0.12);border:1px solid var(--blue);color:var(--blue);}
+.auth-btn-primary:hover{background:rgba(58,144,255,0.2);}
+.auth-btn-secondary{background:transparent;border:1px solid var(--border2);color:var(--dim);}
+.auth-btn-secondary:hover{border-color:var(--text);color:var(--text);}
+.auth-google-btn{width:100%;padding:10px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:7px;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.85rem;font-weight:600;margin-bottom:10px;transition:all 0.15s;}
+.auth-google-btn:hover{border-color:var(--blue);color:var(--bright);}
+.auth-signed-in-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.auth-user-info .name{font-size:0.9rem;font-weight:600;color:var(--bright);}
+.auth-user-info .email{font-size:0.75rem;color:var(--dim);margin-top:2px;}
+.auth-actions{display:flex;gap:6px;flex-shrink:0;}
+.auth-err{font-size:0.78rem;color:var(--red);margin-top:4px;display:none;}
+.auth-divider{text-align:center;font-size:0.75rem;color:var(--dim);margin:8px 0;position:relative;}
+.auth-divider::before,.auth-divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--border);}
+.auth-divider::before{left:0;}.auth-divider::after{right:0;}
+/* History modal */
+.history-modal{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:none;align-items:center;justify-content:center;}
+.history-modal.visible{display:flex;}
+.history-box{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:28px;max-width:560px;width:90%;max-height:80vh;overflow-y:auto;}
+.history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.history-header h2{font-size:1.1rem;font-weight:700;color:var(--bright);}
+.history-close-btn{background:transparent;border:none;color:var(--dim);font-size:1.3rem;cursor:pointer;line-height:1;}
+.history-game-row{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;}
+.history-game-row .hg-meta{font-size:0.75rem;color:var(--dim);margin-bottom:5px;}
+.history-game-row .hg-result{font-size:0.9rem;font-weight:700;}
+.history-game-row .hg-result.pos{color:var(--green);}
+.history-game-row .hg-result.neg{color:var(--red);}
+.leaderboard-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);}
+.leaderboard-row:last-child{border-bottom:none;}
+.lb-rank{width:28px;text-align:center;font-weight:700;font-size:0.9rem;color:var(--yellow);}
+.lb-name{flex:1;font-size:0.88rem;font-weight:600;color:var(--bright);}
+.lb-score{font-family:'DM Mono',monospace;font-size:0.88rem;font-weight:700;color:var(--green);}
 
 /* ============================================================ SETUP SCREEN ============================================================ */
 #screen-setup{max-width:700px;margin:0 auto;padding:40px 24px;}
@@ -387,6 +430,37 @@ td.maker-badge::after{content:' ✦';color:var(--yellow);font-size:0.7rem;}
     <div class="sub">The Trading Game</div>
   </div>
 
+  <!-- ─── Account / Sign-In Card ─── -->
+  <div class="auth-card">
+    <h3>👤 Account</h3>
+    <!-- Signed-out state -->
+    <div id="auth-signed-out">
+      <p style="font-size:0.82rem;color:var(--dim);margin-bottom:12px;line-height:1.5;">Sign in to track your game history and appear on the leaderboard.</p>
+      <button class="auth-google-btn" onclick="signInGoogle()">🔵 Continue with Google</button>
+      <div class="auth-divider">or email</div>
+      <input class="auth-input" id="auth-email" type="email" placeholder="email@example.com">
+      <input class="auth-input" id="auth-password" type="password" placeholder="password" onkeydown="if(event.key==='Enter')signInEmail()">
+      <div class="auth-row">
+        <button class="auth-btn auth-btn-primary" onclick="signInEmail()">Sign In</button>
+        <button class="auth-btn auth-btn-secondary" onclick="signUpEmail()">Create Account</button>
+      </div>
+      <div class="auth-err" id="auth-error"></div>
+    </div>
+    <!-- Signed-in state -->
+    <div id="auth-signed-in" style="display:none">
+      <div class="auth-signed-in-row">
+        <div class="auth-user-info">
+          <div class="name" id="auth-user-name">—</div>
+          <div class="email" id="auth-user-email"></div>
+        </div>
+        <div class="auth-actions">
+          <button class="auth-btn auth-btn-primary" onclick="showHistory()" style="padding:7px 14px;">📊 Stats</button>
+          <button class="auth-btn auth-btn-secondary" onclick="signOutUser()" style="padding:7px 14px;">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Game mode -->
   <div class="setup-card">
     <h3>Game Mode</h3>
@@ -507,7 +581,7 @@ td.maker-badge::after{content:' ✦';color:var(--yellow);font-size:0.7rem;}
         <span>Enter your own Fair Value estimate instead of the auto-computed one. Your manual estimate drives the edge indicator.</span>
       </div>
       <label class="toggle-switch">
-        <input type="checkbox" id="opt-manual-fv">
+        <input type="checkbox" id="opt-manual-fv" onchange="onManualFVChange()">
         <div class="toggle-track"></div>
       </label>
     </div>
@@ -743,6 +817,21 @@ td.maker-badge::after{content:' ✦';color:var(--yellow);font-size:0.7rem;}
 </div>
 
 <div id="toast-container"></div>
+
+<!-- ─── History / Stats Modal ─── -->
+<div class="history-modal" id="history-modal">
+  <div class="history-box">
+    <div class="history-header">
+      <h2>📊 Stats &amp; History</h2>
+      <button class="history-close-btn" onclick="hideHistory()">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button id="htab-history" class="auth-btn auth-btn-primary" style="flex:1" onclick="switchHistoryTab('history')">My Games</button>
+      <button id="htab-leaderboard" class="auth-btn auth-btn-secondary" style="flex:1" onclick="switchHistoryTab('leaderboard')">🏆 Leaderboard</button>
+    </div>
+    <div id="history-content"><div style="color:var(--dim);font-size:0.85rem;text-align:center;padding:20px">Loading…</div></div>
+  </div>
+</div>
 
 <!-- ============================================================ SCRIPT ============================================================ -->
 <script>
@@ -1064,6 +1153,14 @@ function onAutoFVChange(){
   if(autoOn){manualInp.checked=false;manualInp.disabled=true;manualRow.style.opacity='0.4';manualRow.style.pointerEvents='none';}
   else{manualInp.disabled=false;manualRow.style.opacity='1';manualRow.style.pointerEvents='';}
 }
+function onManualFVChange(){
+  const manualOn=document.getElementById('opt-manual-fv').checked;
+  if(manualOn){
+    document.getElementById('opt-show-fv').checked=false;
+    // re-run auto handler so manual row gets enabled properly
+    onAutoFVChange();
+  }
+}
 
 // ─── AI question state ───────────────────────────────────────────
 function selectAIProvider(p){
@@ -1150,6 +1247,8 @@ let guestIndex = -1;
 let guestDisplayName = 'You';
 let generatedRoomCode = '';
 let guestIsWinningTrade = false;
+let connectedGuests = []; // [{name, index}] — tracked by host
+let guestPlayerIndex = -1; // which G.players[i] represents "me" on guest side
 
 function getSocket() {
   if (!socket) {
@@ -1175,6 +1274,7 @@ function bindSocketEvents() {
   });
 
   socket.on('room_updated', ({ guests }) => {
+    connectedGuests = guests; // keep list up to date for host
     const statusEl = document.getElementById('host-status');
     if (statusEl) {
       const names = guests.map(g => g.name).join(', ');
@@ -1292,6 +1392,9 @@ function broadcastGameState() {
 }
 
 function buildBroadcastState() {
+  // guestPlayerMap: maps each guest's guestIndex (0,1,2…) to their player index in G.players
+  // Host is always player 0; guest 0 → player 1, guest 1 → player 2, etc.
+  const guestPlayerMap = connectedGuests.reduce((m,g)=>{ m[g.index]=g.index+1; return m; }, {});
   return {
     phase: G.phase,
     round: G.round,
@@ -1319,6 +1422,7 @@ function buildBroadcastState() {
     trades: G.trades.slice(-20),
     settlementValue: G.settlementValue,
     roundEndTime: G.roundEndTime,
+    guestPlayerMap,
   };
 }
 
@@ -1329,8 +1433,23 @@ function applyGuestState(state) {
     G = freshState();
     G.gameType = state.gameType;
     G.estimaQuestion = state.estimaQuestion;
+    // Resolve which player slot is "mine" using guestPlayerMap
+    if (state.guestPlayerMap && guestIndex in state.guestPlayerMap) {
+      guestPlayerIndex = state.guestPlayerMap[guestIndex];
+    }
     switchScreen('game');
     setupGameUIForGuest(state);
+  }
+  // If still in 'starting' phase, just show a waiting overlay and return
+  if (state.phase === 'starting') {
+    showStatus('⏳ Host is starting the game…');
+    // Update player list so guests can see who's in the game
+    if (state.players && state.players.length) {
+      G.players = state.players.map((p,i)=>{ const pl=new Player(i,p.name,p.isHuman,0); pl.position=p.position; pl.cash=p.cash; return pl; });
+      G.humanPlayerIndices = G.players.map((p,i)=>p.isHuman?i:-1).filter(i=>i>=0);
+      updatePlayersTable();
+    }
+    return;
   }
 
   G.phase = state.phase;
@@ -1520,17 +1639,19 @@ function selectTime(m){selMins=m;document.querySelectorAll('.time-btn').forEach(
 // ═══════════════════════════════════════════════════════════════
 async function tryStartGame(){
   const btn=document.getElementById('start-btn');
+  // Collect guest names if hosting (guests become human players)
+  const guestNames = isHost ? connectedGuests.map(g=>g.name) : [];
   if(selGameType==='estimathon'&&aiApiKey){
     btn.disabled=true;btn.textContent='🤖 Generating question…';
     const aiQ=await fetchAIQuestion();
     btn.disabled=false;btn.textContent='⚡ Start Game';
-    startGame(aiQ);
+    startGame(aiQ,guestNames);
   }else{
-    startGame(null);
+    startGame(null,guestNames);
   }
 }
 
-function startGame(aiQuestion){
+function startGame(aiQuestion, guestNames=[]){
   G=freshState();
   G.config.numPlayers=parseInt(document.getElementById('sl-total').value);
   G.config.numHumans=parseInt(document.getElementById('sl-humans').value);
@@ -1544,6 +1665,14 @@ function startGame(aiQuestion){
   const mInp=document.getElementById('manual-fv-input');
   mInp.value='';delete mInp.dataset.touched;
 
+  // If hosting with guests: override numHumans to include them
+  if(isHost && guestNames.length>0){
+    G.config.numHumans = 1 + guestNames.length; // host + each guest
+    if(G.config.numPlayers < G.config.numHumans) G.config.numPlayers = G.config.numHumans;
+    document.getElementById('sl-total').value = G.config.numPlayers;
+    document.getElementById('sl-humans').value = G.config.numHumans;
+  }
+
   // Pick question if estimathon
   if(G.gameType==='estimathon'){
     G.estimaQuestion=aiQuestion||shuffle(ESTIMA_QUESTIONS)[0];
@@ -1551,10 +1680,12 @@ function startGame(aiQuestion){
 
   let deck=shuffle(FULL_DECK);
   const profs=shuffle(BOT_PROFILES);
-  const names=['You','Friend 2','Friend 3','Friend 4','Friend 5'];
+  // Host is player 0 ("You"), then each connected guest, then default names
+  const hostDisplayName = currentUser ? (currentUser.displayName||currentUser.email||'You') : 'You';
+  const allHumanNames = [hostDisplayName, ...guestNames, 'Friend 3','Friend 4','Friend 5','Friend 6'];
 
   for(let i=0;i<G.config.numHumans;i++){
-    G.players.push(new Player(i,names[i]||`Player ${i+1}`,true,deck[0]));
+    G.players.push(new Player(i,allHumanNames[i]||`Player ${i+1}`,true,deck[0]));
     G.humanPlayerIndices.push(i);
     deck=deck.slice(1);
   }
@@ -1582,12 +1713,19 @@ function startGame(aiQuestion){
     document.getElementById('your-hand-label').textContent='Your Hand';
   }
 
+  // If hosting: broadcast initial state so guests switch to waiting screen immediately
+  if(isHost && connectedGuests.length>0){
+    G.phase='starting';
+    broadcastGameState();
+  }
+
   // Estimathon: 90s question preview before market making
   if(G.gameType==='estimathon'){
     startEstimaPreview();
     return;
   }
-  // Card game: show 30s card preview for each human
+  // Card game: show 30s card preview for each LOCAL human only (host)
+  // Guests skip preview — they go straight to game on first broadcastGameState from startRound
   switchScreen('card-preview');
   startCardPreview(0);
 }
@@ -2055,6 +2193,7 @@ function settle(){
 function showResults(){
   if(isHost)broadcastGameState();
   switchScreen('results');
+  saveGameResult(); // persist to Firebase if signed in
   document.getElementById('settle-display').textContent=fmt(G.settlementValue);
   if(G.gameType==='estimathon'){
     const sn=document.getElementById('settle-question-name');
@@ -2170,7 +2309,10 @@ function updateMktDisplay(bid,ask,name){document.getElementById('market-bid').te
 function updateMakerName(n){document.getElementById('market-maker-name').textContent=n;}
 
 function updateYourStats(){
-  if(!G)return;const h=G.players[G.humanPlayerIndices[0]];if(!h)return;
+  if(!G)return;
+  // Guests see their own player slot; host and local always use humanPlayerIndices[0]
+  const h = (isGuest && guestPlayerIndex>=0) ? G.players[guestPlayerIndex] : G.players[G.humanPlayerIndices[0]];
+  if(!h)return;
   const fv=calcHumanFV(h);
   const mid=G.currentMarket?(G.currentMarket.bid+G.currentMarket.ask)/2:0;
   const pnl=h.mtmPnL(mid);const pos=h.position;
@@ -2218,9 +2360,11 @@ function updatePlayersTable(){
   if(!G)return;const mid=G.currentMarket?(G.currentMarket.bid+G.currentMarket.ask)/2:0;
   document.getElementById('players-tbody').innerHTML=G.players.map((p,i)=>{
     const pnl=p.mtmPnL(mid),pos=p.position,avg=p.avgEntry();
-    const cardsStr=p.isHuman?p.privateCards.map(c=>c>0?'+'+c:c).join(' '):'?';
-    return`<tr class="${p.isHuman?'you-row':i===G.marketMakerIdx?'maker-row':''}">
-      <td class="${p.isHuman?'you-badge':i===G.marketMakerIdx?'maker-badge':''}">${p.name}</td>
+    // "you-row": host → humanPlayerIndices[0]; guest → guestPlayerIndex
+    const isMe = isGuest ? (i===guestPlayerIndex) : (i===G.humanPlayerIndices[0]);
+    const cardsStr = isMe ? p.privateCards.map(c=>c>0?'+'+c:c).join(' ') : '?';
+    return`<tr class="${isMe?'you-row':i===G.marketMakerIdx?'maker-row':''}">
+      <td class="${isMe?'you-badge':i===G.marketMakerIdx?'maker-badge':''}">${p.name}${isMe?' 👤':''}</td>
       <td class="dim" style="font-family:'DM Mono',monospace">${cardsStr}</td>
       <td class="${pos>0?'pos':pos<0?'neg':'neutral'}">${pos>0?'+':''}${pos}</td>
       <td class="dim" style="font-family:'DM Mono',monospace">${avg?fmt(avg):'—'}</td>
@@ -2270,11 +2414,11 @@ function clearAllTimers(){
 // ═══════════════════════════════════════════════════════════════
 onSliderChange();
 checkUrlJoin();
+onAutoFVChange(); // set initial FV toggle state (auto on → manual disabled)
 // Load saved AI key
 (function(){
   const saved=localStorage.getItem('mm-ai-key-openai')||localStorage.getItem('mm-ai-key-claude')||'';
   if(saved){
-    // Figure out which provider
     if(localStorage.getItem('mm-ai-key-claude')&&!localStorage.getItem('mm-ai-key-openai')){
       aiProvider='claude';
       document.getElementById('ai-openai-btn').classList.remove('active');
@@ -2285,6 +2429,155 @@ checkUrlJoin();
   }
   refreshAIStatus();
 })();
+
+// ═══════════════════════════════════════════════════════════════
+// FIREBASE — AUTH + FIRESTORE
+// ═══════════════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyDPNaHsWtignrwVrUI-0KcTc6HQzV9sck0",
+  authDomain: "market-maker-game-68184.firebaseapp.com",
+  projectId: "market-maker-game-68184",
+  storageBucket: "market-maker-game-68184.firebasestorage.app",
+  messagingSenderId: "317566731846",
+  appId: "1:317566731846:web:bd5cc5f2d62bedaf58ec47",
+  measurementId: "G-Q5G8JDYNPS"
+};
+
+let fbApp, fbAuth, fbDb, currentUser=null;
+try {
+  fbApp = firebase.initializeApp(firebaseConfig);
+  fbAuth = firebase.auth();
+  fbDb   = firebase.firestore();
+
+  fbAuth.onAuthStateChanged(user => {
+    currentUser = user;
+    if (user) {
+      document.getElementById('auth-signed-out').style.display='none';
+      document.getElementById('auth-signed-in').style.display='';
+      document.getElementById('auth-user-name').textContent = user.displayName || user.email || 'Player';
+      document.getElementById('auth-user-email').textContent = user.email || '';
+    } else {
+      document.getElementById('auth-signed-out').style.display='';
+      document.getElementById('auth-signed-in').style.display='none';
+    }
+  });
+} catch(e) { console.warn('Firebase init failed:', e); }
+
+function showAuthError(msg){ const el=document.getElementById('auth-error'); el.textContent=msg; el.style.display='block'; }
+function clearAuthError(){ const el=document.getElementById('auth-error'); el.style.display='none'; }
+
+async function signInGoogle(){
+  clearAuthError();
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await fbAuth.signInWithPopup(provider);
+  } catch(e){ showAuthError(e.message); }
+}
+
+async function signInEmail(){
+  clearAuthError();
+  const email=document.getElementById('auth-email').value.trim();
+  const pw=document.getElementById('auth-password').value;
+  if(!email||!pw){ showAuthError('Enter email and password.'); return; }
+  try {
+    await fbAuth.signInWithEmailAndPassword(email, pw);
+  } catch(e){ showAuthError(e.message); }
+}
+
+async function signUpEmail(){
+  clearAuthError();
+  const email=document.getElementById('auth-email').value.trim();
+  const pw=document.getElementById('auth-password').value;
+  if(!email||!pw){ showAuthError('Enter email and password.'); return; }
+  if(pw.length<6){ showAuthError('Password must be at least 6 characters.'); return; }
+  try {
+    await fbAuth.createUserWithEmailAndPassword(email, pw);
+    toast('Account created! You are now signed in.','info');
+  } catch(e){ showAuthError(e.message); }
+}
+
+async function signOutUser(){
+  try { await fbAuth.signOut(); toast('Signed out.','info'); } catch(e){}
+}
+
+// ── Save a game result to Firestore ────────────────────────────
+async function saveGameResult(){
+  if(!currentUser||!fbDb||!G||G.settlementValue===null) return;
+  try {
+    const myIdx = isGuest && guestPlayerIndex>=0 ? guestPlayerIndex : G.humanPlayerIndices[0];
+    const me = G.players[myIdx];
+    if(!me) return;
+    const pnl = me.settlePnL(G.settlementValue);
+    const rank = [...G.players].sort((a,b)=>b.settlePnL(G.settlementValue)-a.settlePnL(G.settlementValue)).findIndex(p=>p===me)+1;
+    await fbDb.collection('game_results').add({
+      uid: currentUser.uid,
+      displayName: currentUser.displayName||currentUser.email||'Player',
+      gameType: G.gameType,
+      pnl: Math.round(pnl*100)/100,
+      rank,
+      totalPlayers: G.players.length,
+      settlement: G.settlementValue,
+      rounds: G.round,
+      ts: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    toast('Game saved to your history!','info');
+  } catch(e){ console.warn('Save game failed:',e); }
+}
+
+// ── Show history modal ─────────────────────────────────────────
+let currentHistoryTab = 'history';
+function showHistory(){
+  if(!currentUser){ toast('Sign in to see history.','warn'); return; }
+  document.getElementById('history-modal').classList.add('visible');
+  switchHistoryTab('history');
+}
+function hideHistory(){ document.getElementById('history-modal').classList.remove('visible'); }
+
+function switchHistoryTab(tab){
+  currentHistoryTab=tab;
+  document.getElementById('htab-history').className='auth-btn '+(tab==='history'?'auth-btn-primary':'auth-btn-secondary');
+  document.getElementById('htab-leaderboard').className='auth-btn '+(tab==='leaderboard'?'auth-btn-primary':'auth-btn-secondary');
+  if(tab==='history') loadMyHistory(); else loadLeaderboard();
+}
+
+async function loadMyHistory(){
+  const el=document.getElementById('history-content');
+  el.innerHTML='<div style="color:var(--dim);text-align:center;padding:16px">Loading…</div>';
+  try {
+    const snap = await fbDb.collection('game_results')
+      .where('uid','==',currentUser.uid)
+      .orderBy('ts','desc').limit(20).get();
+    if(snap.empty){ el.innerHTML='<div style="color:var(--dim);text-align:center;padding:16px">No games yet. Play one!</div>'; return; }
+    el.innerHTML = snap.docs.map(d=>{
+      const g=d.data();
+      const sign=g.pnl>=0?'+':'';
+      const dateStr = g.ts ? new Date(g.ts.toDate()).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'}) : '—';
+      return `<div class="history-game-row">
+        <div class="hg-meta">${dateStr} · ${g.gameType==='estimathon'?'Estimathon':'Cards'} · ${g.totalPlayers} players · Rank ${g.rank}/${g.totalPlayers}</div>
+        <div class="hg-result ${g.pnl>=0?'pos':'neg'}">${sign}${g.pnl.toFixed(2)} P&amp;L · Settlement ${fmt(g.settlement)}</div>
+      </div>`;
+    }).join('');
+  } catch(e){ el.innerHTML=`<div style="color:var(--red);padding:16px">Error: ${e.message}</div>`; }
+}
+
+async function loadLeaderboard(){
+  const el=document.getElementById('history-content');
+  el.innerHTML='<div style="color:var(--dim);text-align:center;padding:16px">Loading…</div>';
+  try {
+    const snap = await fbDb.collection('leaderboard_summary')
+      .orderBy('totalPnl','desc').limit(20).get();
+    if(snap.empty){ el.innerHTML='<div style="color:var(--dim);text-align:center;padding:16px">No rankings yet. Be the first!</div>'; return; }
+    const medals=['🥇','🥈','🥉'];
+    el.innerHTML = snap.docs.map((d,i)=>{
+      const lb=d.data();
+      return `<div class="leaderboard-row">
+        <div class="lb-rank">${medals[i]||'#'+(i+1)}</div>
+        <div class="lb-name">${lb.displayName||'—'}<span style="font-size:0.72rem;color:var(--dim);margin-left:8px">${lb.gamesPlayed||0} games</span></div>
+        <div class="lb-score">${lb.totalPnl>=0?'+':''}${(lb.totalPnl||0).toFixed(1)}</div>
+      </div>`;
+    }).join('');
+  } catch(e){ el.innerHTML=`<div style="color:var(--red);padding:16px">Error: ${e.message}</div>`; }
+}
 </script>
 </body>
 </html>
