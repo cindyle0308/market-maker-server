@@ -1741,7 +1741,10 @@ function applyGuestState(state) {
 
   if (state.phase === 'trade_window' && state.currentMarket && !guestIsWinningTrade) {
     showGuestTradeNow(state.currentMarket.bid, state.currentMarket.ask);
-  } else if (state.phase === 'making_market') {
+  } else {
+    if (window._guestRaceInterval) { clearInterval(window._guestRaceInterval); window._guestRaceInterval = null; }
+  }
+  if (state.phase === 'making_market') {
     // Check if it's MY turn to make a market (handled via host_response 'make_market_your_turn')
     const myIdx = guestPlayerIndex;
     if (myIdx >= 0 && state.marketMakerIdx === myIdx) {
@@ -2027,6 +2030,21 @@ function showGuestTradeNow(bid, ask) {
   const el = document.getElementById('edge-indicator');
   el.innerHTML = '<span class="dim">Race to trade — fastest player wins!</span>';
   document.getElementById('trade-now-btn').onclick = guestClicksTradeNow;
+  // Live countdown so guest race bar moves in sync with host
+  if (window._guestRaceInterval) clearInterval(window._guestRaceInterval);
+  const openTime = Date.now();
+  window._guestRaceInterval = setInterval(() => {
+    const elapsed = Date.now() - openTime;
+    const fr = Math.max(0, 1 - elapsed / TRADE_WIN);
+    const fill = document.getElementById('race-fill');
+    if (fill) {
+      fill.style.width = (fr * 100) + '%';
+      fill.className = 'trade-race-fill' + (fr < .3 ? ' critical' : fr < .6 ? ' urgent' : '');
+    }
+    const rt = document.getElementById('race-time');
+    if (rt) rt.textContent = Math.max(0, (TRADE_WIN - elapsed) / 1000).toFixed(1) + 's';
+    if (fr <= 0) { clearInterval(window._guestRaceInterval); window._guestRaceInterval = null; }
+  }, 100);
 }
 
 function guestClicksTradeNow() {
@@ -2700,6 +2718,8 @@ function openTradeWindow(bid,ask,makerId){
       if(!G.tradeWindow||!G.tradeWindow.active)return;
       execTrade(idx,dec.action,dec.volume,bid,ask,makerId);
       closeTradeWindow();hideActions();
+      G.phase='making_market';
+      if(isHost)broadcastGameState(); // guests see trade window close immediately
       showStatus(`${pl.name} traded — now making market…`);
       toast(`${pl.name} was fastest! ${dec.action.toUpperCase()} ×${dec.volume}`,'info');
       nextTurn(idx);
@@ -2709,7 +2729,10 @@ function openTradeWindow(bid,ask,makerId){
 
   G.tradeWindow.windowTimer=setTimeout(()=>{
     if(!G.tradeWindow||!G.tradeWindow.active)return;
-    closeTradeWindow();toast('No takers — rotating market maker.','info');nextTurn(null);
+    closeTradeWindow();
+    G.phase='making_market';
+    if(isHost)broadcastGameState(); // guests see window expire immediately
+    toast('No takers — rotating market maker.','info');nextTurn(null);
   },TRADE_WIN);
 
   G.tradeWindow.raceInterval=setInterval(()=>{
@@ -2802,7 +2825,7 @@ function nextTurn(newIdx){
     G.phase='making_market';
     const ni=newIdx!==null?newIdx:(G.marketMakerIdx!==null?(G.marketMakerIdx+1)%G.players.length:0);
     selectMaker(ni);
-  },600);
+  },200);
 }
 
 // ═══════════════════════════════════════════════════════════════
