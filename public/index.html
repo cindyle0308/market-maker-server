@@ -1430,21 +1430,18 @@ function bindSocketEvents() {
       if (guests.length === 0) {
         statusEl.textContent = 'Room ready — waiting for players to join…';
       } else {
-        const names = guests.map(g => g.name).join(', ');
         statusEl.textContent = `🟢 ${guests.length === 1 ? guests[0].name : guests.length + ' guests'} joined — ready to start!`;
       }
     }
+    // Always refresh the ready/kick list — even when empty (clears stale kick buttons)
+    updateHostReadyDisplay();
     refreshHostPlayerDisplay();
   });
 
-  // Host broadcasted a quit — guests should also quit
+  // Host broadcasted a quit — guests return to room lobby (still connected)
   socket.on('host_quit', () => {
     if (!isGuest) return;
-    toast('Host ended the game.', 'warn');
-    clearAllTimers();
-    G = null; guestPlayerIndex = -1; guestLastRoundSeen = 0;
-    isGuest = false;
-    switchScreen('setup');
+    returnGuestToLobby('Host ended the game — waiting for a new game…');
   });
 
   socket.on('room_joined', ({ code, hostName, guestIndex: gi, guests }) => {
@@ -1464,9 +1461,8 @@ function bindSocketEvents() {
   socket.on('game_state', state => {
     if (!isGuest) return;
     if (state.phase === 'host_quit') {
-      toast('Host ended the game.', 'warn');
-      clearAllTimers(); G=null; guestPlayerIndex=-1; guestLastRoundSeen=0; isGuest=false;
-      switchScreen('setup'); return;
+      returnGuestToLobby('Host ended the game — waiting for a new game…');
+      return;
     }
     applyGuestState(state);
   });
@@ -2036,25 +2032,53 @@ function toggleGuestReady() {
 // ── Host: update guest ready display ──
 function updateHostReadyDisplay() {
   const el = document.getElementById('host-guest-ready-list');
-  if (!el || !connectedGuests.length) { if (el) el.innerHTML = ''; return; }
+  if (!el) return;
+  if (!connectedGuests.length) { el.innerHTML = ''; return; }
+  const allReady = connectedGuests.every(g => g.ready);
   el.innerHTML = '<div class="ready-row">' + connectedGuests.map(g =>
-    `<div class="ready-badge ${g.ready ? 'is-ready' : ''}">
-       ${g.ready ? '✅' : '⏳'} ${g.name}
+    `<div class="ready-badge ${g.ready ? 'is-ready' : ''}" style="${g.ready ? '' : 'border-color:var(--red);color:var(--red);'}">
+       ${g.ready ? '✅' : '⏳ Waiting'} ${g.name}
        <button class="kick-btn" onclick="kickGuest('${g.socketId}','${g.name}')">✕</button>
      </div>`
-  ).join('') + '</div>';
+  ).join('') + '</div>' +
+  (allReady ? '' : '<div style="font-size:0.75rem;color:var(--dim);margin-top:4px">⚠ All guests must press Ready before you can start.</div>');
 }
 
 // ── Kick guest ──
 function kickGuest(socketId, name) {
   if (!confirm(`Remove ${name} from the room?`)) return;
-  // Tell server to remove (server notifies guest + sends updated room_updated back to us)
-  if (socket) socket.emit('remove_guest', { guestSocketId: socketId });
-  // Update local list immediately for responsiveness
+  if (socket) {
+    // New server event: removes from server room + sends room_updated back to host
+    socket.emit('remove_guest', { guestSocketId: socketId });
+    // Direct kick to guest (works with both old and new server)
+    socket.emit('host_response', { guestSocketId: socketId, data: { type: 'kicked' } });
+  }
+  // Update local list immediately — room_updated from server will confirm
   connectedGuests = connectedGuests.filter(g => g.socketId !== socketId);
   updateHostReadyDisplay();
   refreshHostPlayerDisplay();
   toast(`${name} removed from room`, 'warn');
+}
+
+// ── Return guest to lobby after host quits game (stay in room, reset ready) ──
+function returnGuestToLobby(msg) {
+  if (G) clearAllTimers();
+  G = null; guestPlayerIndex = -1; guestLastRoundSeen = 0;
+  // Stay as isGuest=true — still in the room, just game ended
+  guestIsReady = false;
+  switchScreen('setup');
+  selectRoomType('join');
+  const statusEl = document.getElementById('join-status');
+  statusEl.style.display = 'block';
+  statusEl.className = 'room-status connected';
+  statusEl.textContent = msg || 'Host ended the game — waiting for a new game…';
+  document.getElementById('guest-joined-controls').style.display = '';
+  // Reset ready button to "not ready"
+  const btn = document.getElementById('guest-ready-btn');
+  if (btn) { btn.textContent = '✅ I\'m Ready!'; btn.className = 'ready-btn'; }
+  // Notify host that our ready state reset
+  if (socket) socket.emit('guest_action', { type: 'set_ready', ready: false });
+  toast(msg || 'Host ended the game.', 'warn');
 }
 
 // ── Leave room (guest) ──
@@ -2289,6 +2313,15 @@ function selectTime(m){selMins=m;document.querySelectorAll('.time-btn').forEach(
 // ═══════════════════════════════════════════════════════════════
 async function tryStartGame(){
   const btn=document.getElementById('start-btn');
+  // In host mode: all connected guests must have pressed Ready before the host can start
+  if(isHost && connectedGuests.length > 0){
+    const notReady = connectedGuests.filter(g => !g.ready);
+    if(notReady.length > 0){
+      const names = notReady.map(g=>g.name).join(', ');
+      toast(`Waiting for ${names} to press Ready…`, 'warn');
+      return;
+    }
+  }
   // Collect guest names if hosting (guests become human players)
   const guestNames = isHost ? connectedGuests.map(g=>g.name) : [];
   if(selGameType==='estimathon'&&aiApiKey){
