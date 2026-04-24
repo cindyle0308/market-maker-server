@@ -1649,6 +1649,7 @@ function sendPrivateCardsToGuests() {
 }
 
 let guestLastRoundSeen = 0; // track which rounds guest has already seen card preview for
+let guestCardsForRound = {}; // maps round# → private cards array received from host
 
 // ── Guest: apply received state ────────────────────────────────
 function applyGuestState(state) {
@@ -1680,11 +1681,17 @@ function applyGuestState(state) {
     G.gameType = state.gameType;
     if (state.estimaQuestion) G.estimaQuestion = state.estimaQuestion;
     if (state.players && state.players.length) applyPlayerState(state);
-    // Check if we have private cards already; if not, stash state and wait for host_response
-    if (guestPlayerIndex >= 0 && G.players[guestPlayerIndex] && G.players[guestPlayerIndex].privateCards.length > 0) {
+    // Check if we've already received the private_cards host_response for THIS round
+    const roundCards = guestCardsForRound[state.round];
+    if (roundCards) {
+      // Cards already in hand for this round — apply and start immediately
+      if (guestPlayerIndex >= 0 && G.players[guestPlayerIndex]) {
+        G.players[guestPlayerIndex].privateCards = roundCards;
+      }
       startGuestSyncedCardPreview(state.previewEndTime, state.round);
     } else {
-      guestPendingPreviewState = state; // wait for private_cards host_response
+      // Wait for the private_cards host_response for this specific round
+      guestPendingPreviewState = state;
     }
     return;
   }
@@ -1782,7 +1789,8 @@ function applyGuestState(state) {
     const myIdx = guestPlayerIndex;
     if (myIdx >= 0 && state.marketMakerIdx === myIdx) {
       // Don't show waiting — host_response will trigger the form
-    } else {
+    } else if (!guestIsWinningTrade) {
+      // Don't clobber trade-exec form if guest is currently filling in their confirmed trade
       hideActions();
       const maker = G.players[state.marketMakerIdx];
       showStatus(maker ? `${maker.name} is making the market…` : 'Waiting for next market…');
@@ -1803,6 +1811,7 @@ function applyPlayerState(state) {
     : (window._guestPendingCards || []);
   G.players = state.players.map((p, i) => {
     const pl = new Player(i, p.name, p.isHuman, 0);
+    pl.privateCards = []; // ← clear the '0' placeholder; cards come via private host_response
     pl.position = p.position; pl.cash = p.cash;
     pl.totalBought = p.totalBought || 0; pl.totalSold = p.totalSold || 0;
     pl.totalBuyVal = p.totalBuyVal || 0; pl.totalSellVal = p.totalSellVal || 0;
@@ -2077,7 +2086,8 @@ function kickGuest(socketId, name) {
 // ── Return guest to lobby after host quits game (stay in room, reset ready) ──
 function returnGuestToLobby(msg) {
   if (G) clearAllTimers();
-  G = null; guestPlayerIndex = -1; guestLastRoundSeen = 0;
+  G = null; guestPlayerIndex = -1; guestLastRoundSeen = 0; guestCardsForRound = {};
+  guestPendingPreviewState = null; window._guestPendingCards = null;
   // Stay as isGuest=true — still in the room, just game ended
   guestIsReady = false;
   switchScreen('setup');
@@ -2150,15 +2160,17 @@ function handleHostResponse(data) {
   // ── Private cards delivery ──
   if (data.type === 'private_cards') {
     if (!G) { G = freshState(); }
-    // Store in buffer (game_state may not have arrived yet, creating players array)
+    const round = data.round || G.round || 1;
+    // Cache by round number so we can match precisely with card_preview game_state
+    guestCardsForRound[round] = data.cards;
     window._guestPendingCards = data.cards;
-    // Apply now if player slot exists
+    // Apply immediately if player slot already exists
     if (guestPlayerIndex >= 0 && G.players[guestPlayerIndex]) {
       G.players[guestPlayerIndex].privateCards = data.cards;
       window._guestPendingCards = null;
     }
-    // If we were waiting for cards to start a preview, do it now
-    if (guestPendingPreviewState) {
+    // If game_state with card_preview already arrived and is waiting for THIS round's cards, start now
+    if (guestPendingPreviewState && guestPendingPreviewState.round === round) {
       const s = guestPendingPreviewState;
       guestPendingPreviewState = null;
       if (s.phase === 'card_preview') startGuestSyncedCardPreview(s.previewEndTime, s.round);
@@ -2243,8 +2255,9 @@ function handleIncomingGuestAction(action) {
     if (traderIdx < 0) return;
     execTrade(traderIdx, action.action, action.volume, action.bid, action.ask, action.makerId);
     if (G.tradeWindow) closeTradeWindow();
-    nextTurn(traderIdx);
-    broadcastGameState();
+    G.phase = 'making_market'; // ← set BEFORE broadcast so guests don't see stale trade_window
+    broadcastGameState(); // immediate: clears trade window UI on all guests
+    nextTurn(traderIdx); // 200ms later: selectMaker picks next maker, broadcasts again
     return;
   }
 
@@ -2899,10 +2912,9 @@ function openTradeWindow(bid,ask,makerId){
       execTrade(idx,dec.action,dec.volume,bid,ask,makerId);
       closeTradeWindow();hideActions();
       G.phase='making_market';
-      if(isHost)broadcastGameState(); // guests see trade window close immediately
       showStatus(`${pl.name} traded — now making market…`);
       toast(`${pl.name} was fastest! ${dec.action.toUpperCase()} ×${dec.volume}`,'info');
-      nextTurn(idx);
+      nextTurn(idx); // → selectMaker will broadcast once, with correct making_market phase
     },pl.react(dec.edge));
     G.tradeWindow.botTimers.push(t);
   });
@@ -2911,8 +2923,8 @@ function openTradeWindow(bid,ask,makerId){
     if(!G.tradeWindow||!G.tradeWindow.active)return;
     closeTradeWindow();
     G.phase='making_market';
-    if(isHost)broadcastGameState(); // guests see window expire immediately
-    toast('No takers — rotating market maker.','info');nextTurn(null);
+    toast('No takers — rotating market maker.','info');
+    nextTurn(null); // → selectMaker will broadcast once with correct making_market phase
   },TRADE_WIN);
 
   G.tradeWindow.raceInterval=setInterval(()=>{
@@ -2984,7 +2996,10 @@ function confirmHumanTrade(){
   const{selectedAction,bid,ask,makerId}=G.execState;
   const vol=parseInt(document.getElementById('exec-vol').value);
   execTrade(G.humanPlayerIndices[0],selectedAction,vol,bid,ask,makerId);
-  G.execState=null;closeTradeWindow();nextTurn(G.humanPlayerIndices[0]);
+  G.execState=null;closeTradeWindow();
+  G.phase='making_market';
+  if(isHost)broadcastGameState(); // broadcast once with correct phase before nextTurn
+  nextTurn(G.humanPlayerIndices[0]);
 }
 
 function cancelExec(){G.execState=null;clearInterval(G.execTimerInterval);G.execTimerInterval=null;closeTradeWindow();nextTurn(null);}
@@ -3025,7 +3040,8 @@ function execTrade(traderIdx,action,vol,bid,ask,makerId){
   G.trades.push({num:G.tradeCounter,round:G.round,makerId,makerName:mk.name,bid,ask,traderId:traderIdx,traderName:tr.name,action,volume:vol,price,time:new Date().toLocaleTimeString()});
   toast(`${tr.name} ${action==='buy'?'🟢 bought':'🔴 sold'} ${vol} @ ${fmt(price)} from ${mk.name}`,'trade');
   updateTradeLog();updatePlayersTable();updateYourStats();
-  if(isHost)broadcastGameState();
+  // NOTE: caller is responsible for broadcastGameState() AFTER all state changes are done.
+  // Broadcasting here would cause a stale-phase broadcast before phase is set to 'making_market'.
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3265,7 +3281,8 @@ function doQuit(){
     generatedRoomCode = '';
     guestIndex = -1;
   }
-  G=null; guestPlayerIndex=-1; guestLastRoundSeen=0;
+  G=null; guestPlayerIndex=-1; guestLastRoundSeen=0; guestCardsForRound={};
+  guestPendingPreviewState=null; window._guestPendingCards=null;
   switchScreen('setup');
   toast('Game ended.','info');
 }
