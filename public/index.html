@@ -1692,6 +1692,8 @@ function applyGuestState(state) {
     G.round = state.round;
     G.gameType = state.gameType;
     if (state.estimaQuestion) G.estimaQuestion = state.estimaQuestion;
+    // Sync community card data so FV shown during preview is accurate
+    if (state.communityCards) { G.communityCards = state.communityCards; G.revealedIndices = state.revealedIndices || G.revealedIndices; }
     if (state.players && state.players.length) applyPlayerState(state);
     // Check if we've already received the private_cards host_response for THIS round
     const roundCards = guestCardsForRound[state.round];
@@ -1948,18 +1950,19 @@ function startGuestSyncedCardPreview(endTime, round) {
     skipBtn.style.color = '';
   }
 
-  // Use server-synced endTime for countdown
-  const now = Date.now();
-  const totalSecs = Math.max(1, Math.round((endTime - now) / 1000));
+  // Use server-synced endTime for countdown — render initial values immediately (don't wait 500ms)
   clearInterval(previewTimer);
-  previewTimer = setInterval(() => {
+  const _renderGuestCountdown = () => {
     const rem = Math.max(0, Math.round((endTime - Date.now()) / 1000));
     document.getElementById('prev-countdown').textContent = rem;
     document.getElementById('prev-bar-fill').style.width = (rem / CARD_PREVIEW_SECS * 100) + '%';
-    if (rem <= 5) document.getElementById('prev-countdown').className = 'preview-countdown urgent';
-    if (rem <= 0) { clearInterval(previewTimer); guestCardPreviewDone(); }
+    document.getElementById('prev-countdown').className = 'preview-countdown' + (rem <= 5 ? ' urgent' : '');
+    return rem;
+  };
+  if (_renderGuestCountdown() <= 0) { guestCardPreviewDone(); return; } // already expired
+  previewTimer = setInterval(() => {
+    if (_renderGuestCountdown() <= 0) { clearInterval(previewTimer); guestCardPreviewDone(); }
   }, 500);
-  document.getElementById('prev-countdown').textContent = totalSecs;
 }
 
 function skipCardPreviewAny() {
@@ -2462,6 +2465,7 @@ function startGame(aiQuestion, guestNames=[]){
 
   // Card game: send private cards to guests first, then broadcast card_preview phase
   if(isHost && connectedGuests.length > 0){
+    hostPreviewReadyGuests.clear(); // reset for new preview cycle (must happen BEFORE guests send preview_done)
     sendPrivateCardsToGuests();
     G.previewEndTime = Date.now() + CARD_PREVIEW_SECS * 1000;
     G.phase = 'card_preview';
@@ -2619,8 +2623,10 @@ function nextPreviewOrStart(){
       startRound(G.round);
     } else {
       // Wait for every guest to signal preview_done
+      // NOTE: do NOT clear hostPreviewReadyGuests here — guests who pressed ready
+      // before the host are already in the set; clearing would lose their entries
+      // and the round would never start. The set is cleared at the TOP of continueAfterRoundEnd.
       hostPreviewWaiting = true;
-      hostPreviewReadyGuests.clear();
       updateHostPreviewWaitUI();
       checkAllPreviewReady(); // start immediately if all already sent preview_done
     }
