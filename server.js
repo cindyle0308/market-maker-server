@@ -90,9 +90,9 @@ io.on('connection', (socket) => {
         reconnected: true
       });
 
-      // Notify host of updated socket IDs
+      // Notify host of updated socket ID (preserve existing ready state)
       io.to(room.hostSocketId).emit('room_updated', {
-        guests: room.guests.map(g => ({ name: g.name, index: g.index, socketId: g.socketId }))
+        guests: room.guests.map(g => ({ name: g.name, index: g.index, socketId: g.socketId, ready: g.ready || false }))
       });
       return;
     }
@@ -102,7 +102,8 @@ io.on('connection', (socket) => {
     room.guests.push({
       socketId: socket.id,
       name: displayName || `Guest ${guestIndex + 1}`,
-      index: guestIndex
+      index: guestIndex,
+      ready: false
     });
 
     // Join socket.io room
@@ -118,9 +119,9 @@ io.on('connection', (socket) => {
       guests: room.guests.map(g => ({ name: g.name, index: g.index }))
     });
 
-    // Notify host of new guest — include socketId so host can send private messages
+    // Notify host of new guest — include socketId + ready so host can track state
     io.to(room.hostSocketId).emit('room_updated', {
-      guests: room.guests.map(g => ({ name: g.name, index: g.index, socketId: g.socketId }))
+      guests: room.guests.map(g => ({ name: g.name, index: g.index, socketId: g.socketId, ready: g.ready || false }))
     });
 
     // Notify other guests — no socketIds exposed to guests
@@ -157,6 +158,16 @@ io.on('connection', (socket) => {
     const room = rooms[roomCode];
     const guest = room.guests.find(g => g.socketId === socket.id);
 
+    // Persist ready state on the server so room_updated always reflects it
+    if (action.type === 'set_ready') {
+      guest.ready = action.ready;
+      // Notify host with authoritative room list (includes updated ready flag)
+      io.to(room.hostSocketId).emit('room_updated', {
+        guests: room.guests.map(g => ({ name: g.name, index: g.index, socketId: g.socketId, ready: g.ready || false }))
+      });
+      return; // no need to forward as guest_action — host gets room_updated
+    }
+
     // Send to host with guest metadata
     io.to(room.hostSocketId).emit('guest_action', {
       ...action,
@@ -189,7 +200,7 @@ io.on('connection', (socket) => {
 
     // Send updated list to host
     io.to(room.hostSocketId).emit('room_updated', {
-      guests: room.guests.map(g => ({ name: g.name, index: g.index, socketId: g.socketId }))
+      guests: room.guests.map(g => ({ name: g.name, index: g.index, socketId: g.socketId, ready: g.ready || false }))
     });
 
     console.log(`${guest.name} removed from room ${roomCode} by host`);
@@ -258,7 +269,7 @@ io.on('connection', (socket) => {
 
       // Also send updated room list so host can re-sync
       io.to(room.hostSocketId).emit('room_updated', {
-        guests: room.guests.map(g => ({ name: g.name, index: g.index, socketId: g.socketId }))
+        guests: room.guests.map(g => ({ name: g.name, index: g.index, socketId: g.socketId, ready: g.ready || false }))
       });
 
       console.log(`${guestName} left room ${guestRoomCode}`);

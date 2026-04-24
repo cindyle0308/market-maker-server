@@ -1424,10 +1424,8 @@ function bindSocketEvents() {
   });
 
   socket.on('room_updated', ({ guests }) => {
-    // Preserve ready state across room_updated — server doesn't track it
-    const prevReady = {};
-    connectedGuests.forEach(g => { if (g.ready) prevReady[g.socketId] = true; });
-    connectedGuests = guests.map(g => ({ ...g, ready: prevReady[g.socketId] || false }));
+    // Server now sends authoritative ready state — just use it directly
+    connectedGuests = guests.map(g => ({ ...g, ready: g.ready || false }));
     const statusEl = document.getElementById('host-status');
     if (statusEl) {
       if (guests.length === 0) {
@@ -1472,12 +1470,8 @@ function bindSocketEvents() {
 
   socket.on('guest_action', action => {
     if (!isHost) return;
-    // ── Lobby actions that can fire before a game starts (G may be null) ──
-    if (action.type === 'set_ready') {
-      const g = connectedGuests.find(g => g.socketId === action.guestSocketId);
-      if (g) { g.ready = action.ready; updateHostReadyDisplay(); }
-      return;
-    }
+    // set_ready is now handled server-side — server emits room_updated with authoritative ready state
+    // guest_quit can arrive before game starts
     if (action.type === 'guest_quit') {
       connectedGuests = connectedGuests.filter(g => g.socketId !== action.guestSocketId);
       updateHostReadyDisplay(); refreshHostPlayerDisplay();
