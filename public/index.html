@@ -1785,6 +1785,7 @@ function applyGuestState(state) {
   if (G.gameType === 'cards') updateCommunityCards();
   updatePlayersTable();
   updateTradeLog();
+  updateYourStats(); // keeps FV, position, PnL fresh on every state broadcast
 
   if (state.currentMarket) {
     const mk = G.players[state.marketMakerIdx];
