@@ -1910,9 +1910,15 @@ function startGuestSyncedCardPreview(endTime, round) {
   }
 
   switchScreen('card-preview');
-  // Reset button for each fresh preview
+  // Reset button for each fresh preview (clear any inline styles from prior waiting state)
   const skipBtn = document.getElementById('card-preview-skip-btn');
-  if (skipBtn) { skipBtn.textContent = "I'm Ready →"; skipBtn.disabled = false; }
+  if (skipBtn) {
+    skipBtn.textContent = "I'm Ready →";
+    skipBtn.disabled = false;
+    skipBtn.style.background = '';
+    skipBtn.style.borderColor = '';
+    skipBtn.style.color = '';
+  }
 
   // Use server-synced endTime for countdown
   const now = Date.now();
@@ -1943,13 +1949,21 @@ function skipCardPreviewAny() {
 
 function guestCardPreviewDone() {
   clearInterval(previewTimer);
-  // Tell host we're ready — host will start the round when everyone is done
+  // Tell host we're ready — host starts the round when everyone is done
   if(socket && isGuest) socket.emit('guest_action', { type: 'preview_done' });
-  // Show "waiting for host" instead of immediately jumping to game
+  // Show prominent waiting state on the preview screen
   const btn=document.getElementById('card-preview-skip-btn');
-  if(btn){btn.textContent='⏳ Waiting for host to start…';btn.disabled=true;}
-  // Game screen switch happens when host broadcasts game state (applyGuestState handles it)
-  // Update your stats display now we have cards
+  if(btn){
+    btn.textContent='⏳ Waiting for host to start…';
+    btn.disabled=true;
+    btn.style.background='rgba(255,200,64,0.08)';
+    btn.style.borderColor='var(--yellow)';
+    btn.style.color='var(--yellow)';
+  }
+  // Hide the countdown so it doesn't keep ticking confusingly
+  const cd=document.getElementById('prev-countdown');
+  if(cd) cd.style.visibility='hidden';
+  // Game screen switch happens when host broadcasts game state → applyGuestState handles it
   if (G) updateYourStats();
 }
 
@@ -2426,20 +2440,32 @@ let hostPreviewReadyGuests=new Set(), hostPreviewWaiting=false;
 
 function checkAllPreviewReady(){
   if(!hostPreviewWaiting||!isHost) return;
-  const allDone = connectedGuests.every(g => hostPreviewReadyGuests.has(g.socketId));
-  if(allDone || connectedGuests.length===0){
+  // Update the waiting UI to show who's still pending
+  updateHostPreviewWaitUI();
+  const allDone = connectedGuests.length > 0 && connectedGuests.every(g => hostPreviewReadyGuests.has(g.socketId));
+  if(allDone){
     hostPreviewWaiting=false;
     hostPreviewReadyGuests.clear();
-    // Update button in case still visible
     const btn=document.getElementById('card-preview-skip-btn');
-    if(btn){btn.textContent='Starting…';btn.disabled=true;}
-    switchScreen('game');
-    startRound(G.round);
+    if(btn){btn.textContent='✅ All ready — starting…';btn.disabled=true;}
+    setTimeout(()=>{ switchScreen('game'); startRound(G.round); }, 400);
   }
 }
 
 function startCardPreview(humanIdx){
   previewHumanIdx=humanIdx;
+
+  // ── MULTIPLAYER HARD BLOCK ─────────────────────────────────────
+  // In online host mode, ONLY slot 0 (the host) is previewed here.
+  // All other slots belong to real guests on their own devices —
+  // we must NEVER render their cards on the host screen.
+  if(isHost && humanIdx > 0){
+    // Go straight to waiting / game start — never show another player's cards
+    nextPreviewOrStart();
+    return;
+  }
+  // ──────────────────────────────────────────────────────────────
+
   const player=G.players[G.humanPlayerIndices[humanIdx]];
   const isNewRound=G.round>1;
 
@@ -2486,9 +2512,15 @@ function startCardPreview(humanIdx){
   document.getElementById('prev-bar-fill').style.width='100%';
   document.getElementById('prev-countdown').className='preview-countdown';
 
-  // Reset the Ready button for each new preview
+  // Reset the Ready button for each new preview (clear any inline styles from prior waiting state)
   const skipBtnH = document.getElementById('card-preview-skip-btn');
-  if (skipBtnH) { skipBtnH.textContent = "I'm Ready →"; skipBtnH.disabled = false; }
+  if (skipBtnH) {
+    skipBtnH.textContent = "I'm Ready →";
+    skipBtnH.disabled = false;
+    skipBtnH.style.background = '';
+    skipBtnH.style.borderColor = '';
+    skipBtnH.style.color = '';
+  }
   hostPreviewWaiting = false;
 
   clearInterval(previewTimer);
@@ -2525,27 +2557,46 @@ function quitFromPreview(){
 }
 
 function nextPreviewOrStart(){
-  // In multiplayer (host+guests): host only previews their own cards (idx 0).
-  // Guest slots are handled separately on each guest's own device.
-  if(isHost && connectedGuests.length>0){
-    // Host done — wait for all guests to send preview_done
-    hostPreviewWaiting=true;
-    hostPreviewReadyGuests.clear();
-    const btn=document.getElementById('card-preview-skip-btn');
-    if(btn){btn.textContent='⏳ Waiting for guests…';btn.disabled=true;}
-    // Check immediately in case no guests or all already ready
-    checkAllPreviewReady();
+  // ── Online host: ALWAYS stop here after showing slot 0 ──────────
+  // Never cycle to other human slots — those are guests on their own devices.
+  if(isHost){
+    if(connectedGuests.length === 0){
+      // No guests connected — start immediately
+      switchScreen('game');
+      startRound(G.round);
+    } else {
+      // Wait for every guest to signal preview_done
+      hostPreviewWaiting = true;
+      hostPreviewReadyGuests.clear();
+      updateHostPreviewWaitUI();
+      checkAllPreviewReady(); // start immediately if all already sent preview_done
+    }
     return;
   }
-  // Local/solo: cycle through all human players
+  // ── Local / solo: cycle through each human player at this device ──
   const nextIdx=previewHumanIdx+1;
   if(nextIdx<G.humanPlayerIndices.length){
     startCardPreview(nextIdx);
     return;
   }
-  // All humans have seen cards — start the round
   switchScreen('game');
   startRound(G.round);
+}
+
+// Shows host who is still previewing their cards
+function updateHostPreviewWaitUI(){
+  const btn=document.getElementById('card-preview-skip-btn');
+  if(!btn) return;
+  const pending = connectedGuests.filter(g => !hostPreviewReadyGuests.has(g.socketId));
+  if(pending.length === 0){
+    btn.textContent = '✅ All ready — starting…';
+  } else {
+    btn.textContent = `⏳ Waiting for ${pending.map(g=>g.name).join(', ')} to finish…`;
+  }
+  btn.disabled = true;
+  btn.style.background = 'rgba(255,200,64,0.08)';
+  btn.style.borderColor = 'var(--yellow)';
+  btn.style.color = 'var(--yellow)';
 }
 
 // ═══════════════════════════════════════════════════════════════
