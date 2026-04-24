@@ -1791,9 +1791,16 @@ function applyGuestState(state) {
     updateMktDisplay(state.currentMarket.bid, state.currentMarket.ask, mk ? mk.name : '—');
   }
 
+  // If the trade window closed while the guest thought they were winning (bot beat them,
+  // window expired, or race condition), reset so they're not stuck forever.
+  if (state.phase !== 'trade_window' && guestIsWinningTrade) {
+    guestIsWinningTrade = false;
+    if (window._guestRaceInterval) { clearInterval(window._guestRaceInterval); window._guestRaceInterval = null; }
+  }
+
   if (state.phase === 'trade_window' && state.currentMarket && !guestIsWinningTrade) {
     showGuestTradeNow(state.currentMarket.bid, state.currentMarket.ask);
-  } else {
+  } else if (state.phase !== 'trade_window') {
     if (window._guestRaceInterval) { clearInterval(window._guestRaceInterval); window._guestRaceInterval = null; }
   }
   if (state.phase === 'making_market') {
@@ -1801,8 +1808,7 @@ function applyGuestState(state) {
     const myIdx = guestPlayerIndex;
     if (myIdx >= 0 && state.marketMakerIdx === myIdx) {
       // Don't show waiting — host_response will trigger the form
-    } else if (!guestIsWinningTrade) {
-      // Don't clobber trade-exec form if guest is currently filling in their confirmed trade
+    } else {
       hideActions();
       const maker = G.players[state.marketMakerIdx];
       showStatus(maker ? `${maker.name} is making the market…` : 'Waiting for next market…');
@@ -2166,6 +2172,17 @@ function guestClicksTradeNow() {
     ts: Date.now()
   });
   showStatus('Waiting for host to confirm…');
+  // Safety net: if host never responds (lost the race, window already closed),
+  // reset after TRADE_WIN + 1.5s so guest is never permanently stuck
+  if (window._guestTradeWinTimeout) clearTimeout(window._guestTradeWinTimeout);
+  window._guestTradeWinTimeout = setTimeout(() => {
+    if (guestIsWinningTrade) {
+      guestIsWinningTrade = false;
+      hideActions();
+      showStatus('You were too slow — next market coming…');
+    }
+    window._guestTradeWinTimeout = null;
+  }, TRADE_WIN + 1500);
 }
 
 function handleHostResponse(data) {
@@ -2210,6 +2227,7 @@ function handleHostResponse(data) {
 
   // ── Trade responses ──
   guestIsWinningTrade = false;
+  if (window._guestTradeWinTimeout) { clearTimeout(window._guestTradeWinTimeout); window._guestTradeWinTimeout = null; }
   if (data.type === 'trade_won') {
     showExec(data.bid, data.ask);
     document.getElementById('confirm-trade-btn').onclick = () => guestConfirmTrade(data);
