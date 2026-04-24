@@ -2594,6 +2594,15 @@ function quitFromPreview(){
   clearInterval(previewTimer);
   clearInterval(estimaPreviewTimer);
   if(G)clearAllTimers();
+  // Guest: return to room lobby (same as doQuit — keep room connection)
+  if(isGuest){
+    returnGuestToLobby('You left the game — waiting for host to start a new one…');
+    return;
+  }
+  // Host: notify guests, then go to setup
+  if(isHost && socket && generatedRoomCode){
+    socket.emit('game_state', { phase:'host_quit' });
+  }
   G=null;
   switchScreen('setup');
   toast('Returned to setup.','info');
@@ -3299,18 +3308,23 @@ function confirmQuit(){document.getElementById('quit-overlay').classList.add('vi
 function cancelQuit(){document.getElementById('quit-overlay').classList.remove('visible');}
 function doQuit(){
   document.getElementById('quit-overlay').classList.remove('visible');
-  clearAllTimers();
+  if(G) clearAllTimers();
   // If host, notify all guests the game is ending
   if(isHost && socket && generatedRoomCode){
     socket.emit('game_state', { phase:'host_quit' });
+    G=null; guestPlayerIndex=-1; guestLastRoundSeen=0; guestCardsForRound={};
+    guestPendingPreviewState=null; window._guestPendingCards=null;
+    switchScreen('setup');
+    toast('Game ended.','info');
+    return;
   }
-  // If guest, notify host we're leaving the game
-  if(isGuest && socket){
-    socket.emit('guest_action', { type: 'guest_quit' });
-    isGuest = false;
-    generatedRoomCode = '';
-    guestIndex = -1;
+  // If guest: return to room lobby — stay connected, reset ready, wait for next game
+  // (same as when host ends the game — guest keeps room connection)
+  if(isGuest){
+    returnGuestToLobby('You left the game — waiting for host to start a new one…');
+    return;
   }
+  // Solo / local play
   G=null; guestPlayerIndex=-1; guestLastRoundSeen=0; guestCardsForRound={};
   guestPendingPreviewState=null; window._guestPendingCards=null;
   switchScreen('setup');
