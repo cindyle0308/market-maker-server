@@ -3134,7 +3134,19 @@ function showResults(){
   ).join('');
 }
 
-function playAgain(){clearAllTimers();G=null;switchScreen('setup');}
+function playAgain(){
+  if(G) clearAllTimers();
+  // Guest: return to room lobby — keep connection, wait for host to start again
+  if(isGuest){
+    returnGuestToLobby('Game over — waiting for host to start a new one…');
+    return;
+  }
+  // Host: notify guests then go to setup
+  if(isHost && socket && generatedRoomCode){
+    socket.emit('game_state', { phase:'host_quit' });
+  }
+  G=null; switchScreen('setup');
+}
 
 // ═══════════════════════════════════════════════════════════════
 // CARD REVEALS
