@@ -1372,20 +1372,79 @@ let connectedGuests = []; // [{name, index, socketId}] — tracked by host
 let guestPlayerIndex = -1; // which G.players[i] represents "me" on guest side
 let guestPendingPreviewState = null; // store phase state while waiting for private_cards
 
+// ── Server-side game engine flag ──────────────────────────────
+// True when the server owns game state (host with guests, or guest in any room)
+let serverEngine = false;
+// "My" player index in the server-driven game — 0 for host, guestIndex+1 for guests
+let myPlayerIndex = -1;
+
 function getSocket() {
   if (!socket) {
     socket = io(window.location.origin, {
       autoConnect: true,
       reconnection: true,
       reconnectionDelay: 500,
-      reconnectionDelayMax: 3000,
-      reconnectionAttempts: 30,
-      timeout: 10000
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: Infinity,   // keep trying indefinitely
+      timeout: 20000
     });
     bindSocketEvents();
   }
   return socket;
 }
+
+// ── Tab visibility — force immediate reconnect when user returns to tab ──
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  // Tab came back into focus
+  if (!socket) return;
+  if (!socket.connected) {
+    console.log('Tab visible — forcing socket reconnect');
+    socket.connect();
+    if (isGuest) {
+      toast('Reconnecting…', 'info');
+      showStatus('⏳ Reconnecting…');
+    }
+  } else {
+    // Socket is still connected — resync countdowns from server timestamps
+    // (browser may have throttled the setInterval ticks while hidden)
+    if (isGuest && G) {
+      if (G.roundEndTime) {
+        // Restart the round timer from the server's absolute timestamp
+        clearInterval(G.timerInterval);
+        G.timerInterval = setInterval(() => {
+          const r = Math.max(0, G.roundEndTime - Date.now());
+          updateTimerDisplay(r);
+        }, 500);
+      }
+      // Resync preview countdowns if we're in a preview phase
+      if (G.phase === 'card_preview' && G.previewEndTime) {
+        const rem = Math.max(0, Math.round((G.previewEndTime - Date.now()) / 1000));
+        if (rem > 0) {
+          clearInterval(previewTimer);
+          previewTimer = setInterval(() => {
+            const r2 = Math.max(0, Math.round((G.previewEndTime - Date.now()) / 1000));
+            document.getElementById('prev-countdown').textContent = r2;
+            document.getElementById('prev-bar-fill').style.width = (r2 / CARD_PREVIEW_SECS * 100) + '%';
+            if (r2 <= 0) { clearInterval(previewTimer); guestCardPreviewDone(); }
+          }, 500);
+        }
+      }
+      if (G.phase === 'estima_preview' && G.previewEndTime) {
+        const remE = Math.max(0, Math.round((G.previewEndTime - Date.now()) / 1000));
+        if (remE > 0) {
+          clearInterval(estimaPreviewTimer);
+          estimaPreviewTimer = setInterval(() => {
+            const r3 = Math.max(0, Math.round((G.previewEndTime - Date.now()) / 1000));
+            document.getElementById('estima-prev-countdown').textContent = r3;
+            document.getElementById('estima-prev-bar').style.width = (r3 / ESTIMA_PREVIEW_SECS * 100) + '%';
+            if (r3 <= 0) { clearInterval(estimaPreviewTimer); skipEstimaPreviewAny(); }
+          }, 500);
+        }
+      }
+    }
+  }
+});
 
 function bindSocketEvents() {
   socket.on('connect', () => {
@@ -1394,10 +1453,14 @@ function bindSocketEvents() {
 
   socket.on('reconnect', (attempt) => {
     console.log('Reconnected after', attempt, 'attempts');
-    // Re-join room if we were in one
     if (isGuest && generatedRoomCode && guestDisplayName) {
       socket.emit('join_room', { code: generatedRoomCode, displayName: guestDisplayName });
       toast('Reconnected! Syncing…', 'info');
+    } else if (isHost && generatedRoomCode) {
+      // Re-announce as host (server may have started grace period)
+      // Guests will receive guest_reconnected once we're back
+      toast('Reconnected to server', 'info');
+      if (G) broadcastGameState();
     }
   });
 
@@ -1408,9 +1471,22 @@ function bindSocketEvents() {
   socket.on('disconnect', (reason) => {
     console.log('Socket disconnected:', reason);
     if (reason === 'io server disconnect') {
-      // Server forced disconnect — try to reconnect manually
       socket.connect();
     }
+    // If we're mid-game, show reconnecting message rather than freezing
+    if (isGuest && G && G.phase && G.phase !== 'settling') {
+      showStatus('⏳ Connection lost — reconnecting…');
+    }
+  });
+
+  socket.on('host_disconnected', () => {
+    // Only truly handle this after the grace period expires AND we couldn't reconnect.
+    // The server sends this after 90s of the host being gone.
+    toast('Host disconnected — game ended', 'warn');
+    isGuest = false;
+    clearAllTimers();
+    G = null;
+    switchScreen('setup');
   });
 
   socket.on('room_created', ({ code }) => {
@@ -1445,18 +1521,29 @@ function bindSocketEvents() {
     returnGuestToLobby('Host ended the game — waiting for a new game…');
   });
 
-  socket.on('room_joined', ({ code, hostName, guestIndex: gi, guests }) => {
+  socket.on('room_joined', ({ code, hostName, guestIndex: gi, guests, reconnected }) => {
     isGuest = true;
     isHost = false;
     guestIndex = gi;
     generatedRoomCode = code;
+    // Guests always use server-engine path
+    serverEngine = true;
+    myPlayerIndex = gi + 1;  // host is 0, guests are 1,2,...
+    guestPlayerIndex = gi + 1;
     const statusEl = document.getElementById('join-status');
     if (statusEl) {
       statusEl.className = 'room-status connected';
-      statusEl.textContent = `✅ Joined room ${code}! Host: ${hostName}. Click Ready when you're set.`;
+      statusEl.textContent = reconnected
+        ? `✅ Reconnected to room ${code}! Syncing game…`
+        : `✅ Joined room ${code}! Host: ${hostName}. Click Ready when you're set.`;
     }
     document.getElementById('guest-joined-controls').style.display = 'block';
-    toast(`Joined room ${code} — waiting for host to start`, 'info');
+    if (reconnected) {
+      toast('Back in the game — syncing state…', 'info');
+      // Host will get guest_reconnected and re-broadcast state automatically
+    } else {
+      toast(`Joined room ${code} — waiting for host to start`, 'info');
+    }
   });
 
   socket.on('game_state', state => {
@@ -1489,13 +1576,7 @@ function bindSocketEvents() {
     handleHostResponse(data);
   });
 
-  socket.on('host_disconnected', () => {
-    toast('Host disconnected — game ended', 'warn');
-    isGuest = false;
-    clearAllTimers();
-    G = null;
-    switchScreen('setup');
-  });
+
 
   socket.on('guest_left', ({ guestName }) => {
     toast(`${guestName} left the room`, 'warn');
@@ -1509,6 +1590,134 @@ function bindSocketEvents() {
 
   socket.on('connect_error', () => {
     toast('Server connection failed — playing locally', 'warn');
+  });
+
+  // ── Server adjudicated the trade race — host executes the result ──
+  socket.on('trade_awarded', (data) => {
+    if (!isHost || !G) return;
+    // Cancel all local timers regardless of who won
+    if (G.tradeWindow) {
+      G.tradeWindow.botTimers.forEach(t => clearTimeout(t));
+      clearTimeout(G.tradeWindow.windowTimer);
+      clearInterval(G.tradeWindow.raceInterval);
+      G.tradeWindow.active = false;
+    }
+    hideActions();
+
+    const { bid, ask, makerId } = data;
+
+    if (data.winnerType === 'bot') {
+      const pl = G.players[data.playerIdx];
+      if (!pl) return;
+      execTrade(data.playerIdx, data.action, data.volume, bid, ask, makerId);
+      closeTradeWindow();
+      G.phase = 'making_market';
+      showStatus(`${pl.name} traded — now making market…`);
+      toast(`${pl.name} was fastest! ${data.action.toUpperCase()} ×${data.volume}`, 'info');
+      nextTurn(data.playerIdx);
+
+    } else if (data.winnerType === 'host_human') {
+      closeTradeWindow();
+      showExec(bid, ask);
+
+    } else if (data.winnerType === 'guest') {
+      // Guest won — wait for their trade_confirm to arrive as guest_action
+      guestTradeWinner = data.guestSocketId;
+      closeTradeWindow(); // cancel bot timers, don't null yet (trade_confirm needs makerId)
+      // Re-open tradeWindow with just enough state for trade_confirm
+      G.tradeWindow = { active: false, bid, ask, makerId, botTimers: [], windowTimer: null, raceInterval: null };
+      toast(`${data.guestName} is trading!`, 'info');
+    }
+  });
+
+  // ── Host human was beaten to the trade by a guest ──
+  socket.on('host_trade_lost', () => {
+    if (!isHost || !G) return;
+    if (G.tradeWindow) {
+      G.tradeWindow.botTimers.forEach(t => clearTimeout(t));
+      clearTimeout(G.tradeWindow.windowTimer);
+      clearInterval(G.tradeWindow.raceInterval);
+      G.tradeWindow.active = false;
+    }
+    hideActions();
+    toast('A guest was faster!', 'info');
+    // trade_awarded for the winning guest will follow
+  });
+
+  // ── Host temporarily disconnected (tab switch / network hiccup) ──
+  socket.on('host_temporarily_disconnected', () => {
+    if (!isGuest) return;
+    toast('Host connection dropped — waiting for reconnect…', 'warn');
+    showStatus('⏳ Host reconnecting…');
+  });
+
+  // ── Guest reconnected — host should re-broadcast current game state ──
+  socket.on('guest_reconnected', ({ guestName, guestIndex, guestSocketId }) => {
+    if (!isHost) return;
+    toast(`${guestName} reconnected`, 'info');
+    // Update socketId in connectedGuests list
+    const cg = connectedGuests.find(g => g.index === guestIndex);
+    if (cg) cg.socketId = guestSocketId;
+    // Server engine handles private card re-delivery via refreshGuestSocket
+    // For legacy (local-engine) mode, re-send manually
+    if (!serverEngine && G && G.phase !== 'setup' && G.phase !== 'waiting') {
+      const pi = guestIndex + 1;
+      if (G.players[pi]) {
+        socket.emit('host_response', {
+          guestSocketId,
+          data: { type: 'private_cards', cards: [...G.players[pi].privateCards], round: G.round }
+        });
+      }
+      broadcastGameState();
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // SERVER-SIDE GAME ENGINE EVENTS
+  // game_state_update: server broadcasts authoritative game state
+  // player_sync:       server sends private per-player state
+  // Both host and guests use these in server-engine mode.
+  // ═══════════════════════════════════════════════════════════════
+  socket.on('game_state_update', state => {
+    if (!serverEngine) return;
+    // Determine my player index from the map the server sends
+    if (state.playerIndexMap) {
+      const idx = state.playerIndexMap[socket.id];
+      if (idx !== undefined) {
+        myPlayerIndex = idx;
+        // Also keep guestPlayerIndex in sync for shared rendering helpers
+        guestPlayerIndex = idx;
+      }
+    }
+    applyServerState(state);
+  });
+
+  socket.on('player_sync', data => {
+    if (!serverEngine) return;
+    if (data.type === 'private_cards') {
+      const round  = data.round || 1;
+      const cards  = data.cards || [];
+      const pidx   = data.playerIdx;
+      // Store for re-use by preview logic
+      guestCardsForRound[round] = cards;
+      window._guestPendingCards = cards;
+      if (!G) { G = freshState(); }
+      if (pidx !== undefined) myPlayerIndex = guestPlayerIndex = pidx;
+      if (myPlayerIndex >= 0 && G.players[myPlayerIndex]) {
+        G.players[myPlayerIndex].privateCards = cards;
+        window._guestPendingCards = null;
+      }
+      // Trigger pending preview if state arrived before cards
+      if (guestPendingPreviewState && guestPendingPreviewState.round === round) {
+        const s = guestPendingPreviewState;
+        guestPendingPreviewState = null;
+        if (s.phase === 'card_preview')   startGuestSyncedCardPreview(s.previewEndTime, s.round);
+        else if (s.phase === 'estima_preview') startGuestSyncedEstimaPreview(s.previewEndTime, s.round);
+      }
+    }
+    if (data.type === 'make_market_your_turn') {
+      showGuestMakeMarketForm();
+    }
   });
 }
 
@@ -1663,6 +1872,162 @@ function sendPrivateCardsToGuests() {
 let guestLastRoundSeen = 0; // track which rounds guest has already seen card preview for
 let guestCardsForRound = {}; // maps round# → private cards array received from host
 
+// ── Server-engine state handler (used by both host and guest) ──
+// Largely shares logic with applyGuestState but handles all phases.
+function applyServerState(state) {
+  // Bootstrap G on first contact
+  if (!G) {
+    G = freshState();
+    G.gameType = state.gameType;
+    G.estimaQuestion = state.estimaQuestion;
+    setupGameUIForGuest(state); // same UI setup for all server-engine clients
+  } else {
+    if (state.gameType) G.gameType = state.gameType;
+    if (state.estimaQuestion) G.estimaQuestion = state.estimaQuestion;
+  }
+
+  // ── card_preview ──
+  if (state.phase === 'card_preview') {
+    document.getElementById('round-end-overlay').classList.remove('visible');
+    G.round = state.round;
+    if (state.communityCards) { G.communityCards = state.communityCards; G.revealedIndices = state.revealedIndices || []; }
+    if (state.players && state.players.length) applyPlayerState(state);
+    const roundCards = guestCardsForRound[state.round];
+    if (roundCards) {
+      if (myPlayerIndex >= 0 && G.players[myPlayerIndex]) G.players[myPlayerIndex].privateCards = roundCards;
+      startGuestSyncedCardPreview(state.previewEndTime, state.round);
+    } else {
+      guestPendingPreviewState = state;
+    }
+    return;
+  }
+
+  // ── estima_preview ──
+  if (state.phase === 'estima_preview') {
+    document.getElementById('round-end-overlay').classList.remove('visible');
+    G.round = state.round;
+    if (state.estimaQuestion) G.estimaQuestion = state.estimaQuestion;
+    if (state.players && state.players.length) applyPlayerState(state);
+    startGuestSyncedEstimaPreview(state.previewEndTime, state.round);
+    return;
+  }
+
+  // ── round_end ──
+  if (state.phase === 'round_end') {
+    G.round = state.round;
+    if (state.communityCards) { G.communityCards = state.communityCards; G.revealedIndices = state.revealedIndices || []; }
+    if (state.estimaQuestion) G.estimaQuestion = state.estimaQuestion;
+    if (state.players && state.players.length) applyPlayerState(state);
+    if (!document.getElementById('screen-game').classList.contains('active')) switchScreen('game');
+    clearInterval(G.timerInterval); G.timerInterval = null;
+    // Host sees Continue button; guests see wait message
+    showRoundEndOverlayForServerMode(state.round);
+    return;
+  }
+
+  // ── starting (before preview) ──
+  if (state.phase === 'starting') {
+    showStatus('⏳ Starting game…');
+    if (state.players && state.players.length) applyPlayerState(state);
+    return;
+  }
+
+  // ── settling / results ──
+  if (state.phase === 'settling') {
+    G.phase = state.phase;
+    G.settlementValue = state.settlementValue;
+    if (state.communityCards) { G.communityCards = state.communityCards; G.revealedIndices = state.revealedIndices || []; }
+    if (state.estimaQuestion) G.estimaQuestion = state.estimaQuestion;
+    if (state.players && state.players.length) applyPlayerState(state);
+    G.trades = state.trades || [];
+    clearInterval(G.timerInterval); G.timerInterval = null;
+    if (!document.getElementById('screen-game').classList.contains('active')) switchScreen('game');
+    document.getElementById('round-end-overlay').classList.remove('visible');
+    showResults();
+    return;
+  }
+
+  // ── Active game phases ──
+  if (!document.getElementById('screen-game').classList.contains('active')) switchScreen('game');
+  document.getElementById('round-end-overlay').classList.remove('visible');
+
+  G.phase = state.phase;
+  G.round = state.round;
+  G.currentMarket = state.currentMarket;
+  G.marketMakerIdx = state.marketMakerIdx;
+  G.trades = state.trades || [];
+  G.settlementValue = state.settlementValue;
+  G.roundEndTime = state.roundEndTime;
+  if (state.communityCards) { G.communityCards = state.communityCards; G.revealedIndices = state.revealedIndices || []; }
+  if (state.estimaQuestion) G.estimaQuestion = state.estimaQuestion;
+  if (state.players && state.players.length) applyPlayerState(state);
+
+  // Round timer display (driven by server timestamp)
+  if (G.roundEndTime) {
+    const rem = Math.max(0, G.roundEndTime - Date.now());
+    updateTimerDisplay(rem);
+    clearInterval(G.timerInterval);
+    G.timerInterval = setInterval(() => {
+      const r = Math.max(0, G.roundEndTime - Date.now());
+      updateTimerDisplay(r);
+    }, 500);
+  }
+
+  document.getElementById('hdr-round').textContent = `Round ${G.round}/3`;
+  updatePhase();
+  if (G.gameType === 'cards') updateCommunityCards();
+  updatePlayersTable();
+  updateTradeLog();
+  updateYourStats();
+
+  if (state.currentMarket) {
+    const mk = G.players[state.marketMakerIdx];
+    updateMktDisplay(state.currentMarket.bid, state.currentMarket.ask, mk ? mk.name : '—');
+  }
+
+  // Reset stuck winning-trade flag if window closed
+  if (state.phase !== 'trade_window' && guestIsWinningTrade) {
+    guestIsWinningTrade = false;
+    if (window._guestRaceInterval) { clearInterval(window._guestRaceInterval); window._guestRaceInterval = null; }
+  }
+
+  if (state.phase === 'trade_window' && state.currentMarket && !guestIsWinningTrade) {
+    if (state.marketMakerIdx === myPlayerIndex) {
+      hideActions();
+      showStatus('You made the market — waiting for others to trade…');
+    } else {
+      showGuestTradeNow(state.currentMarket.bid, state.currentMarket.ask);
+    }
+  } else if (state.phase !== 'trade_window') {
+    if (window._guestRaceInterval) { clearInterval(window._guestRaceInterval); window._guestRaceInterval = null; }
+  }
+
+  if (state.phase === 'making_market') {
+    if (myPlayerIndex >= 0 && state.marketMakerIdx === myPlayerIndex) {
+      // make_market_your_turn will arrive via player_sync and trigger form
+    } else {
+      hideActions();
+      const maker = G.players[state.marketMakerIdx];
+      showStatus(maker ? `${maker.name} is making the market…` : 'Waiting for next market…');
+    }
+  }
+}
+
+// ── Round-end overlay for server-engine mode ──
+// Host gets Continue button; everyone else waits.
+function showRoundEndOverlayForServerMode(round) {
+  document.getElementById('re-continue-btn').style.display = isHost ? '' : 'none';
+  document.getElementById('re-guest-wait').style.display  = isHost ? 'none' : 'block';
+  showRoundEndOverlay(round, true); // skipDeal=true — server dealt cards
+  // Override Continue button to emit player_action
+  if (isHost) {
+    document.getElementById('re-continue-btn').onclick = () => {
+      document.getElementById('round-end-overlay').classList.remove('visible');
+      socket.emit('player_action', { type: 'continue_round' });
+    };
+  }
+}
+
 // ── Guest: apply received state ────────────────────────────────
 function applyGuestState(state) {
   if (!isGuest) return;
@@ -1802,7 +2167,13 @@ function applyGuestState(state) {
   }
 
   if (state.phase === 'trade_window' && state.currentMarket && !guestIsWinningTrade) {
-    showGuestTradeNow(state.currentMarket.bid, state.currentMarket.ask);
+    if (state.marketMakerIdx === guestPlayerIndex) {
+      // This guest posted the market — they cannot trade against themselves
+      hideActions();
+      showStatus('You made the market — waiting for others to trade…');
+    } else {
+      showGuestTradeNow(state.currentMarket.bid, state.currentMarket.ask);
+    }
   } else if (state.phase !== 'trade_window') {
     if (window._guestRaceInterval) { clearInterval(window._guestRaceInterval); window._guestRaceInterval = null; }
   }
@@ -1966,6 +2337,16 @@ function startGuestSyncedCardPreview(endTime, round) {
 }
 
 function skipCardPreviewAny() {
+  if (serverEngine) {
+    // Server-engine mode: everyone sends preview_done (host or guest)
+    clearInterval(previewTimer);
+    if (optManualFV) {
+      const v = document.getElementById('prev-manual-fv-input').value.trim();
+      if (v) { const gi = document.getElementById('manual-fv-input'); gi.value = v; gi.dataset.touched = '1'; }
+    }
+    guestCardPreviewDone(); // already emits player_action: preview_done
+    return;
+  }
   if (isGuest) {
     clearInterval(previewTimer);
     if (optManualFV) {
@@ -1980,8 +2361,12 @@ function skipCardPreviewAny() {
 
 function guestCardPreviewDone() {
   clearInterval(previewTimer);
-  // Tell host we're ready — host starts the round when everyone is done
-  if(socket && isGuest) socket.emit('guest_action', { type: 'preview_done' });
+  // Notify server we're ready
+  if (socket && serverEngine) {
+    socket.emit('player_action', { type: 'preview_done' });
+  } else if (socket && isGuest) {
+    socket.emit('guest_action', { type: 'preview_done' });
+  }
   // Show prominent waiting state on the preview screen
   const btn=document.getElementById('card-preview-skip-btn');
   if(btn){
@@ -2108,7 +2493,8 @@ function kickGuest(socketId, name) {
 // ── Return guest to lobby after host quits game (stay in room, reset ready) ──
 function returnGuestToLobby(msg) {
   if (G) clearAllTimers();
-  G = null; guestPlayerIndex = -1; guestLastRoundSeen = 0; guestCardsForRound = {};
+  G = null; guestPlayerIndex = -1; myPlayerIndex = -1; guestLastRoundSeen = 0; guestCardsForRound = {};
+  serverEngine = false;
   guestPendingPreviewState = null; window._guestPendingCards = null;
   // Stay as isGuest=true — still in the room, just game ended
   guestIsReady = false;
@@ -2168,14 +2554,19 @@ function guestClicksTradeNow() {
   if (!socket || !G || !G.currentMarket) return;
   guestIsWinningTrade = true;
   document.getElementById('trade-now-btn').disabled = true;
-  socket.emit('guest_action', {
-    type: 'trade_now',
-    bid: G.currentMarket.bid,
-    ask: G.currentMarket.ask,
-    makerId: G.currentMarket.makerId,
-    ts: Date.now()
-  });
-  showStatus('Waiting for host to confirm…');
+  // Server-engine path: both guest and host use player_action
+  if (serverEngine) {
+    socket.emit('player_action', { type: 'trade_now' });
+  } else {
+    socket.emit('guest_action', {
+      type: 'trade_now',
+      bid: G.currentMarket.bid,
+      ask: G.currentMarket.ask,
+      makerId: G.currentMarket.makerId,
+      ts: Date.now()
+    });
+  }
+  showStatus('Trade sent — result incoming…');
   // Safety net: if host never responds (lost the race, window already closed),
   // reset after TRADE_WIN + 1.5s so guest is never permanently stuck
   if (window._guestTradeWinTimeout) clearTimeout(window._guestTradeWinTimeout);
@@ -2243,18 +2634,23 @@ function handleHostResponse(data) {
 }
 
 function guestConfirmTrade(ctx) {
-  const action = document.querySelector('.trade-choice-btn.selected')?.classList.contains('buy') ? 'buy' : 'sell';
-  if (!action) { toast('Select buy or sell', 'warn'); return; }
+  const selectedBtn = document.querySelector('.trade-choice-btn.selected');
+  const action = selectedBtn?.classList.contains('buy') ? 'buy' : 'sell';
+  if (!selectedBtn) { toast('Select buy or sell', 'warn'); return; }
   const vol = parseInt(document.getElementById('exec-vol').value);
   clearInterval(G.execTimerInterval); G.execTimerInterval = null;
-  socket.emit('guest_action', {
-    type: 'trade_confirm',
-    action,
-    volume: vol,
-    bid: ctx.bid,
-    ask: ctx.ask,
-    makerId: ctx.makerId
-  });
+  if (serverEngine) {
+    socket.emit('player_action', { type: 'confirm_trade', action, volume: vol });
+  } else {
+    socket.emit('guest_action', {
+      type: 'trade_confirm',
+      action,
+      volume: vol,
+      bid: ctx.bid,
+      ask: ctx.ask,
+      makerId: ctx.makerId
+    });
+  }
   hideActions();
   showStatus('Trade sent!');
 }
@@ -2265,20 +2661,9 @@ let guestTradeWinner = null;
 function handleIncomingGuestAction(action) {
   if (!G) return;
 
-  // ── trade_now: guest clicks "Trade Now!" button ──
+  // ── trade_now is now handled server-side (see trade_awarded socket event) ──
+  // If one somehow leaks through (e.g. old client), ignore safely
   if (action.type === 'trade_now') {
-    if (!G.tradeWindow || !G.tradeWindow.active) return;
-    if (guestTradeWinner) return; // someone already won
-    guestTradeWinner = action.guestSocketId;
-    socket.emit('host_response', {
-      guestSocketId: action.guestSocketId,
-      data: { type: 'trade_won', bid: G.currentMarket.bid, ask: G.currentMarket.ask, makerId: G.currentMarket.makerId }
-    });
-    G.tradeWindow.botTimers.forEach(t => clearTimeout(t));
-    clearTimeout(G.tradeWindow.windowTimer);
-    clearInterval(G.tradeWindow.raceInterval);
-    G.tradeWindow.active = false; // prevent others from winning, but don't null it yet
-    toast(`${action.guestName} is trading!`, 'info');
     return;
   }
 
@@ -2383,8 +2768,68 @@ async function tryStartGame(){
       return;
     }
   }
-  // Collect guest names if hosting (guests become human players)
+
   const guestNames = isHost ? connectedGuests.map(g=>g.name) : [];
+
+  // ── Server-side game engine path (host with guests) ──────────
+  if (isHost && connectedGuests.length > 0) {
+    let question = null;
+    if (selGameType === 'estimathon') {
+      if (aiApiKey) {
+        btn.disabled = true; btn.textContent = '🤖 Generating question…';
+        question = await fetchAIQuestion();
+        btn.disabled = false; btn.textContent = '⚡ Start Game';
+      } else {
+        // Pick a random built-in question
+        question = shuffle([...ESTIMA_QUESTIONS])[0];
+      }
+    }
+    serverEngine = true;
+    myPlayerIndex = 0; // host is always player 0
+    guestPlayerIndex = 0;
+    G = null; // engine owns state; reset local copy
+
+    const numHumans = 1 + connectedGuests.length;
+    const numPlayers = Math.max(parseInt(document.getElementById('sl-total').value), numHumans);
+    const config = {
+      numPlayers,
+      numHumans,
+      roundMinutes: selMins,
+      gameType: selGameType,
+      guestNames,
+      question,
+    };
+
+    // Setup UI labels now so game screen is ready
+    if (selGameType === 'estimathon') {
+      document.getElementById('hdr-game2').style.display = '';
+      document.getElementById('game1-community').style.display = 'none';
+      document.getElementById('game2-community').style.display = '';
+      document.getElementById('community-label').textContent = 'Question — Settlement = True Answer';
+      document.getElementById('your-hand-label').textContent = 'Your Estimate (private)';
+      if (question) document.getElementById('question-text').textContent = question.q;
+      document.getElementById('question-hints').innerHTML = '<div class="question-hint hidden-hint">Hints unlock in rounds 2 and 3.</div>';
+    } else {
+      document.getElementById('hdr-game2').style.display = 'none';
+      document.getElementById('game1-community').style.display = '';
+      document.getElementById('game2-community').style.display = 'none';
+      document.getElementById('community-label').textContent = 'Community Cards — Settlement = Sum of All 6';
+      document.getElementById('your-hand-label').textContent = 'Your Hand';
+    }
+
+    optShowFV   = document.getElementById('opt-show-fv').checked;
+    optShowDeck = document.getElementById('opt-show-deck').checked;
+    optManualFV = document.getElementById('opt-manual-fv').checked;
+    document.getElementById('manual-fv-wrap').classList.toggle('visible', optManualFV);
+    const mInp = document.getElementById('manual-fv-input');
+    mInp.value = ''; delete mInp.dataset.touched;
+
+    socket.emit('player_action', { type: 'game_start', config });
+    toast('Starting server-side game…', 'info');
+    return;
+  }
+
+  // ── Local / solo path (unchanged) ───────────────────────────
   if(selGameType==='estimathon'&&aiApiKey){
     btn.disabled=true;btn.textContent='🤖 Generating question…';
     const aiQ=await fetchAIQuestion();
@@ -2687,11 +3132,21 @@ function startEstimaPreview(){
     document.getElementById('estima-prev-countdown').textContent=rem;
     document.getElementById('estima-prev-bar').style.width=(rem/ESTIMA_PREVIEW_SECS*100)+'%';
     if(rem<=10)document.getElementById('estima-prev-countdown').className='preview-countdown urgent';
-    if(rem<=0){clearInterval(estimaPreviewTimer);switchScreen('game');startRound(G.round);}
+    if(rem<=0){
+      clearInterval(estimaPreviewTimer);
+      if(serverEngine){ if(socket) socket.emit('player_action',{type:'preview_done'}); switchScreen('game'); }
+      else { switchScreen('game'); startRound(G.round); }
+    }
   },500);
 }
 
 function skipEstimaPreviewAny(){
+  if(serverEngine){
+    clearInterval(estimaPreviewTimer);
+    if(socket) socket.emit('player_action',{type:'preview_done'});
+    switchScreen('game');
+    return;
+  }
   if(isGuest){ clearInterval(estimaPreviewTimer); switchScreen('game'); }
   else { clearInterval(estimaPreviewTimer); switchScreen('game'); startRound(G.round); }
 }
@@ -2921,8 +3376,15 @@ function humanPostMarket(){
   if(ask-bid>ask*0.8+50){err.textContent='Spread is too wide';err.classList.add('visible');return;}
   err.classList.remove('visible');
   clearInterval(makerTimer);
+  if (serverEngine) {
+    // Server-engine mode: both host and guest send player_action
+    socket.emit('player_action', { type: 'post_market', bid, ask });
+    hideActions();
+    showStatus('Market posted — waiting for trades…');
+    return;
+  }
   if(isGuest){
-    // Send market to host
+    // Legacy: send to host
     socket.emit('guest_action',{type:'make_market',bid,ask});
     hideActions();
     showStatus('Market posted — waiting for trades…');
@@ -2938,6 +3400,11 @@ function postMkt(bid,ask,makerId){
   G.players.forEach(p=>{if(!p.isHuman)p.observeMkt(bid,ask,makerId);});
   openTradeWindow(bid,ask,makerId);updatePlayersTable();
   broadcastGameState();
+  // Tell the server the trade window is open — server will adjudicate the race
+  // between remote guests and local bots, eliminating the host round-trip latency.
+  if(isHost && socket && connectedGuests.length > 0){
+    socket.emit('trade_window_open',{bid,ask,makerId});
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2955,12 +3422,20 @@ function openTradeWindow(bid,ask,makerId){
     const dec=pl.decide(bid,ask);if(!dec)return;
     const t=setTimeout(()=>{
       if(!G.tradeWindow||!G.tradeWindow.active)return;
-      execTrade(idx,dec.action,dec.volume,bid,ask,makerId);
-      closeTradeWindow();hideActions();
-      G.phase='making_market';
-      showStatus(`${pl.name} traded — now making market…`);
-      toast(`${pl.name} was fastest! ${dec.action.toUpperCase()} ×${dec.volume}`,'info');
-      nextTurn(idx); // → selectMaker will broadcast once, with correct making_market phase
+      // When guests are present, route bot trades through server so the race
+      // between bots and remote guests is decided by a neutral arbiter.
+      if(isHost && socket && connectedGuests.length > 0){
+        socket.emit('bot_trade_now',{playerIdx:idx,action:dec.action,volume:dec.volume,bid,ask,makerId});
+        // trade_awarded event will come back and execute the trade
+      } else {
+        // Local-only game — execute immediately as before
+        execTrade(idx,dec.action,dec.volume,bid,ask,makerId);
+        closeTradeWindow();hideActions();
+        G.phase='making_market';
+        showStatus(`${pl.name} traded — now making market…`);
+        toast(`${pl.name} was fastest! ${dec.action.toUpperCase()} ×${dec.volume}`,'info');
+        nextTurn(idx);
+      }
     },pl.react(dec.edge));
     G.tradeWindow.botTimers.push(t);
   });
@@ -2968,6 +3443,8 @@ function openTradeWindow(bid,ask,makerId){
   G.tradeWindow.windowTimer=setTimeout(()=>{
     if(!G.tradeWindow||!G.tradeWindow.active)return;
     closeTradeWindow();
+    // Tell server the window expired with no winner
+    if(isHost && socket && connectedGuests.length > 0) socket.emit('trade_window_close');
     G.phase='making_market';
     toast('No takers — rotating market maker.','info');
     nextTurn(null); // → selectMaker will broadcast once with correct making_market phase
@@ -3004,7 +3481,17 @@ function showTradeNow(bid,ask){
 }
 
 function humanClicksTradeNow(){
+  if (serverEngine) {
+    // Server-engine: host clicks Trade Now just like a guest
+    guestClicksTradeNow();
+    return;
+  }
   if(!G.tradeWindow||!G.tradeWindow.active)return;
+  if(isHost && socket && connectedGuests.length > 0){
+    socket.emit('host_trade_now',{bid:G.currentMarket.bid,ask:G.currentMarket.ask,makerId:G.currentMarket.makerId});
+    return;
+  }
+  // Local-only game — execute immediately
   G.tradeWindow.botTimers.forEach(t=>clearTimeout(t));
   clearTimeout(G.tradeWindow.windowTimer);clearInterval(G.tradeWindow.raceInterval);
   G.tradeWindow.active=false;
@@ -3037,6 +3524,21 @@ function selectAction(a){
 }
 
 function confirmHumanTrade(){
+  if (serverEngine) {
+    // In server-engine mode, host uses same path as guest
+    if (!G.execState || !G.execState.selectedAction) return;
+    const vol = parseInt(document.getElementById('exec-vol').value);
+    clearInterval(G.execTimerInterval); G.execTimerInterval = null;
+    socket.emit('player_action', {
+      type: 'confirm_trade',
+      action: G.execState.selectedAction,
+      volume: vol,
+    });
+    G.execState = null;
+    hideActions();
+    showStatus('Trade confirmed!');
+    return;
+  }
   if(!G.execState||!G.execState.selectedAction)return;
   clearInterval(G.execTimerInterval);G.execTimerInterval=null;
   const{selectedAction,bid,ask,makerId}=G.execState;
@@ -3044,7 +3546,7 @@ function confirmHumanTrade(){
   execTrade(G.humanPlayerIndices[0],selectedAction,vol,bid,ask,makerId);
   G.execState=null;closeTradeWindow();
   G.phase='making_market';
-  if(isHost)broadcastGameState(); // broadcast once with correct phase before nextTurn
+  if(isHost)broadcastGameState();
   nextTurn(G.humanPlayerIndices[0]);
 }
 
@@ -3152,7 +3654,7 @@ function playAgain(){
   if(isHost && socket && generatedRoomCode){
     socket.emit('game_state', { phase:'host_quit' });
   }
-  G=null; switchScreen('setup');
+  G=null; serverEngine=false; myPlayerIndex=-1; switchScreen('setup');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3239,8 +3741,10 @@ function updateMakerName(n){document.getElementById('market-maker-name').textCon
 
 function updateYourStats(){
   if(!G)return;
-  // Guests see their own player slot; host and local always use humanPlayerIndices[0]
-  const h = (isGuest && guestPlayerIndex>=0) ? G.players[guestPlayerIndex] : G.players[G.humanPlayerIndices[0]];
+  // Server-engine: use myPlayerIndex. Legacy: guest uses guestPlayerIndex, host uses humanPlayerIndices[0]
+  const myIdx = serverEngine ? myPlayerIndex
+    : (isGuest && guestPlayerIndex>=0) ? guestPlayerIndex : G.humanPlayerIndices[0];
+  const h = myIdx >= 0 ? G.players[myIdx] : G.players[G.humanPlayerIndices ? G.humanPlayerIndices[0] : 0];
   if(!h)return;
   const fv=calcHumanFV(h);
   const mid=G.currentMarket?(G.currentMarket.bid+G.currentMarket.ask)/2:0;
@@ -3289,8 +3793,9 @@ function updatePlayersTable(){
   if(!G)return;const mid=G.currentMarket?(G.currentMarket.bid+G.currentMarket.ask)/2:0;
   document.getElementById('players-tbody').innerHTML=G.players.map((p,i)=>{
     const pnl=p.mtmPnL(mid),pos=p.position,avg=p.avgEntry();
-    // "you-row": host → humanPlayerIndices[0]; guest → guestPlayerIndex
-    const isMe = isGuest ? (i===guestPlayerIndex) : (i===G.humanPlayerIndices[0]);
+    // "you-row": server-engine uses myPlayerIndex; legacy host uses humanPlayerIndices[0]; guest uses guestPlayerIndex
+    const meIdx = serverEngine ? myPlayerIndex : (isGuest ? guestPlayerIndex : G.humanPlayerIndices[0]);
+    const isMe = i === meIdx;
     const cardsStr = isMe ? p.privateCards.map(c=>c>0?'+'+c:c).join(' ') : '?';
     return`<tr class="${isMe?'you-row':i===G.marketMakerIdx?'maker-row':''}">
       <td class="${isMe?'you-badge':i===G.marketMakerIdx?'maker-badge':''}">${p.name}${isMe?' 👤':''}</td>
@@ -3331,21 +3836,22 @@ function doQuit(){
   // If host, notify all guests the game is ending
   if(isHost && socket && generatedRoomCode){
     socket.emit('game_state', { phase:'host_quit' });
-    G=null; guestPlayerIndex=-1; guestLastRoundSeen=0; guestCardsForRound={};
+    G=null; guestPlayerIndex=-1; myPlayerIndex=-1; guestLastRoundSeen=0; guestCardsForRound={};
     guestPendingPreviewState=null; window._guestPendingCards=null;
+    serverEngine=false;
     switchScreen('setup');
     toast('Game ended.','info');
     return;
   }
   // If guest: return to room lobby — stay connected, reset ready, wait for next game
-  // (same as when host ends the game — guest keeps room connection)
   if(isGuest){
     returnGuestToLobby('You left the game — waiting for host to start a new one…');
     return;
   }
   // Solo / local play
-  G=null; guestPlayerIndex=-1; guestLastRoundSeen=0; guestCardsForRound={};
+  G=null; guestPlayerIndex=-1; myPlayerIndex=-1; guestLastRoundSeen=0; guestCardsForRound={};
   guestPendingPreviewState=null; window._guestPendingCards=null;
+  serverEngine=false;
   switchScreen('setup');
   toast('Game ended.','info');
 }
@@ -3486,7 +3992,8 @@ async function signOutUser(){
 async function saveGameResult(){
   if(!currentUser||!fbDb||!G||G.settlementValue===null) return;
   try {
-    const myIdx = isGuest && guestPlayerIndex>=0 ? guestPlayerIndex : G.humanPlayerIndices[0];
+    const myIdx = serverEngine ? myPlayerIndex
+      : (isGuest && guestPlayerIndex>=0 ? guestPlayerIndex : G.humanPlayerIndices[0]);
     const me = G.players[myIdx];
     if(!me) return;
     const pnl = me.settlePnL(G.settlementValue);
