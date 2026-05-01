@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bot Builder | IMC Tech Race Prep</title>
+<style>
+:root{
+  --bg:#060d1a;--panel:#0d1829;--border:#1e3a5f;--border2:#1e2d4a;
+  --text:#e2e8f0;--dim:#64748b;--dim2:#94a3b8;
+  --blue:#3b82f6;--blue-l:#60a5fa;--green:#22c55e;--red:#ef4444;
+  --yellow:#eab308;--purple:#a855f7;--cyan:#06b6d4;
+  --green-bg:rgba(34,197,94,0.12);--red-bg:rgba(239,68,68,0.12);
+  --blue-bg:rgba(59,130,246,0.12);--yellow-bg:rgba(234,179,8,0.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;min-height:100vh;}
+a{color:var(--blue-l);text-decoration:none;}a:hover{text-decoration:underline;}
+.hidden{display:none!important;}
+nav{background:#0a1220;border-bottom:1px solid var(--border2);padding:8px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;}
+.brand{color:var(--yellow);font-weight:700;font-size:13px;}.cur{color:var(--text);font-weight:700;}.sep{color:var(--border);}
+.btn{display:inline-block;padding:11px 28px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .15s;}
+.btn-primary{background:var(--blue);color:#fff;}.btn-primary:hover{background:#2563eb;}
+.btn-secondary{background:var(--panel);color:var(--dim2);border:1px solid var(--border);}.btn-secondary:hover{color:var(--text);}
+
+/* SETUP */
+#setup{max-width:700px;margin:40px auto;padding:0 20px;}
+.setup-hero{text-align:center;margin-bottom:28px;}
+.setup-tag{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--purple);text-transform:uppercase;margin-bottom:8px;}
+.setup-title{font-size:30px;font-weight:900;color:#fff;margin-bottom:6px;}
+.setup-sub{color:var(--dim2);font-size:14px;}
+
+/* CONFIG WIZARD */
+#config{max-width:760px;margin:30px auto;padding:0 20px;}
+.config-step-indicator{display:flex;gap:8px;margin-bottom:20px;align-items:center;}
+.csi-step{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;}
+.csi-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;}
+.csi-step.done .csi-num{background:var(--green);color:#fff;}
+.csi-step.active .csi-num{background:var(--blue);color:#fff;}
+.csi-step.pending .csi-num{background:var(--border2);color:var(--dim);}
+.csi-label.done{color:var(--green);}.csi-label.active{color:var(--text);}.csi-label.pending{color:var(--dim);}
+.csi-line{flex:1;height:2px;background:var(--border2);}
+.csi-line.done{background:var(--green);}
+
+.step-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px 24px;}
+.step-title{font-size:14px;font-weight:800;color:#fff;margin-bottom:4px;}
+.step-sub{font-size:12px;color:var(--dim2);margin-bottom:16px;}
+.option-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.option-card{background:#0a1620;border:2px solid var(--border2);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s;text-align:center;}
+.option-card:hover{border-color:var(--blue-l);}
+.option-card.selected{border-color:var(--purple);background:rgba(168,85,247,.1);}
+.option-icon{font-size:26px;margin-bottom:6px;}
+.option-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.option-desc{font-size:11px;color:var(--dim2);line-height:1.5;}
+.option-tag{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:700;margin-top:5px;display:inline-block;}
+.tag-aggressive{background:rgba(239,68,68,.2);color:var(--red);}
+.tag-steady{background:rgba(34,197,94,.2);color:var(--green);}
+.tag-adaptive{background:rgba(59,130,246,.2);color:var(--blue-l);}
+
+/* Sliders for step 2 */
+.param-grid{display:grid;gap:14px;}
+.param-row{display:flex;align-items:center;gap:14px;}
+.param-label{min-width:120px;font-size:12px;color:var(--dim2);}
+.param-slider{flex:1;-webkit-appearance:none;height:5px;border-radius:3px;background:var(--border2);outline:none;cursor:pointer;}
+.param-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--purple);cursor:pointer;}
+.param-val{min-width:50px;text-align:right;font-size:12px;font-weight:700;color:var(--text);}
+
+/* TOURNAMENT */
+#tournament{max-width:900px;margin:20px auto;padding:0 20px;}
+.tourn-header{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:12px 18px;margin-bottom:14px;display:flex;align-items:center;gap:16px;}
+.th-title{font-size:16px;font-weight:900;color:var(--purple);}
+.th-timer{font-size:26px;font-weight:900;color:var(--blue-l);font-variant-numeric:tabular-nums;}
+.th-timer.warn{color:var(--yellow);}.th-timer.crit{color:var(--red);}
+.th-phase{font-size:12px;color:var(--dim2);}
+.tourn-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.chart-panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.cp-title{font-size:11px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:10px;}
+.lb-panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.bot-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border2);}
+.bot-row:last-child{border-bottom:none;}
+.bot-rank{font-size:13px;font-weight:900;min-width:24px;}
+.bot-name{flex:1;font-size:12px;font-weight:700;}
+.bot-pnl{font-size:13px;font-weight:900;min-width:70px;text-align:right;}
+.bot-bar-track{height:4px;background:var(--border2);border-radius:2px;margin-top:3px;overflow:hidden;}
+.bot-bar-fill{height:100%;border-radius:2px;transition:width .5s;}
+.bot-strategy{font-size:10px;color:var(--dim);font-style:italic;}
+.strategy-badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;margin-left:4px;}
+.you-badge{background:rgba(234,179,8,.2);color:var(--yellow);border:1px solid rgba(234,179,8,.3);}
+
+/* Event log */
+.event-log{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:12px;margin-top:12px;max-height:120px;overflow-y:auto;}
+.el-title{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px;}
+.el-entry{font-size:11px;color:var(--dim2);padding:3px 0;border-bottom:1px solid var(--border2);}
+.el-entry:last-child{border-bottom:none;}
+.el-time{color:var(--blue-l);font-weight:700;margin-right:6px;}
+.el-bot{font-weight:700;}
+
+/* RESULTS */
+#results{max-width:600px;margin:50px auto;padding:20px;text-align:center;}
+.res-medal{font-size:56px;margin-bottom:10px;}
+.res-title{font-size:28px;font-weight:900;color:#fff;margin-bottom:4px;}
+.res-sub{color:var(--dim2);margin-bottom:24px;}
+.res-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.res-stat{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:14px;}
+.rs-val{font-size:22px;font-weight:900;color:var(--blue-l);}
+.rs-lbl{font-size:11px;color:var(--dim);}
+.final-lb{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:14px;margin-bottom:20px;text-align:left;}
+.flb-title{font-size:11px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:10px;}
+.analysis-box{background:var(--blue-bg);border:1px solid rgba(59,130,246,.3);border-radius:8px;padding:12px;text-align:left;margin-bottom:16px;font-size:12px;color:var(--dim2);line-height:1.6;}
+.ab-title{font-size:11px;font-weight:700;color:var(--blue-l);text-transform:uppercase;margin-bottom:4px;}
+
+/* ── LIGHT MODE ── */
+[data-theme="light"]{
+  --bg:#f0f4f8!important;--panel:#ffffff!important;--panel2:#e8edf3!important;
+  --border:#c5d0de!important;--border2:#d5dde8!important;
+  --text:#1e2d3d!important;--dim:#6b7d8f!important;--dim2:#4a5a6a!important;
+  --blue:#2563eb!important;--blue-l:#1d4ed8!important;
+  --green:#16a34a!important;--red:#dc2626!important;
+  --yellow:#b45309!important;--purple:#7c3aed!important;
+  --cyan:#0e7490!important;--teal:#0f766e!important;--orange:#c2410c!important;
+  --green-bg:rgba(22,163,74,0.12)!important;--red-bg:rgba(220,38,38,0.12)!important;
+  --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
+  --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
+  --orange-bg:rgba(194,65,12,0.12)!important;
+}
+@media(prefers-color-scheme:light){
+  :root:not([data-theme]){
+    --bg:#f0f4f8!important;--panel:#ffffff!important;--panel2:#e8edf3!important;
+    --border:#c5d0de!important;--border2:#d5dde8!important;
+    --text:#1e2d3d!important;--dim:#6b7d8f!important;--dim2:#4a5a6a!important;
+    --blue:#2563eb!important;--blue-l:#1d4ed8!important;
+    --green:#16a34a!important;--red:#dc2626!important;
+    --yellow:#b45309!important;--purple:#7c3aed!important;
+    --cyan:#0e7490!important;--teal:#0f766e!important;--orange:#c2410c!important;
+    --green-bg:rgba(22,163,74,0.12)!important;--red-bg:rgba(220,38,38,0.12)!important;
+    --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
+    --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
+    --orange-bg:rgba(194,65,12,0.12)!important;
+  }
+}
+/* Theme toggle button in nav */
+.theme-nav-btns{margin-left:auto;display:flex;gap:3px;align-items:center;}
+.tnb{padding:3px 8px;border-radius:5px;border:1px solid var(--border2);
+  background:transparent;color:var(--dim);font-size:10px;font-weight:700;
+  cursor:pointer;transition:all .12s;line-height:1;}
+.tnb:hover{color:var(--text);}
+.tnb.active{background:var(--panel);border-color:var(--border);color:var(--text);}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="brand">⌂ Hub</a><span class="sep">|</span>
+  <span style="color:var(--dim);font-size:11px;">Collab:</span>
+  <a href="quant-relay.html">Relay</a>
+  <a href="alpha-factory.html">Alpha Factory</a>
+  <span class="sep">|</span>
+
+  <span style="color:var(--dim);font-size:11px;">Trading:</span>
+  <a href="cmi-challenge.html">CMI</a>
+  <a href="price-war.html">Price War</a>
+  <a href="arbitrage-sprint.html">Arb Sprint</a>
+  <span class="sep">|</span>
+  <span style="color:var(--dim);font-size:11px;">Tech:</span>
+  <a href="algo-blitz.html">Algo Blitz</a>
+  <span class="cur">Bot Builder</span>
+  <span class="sep">|</span>
+  <a href="momentum-trainer.html">Momentum</a>
+  <a href="spread-trader.html">Spread</a>
+  <a href="regime-rider.html">Regime</a>
+  <span class="sep">|</span>
+  <a href="basket-blitz.html">Basket</a>
+  <a href="options-outcry.html">Outcry</a>
+  <a href="cmi-challenge.html">CMI</a>
+<span class="theme-nav-btns"><button class="tnb" data-t="light" onclick="setTheme('light',true)" title="Light">☀</button><button class="tnb" data-t="system" onclick="setTheme('system',true)" title="System">⊙</button><button class="tnb" data-t="dark" onclick="setTheme('dark',true)" title="Dark">☾</button></span>
+</nav>
+
+<!-- SETUP -->
+<div id="setup">
+  <div class="setup-hero">
+    <div class="setup-tag">IMC Tech Race · Option B</div>
+    <div class="setup-title">🤖 Bot Builder</div>
+    <div class="setup-sub">Configure your trading bot in 3 steps · Watch it fight live in a 3-minute tournament</div>
+  </div>
+  <div style="background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:16px;margin:20px 0;font-size:13px;color:var(--dim2);line-height:1.7;">
+    <strong style="color:var(--text);">How it works:</strong> Real IMC internship involves writing Python bots against live APIs. Here you configure your bot's strategy, risk parameters, and target market — then watch it compete against 5 IMC baseline bots for 3 minutes. Best P&L wins.
+    <br><br>
+    <strong style="color:var(--text);">3 Markets:</strong> ALPHA (trending), BETA (mean-reverting), GAMMA (volatile/options-like). Each rewards a different strategy.
+  </div>
+  <div style="text-align:center;">
+    <button class="btn btn-primary" onclick="showConfig()">Configure Your Bot 🤖</button>
+  </div>
+</div>
+
+<!-- CONFIG STEPS -->
+<div id="config" class="hidden">
+  <div class="config-step-indicator">
+    <div class="csi-step" id="csi1"><div class="csi-num">1</div><div class="csi-label active">Strategy</div></div>
+    <div class="csi-line" id="csi-line1"></div>
+    <div class="csi-step" id="csi2"><div class="csi-num">2</div><div class="csi-label pending">Parameters</div></div>
+    <div class="csi-line" id="csi-line2"></div>
+    <div class="csi-step" id="csi3"><div class="csi-num">3</div><div class="csi-label pending">Market</div></div>
+  </div>
+  <div id="step-content"></div>
+</div>
+
+<!-- TOURNAMENT -->
+<div id="tournament" class="hidden">
+  <div class="tourn-header">
+    <div><div class="th-title">🏆 Live Tournament</div><div class="th-phase" id="th-phase">Bots connecting...</div></div>
+    <div id="th-timer" class="th-timer">3:00</div>
+    <div style="margin-left:auto;font-size:12px;color:var(--dim);">Your bot: <span id="your-bot-name" style="color:var(--yellow);font-weight:700;"></span></div>
+  </div>
+  <div class="tourn-grid">
+    <div class="chart-panel">
+      <div class="cp-title">📈 P&L Chart — All Bots</div>
+      <canvas id="pnl-chart" width="400" height="220"></canvas>
+    </div>
+    <div class="lb-panel">
+      <div class="cp-title">🏆 Live Rankings</div>
+      <div id="lb-content"></div>
+    </div>
+  </div>
+  <div class="event-log">
+    <div class="el-title">Market Events</div>
+    <div id="event-log-content"></div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="results" class="hidden">
+  <div class="res-medal" id="res-medal">🤖</div>
+  <div class="res-title" id="res-title">Tournament Over!</div>
+  <div class="res-sub" id="res-sub"></div>
+  <div class="res-grid">
+    <div class="res-stat"><div class="rs-val" id="rs-rank">#1</div><div class="rs-lbl">Final Rank</div></div>
+    <div class="res-stat"><div class="rs-val" id="rs-pnl">€0</div><div class="rs-lbl">Your P&L</div></div>
+    <div class="res-stat"><div class="rs-val" id="rs-trades">0</div><div class="rs-lbl">Trades</div></div>
+  </div>
+  <div class="analysis-box" id="analysis-box"><div class="ab-title">Strategy Analysis</div><div id="analysis-text"></div></div>
+  <div class="final-lb" id="final-lb"><div class="flb-title">Final Leaderboard</div><div id="final-lb-content"></div></div>
+  <button class="btn btn-primary" onclick="restartAll()" style="margin-right:10px;">Try Different Bot</button>
+  <a href="index.html"><button class="btn btn-secondary">Back to Hub</button></a>
+</div>
+
+<script>
+const CONFIG = {strategy:null, spreadWidth:1.5, posLimit:100, aggression:50, market:null};
+const STRATEGIES = [
+  {id:'mm', name:'Market Maker', icon:'📊', desc:'Quote tight bid/ask. Earn spread. Manage inventory. Thrives in stable, high-volume markets.', tag:'Steady', tagClass:'tag-steady'},
+  {id:'momentum', name:'Momentum', icon:'🚀', desc:'Buy breakouts, sell breakdowns. Follow trend using fast/slow moving average crossover signals.', tag:'Aggressive', tagClass:'tag-aggressive'},
+  {id:'meanrev', name:'Mean Reversion', icon:'🔄', desc:'Fade extremes. When price moves too far from average, bet on snap-back. Works in choppy markets.', tag:'Adaptive', tagClass:'tag-adaptive'},
+];
+const MARKETS = [
+  {id:'alpha', name:'ALPHA', icon:'📈', desc:'Trending market. Strong directional drift. Momentum bots thrive. MMs lose to adverse selection.', tag:'Trend'},
+  {id:'beta', name:'BETA', icon:'↔️', desc:'Mean-reverting market. Price oscillates around fair value. Mean reversion and MMs both work well.', tag:'Choppy'},
+  {id:'gamma', name:'GAMMA', icon:'⚡', desc:'High volatility. News-driven sharp moves. Aggressive bots can capture big swings. High risk.', tag:'Volatile'},
+];
+const BOTS_FIELD = [
+  {name:'IMC_Alpha', strategy:'momentum', color:'#ef4444'},
+  {name:'IMC_Beta', strategy:'meanrev', color:'#a855f7'},
+  {name:'IMC_Gamma', strategy:'mm', color:'#06b6d4'},
+  {name:'IMC_Delta', strategy:'momentum', color:'#f97316'},
+  {name:'IMC_Sigma', strategy:'meanrev', color:'#6366f1'},
+];
+
+let T = {
+  timeLeft:180, tick:0, interval:null,
+  price:100, history:[100], trueVal:100,
+  botPnL:[0,0,0,0,0], yourPnL:0,
+  botPos:[0,0,0,0,0], yourPos:0,
+  yourTrades:0, eventLog:[],
+  pnlHistory:[[0],[0],[0],[0],[0],[0]], // 6 entries: your + 5 bots
+};
+let currentStep = 1;
+
+function showConfig() {
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('config').classList.remove('hidden');
+  renderStep(1);
+}
+
+function renderStep(step) {
+  currentStep = step;
+  updateStepIndicator(step);
+  const content = document.getElementById('step-content');
+  if (step === 1) {
+    let html = '<div class="step-card"><div class="step-title">Step 1: Choose Your Strategy</div><div class="step-sub">Each strategy has different strengths depending on market conditions.</div><div class="option-grid">';
+    STRATEGIES.forEach(s => {
+      const sel = CONFIG.strategy === s.id ? ' selected' : '';
+      html += '<div class="option-card'+sel+'" onclick="selectStrategy(\''+s.id+'\')">'+
+        '<div class="option-icon">'+s.icon+'</div>'+
+        '<div class="option-name">'+s.name+'</div>'+
+        '<div class="option-desc">'+s.desc+'</div>'+
+        '<div class="option-tag '+s.tagClass+'">'+s.tag+'</div>'+
+        '</div>';
+    });
+    html += '</div><div style="margin-top:16px;text-align:right;"><button class="btn btn-primary" onclick="advanceStep(2)">Next: Parameters →</button></div></div>';
+    content.innerHTML = html;
+  } else if (step === 2) {
+    content.innerHTML = '<div class="step-card">'+
+      '<div class="step-title">Step 2: Set Parameters</div>'+
+      '<div class="step-sub">Fine-tune your bot\'s risk profile. There\'s no single optimal setting — it depends on market and strategy.</div>'+
+      '<div class="param-grid">'+
+      '<div class="param-row"><span class="param-label">Spread Width</span><input type="range" class="param-slider" id="p-spread" min="0.2" max="5" step="0.1" value="'+CONFIG.spreadWidth+'" oninput="updateParam(\'spreadWidth\',this.value,\'pv-spread\',\'%\')"><span class="param-val" id="pv-spread">'+CONFIG.spreadWidth+'%</span></div>'+
+      '<div style="font-size:10px;color:var(--dim);margin-left:134px;margin-top:-8px;">Tight=more fills, more risk · Wide=fewer fills, safer</div>'+
+      '<div class="param-row"><span class="param-label">Position Limit</span><input type="range" class="param-slider" id="p-pos" min="20" max="500" step="10" value="'+CONFIG.posLimit+'" oninput="updateParam(\'posLimit\',this.value,\'pv-pos\',\' lots\')"><span class="param-val" id="pv-pos">'+CONFIG.posLimit+' lots</span></div>'+
+      '<div style="font-size:10px;color:var(--dim);margin-left:134px;margin-top:-8px;">Max units held. High=more exposure. Low=conservative.</div>'+
+      '<div class="param-row"><span class="param-label">Aggression</span><input type="range" class="param-slider" id="p-agg" min="10" max="100" step="5" value="'+CONFIG.aggression+'" oninput="updateParam(\'aggression\',this.value,\'pv-agg\',\'%\')"><span class="param-val" id="pv-agg">'+CONFIG.aggression+'%</span></div>'+
+      '<div style="font-size:10px;color:var(--dim);margin-left:134px;margin-top:-8px;">Signal threshold. High=trade more often, lower confidence.</div>'+
+      '</div>'+
+      '<div style="margin-top:16px;display:flex;justify-content:space-between;">'+
+      '<button class="btn btn-secondary" onclick="renderStep(1)">← Back</button>'+
+      '<button class="btn btn-primary" onclick="advanceStep(3)">Next: Market →</button></div></div>';
+  } else if (step === 3) {
+    let html = '<div class="step-card"><div class="step-title">Step 3: Choose Your Market</div><div class="step-sub">Each market has a hidden regime. Match your strategy to market type for maximum edge.</div><div class="option-grid">';
+    MARKETS.forEach(m => {
+      const sel = CONFIG.market === m.id ? ' selected' : '';
+      html += '<div class="option-card'+sel+'" onclick="selectMarket(\''+m.id+'\')">'+
+        '<div class="option-icon">'+m.icon+'</div>'+
+        '<div class="option-name">'+m.name+'</div>'+
+        '<div class="option-desc">'+m.desc+'</div>'+
+        '<div class="option-tag tag-adaptive">'+m.tag+'</div>'+
+        '</div>';
+    });
+    html += '</div><div style="margin-top:16px;display:flex;justify-content:space-between;">'+
+      '<button class="btn btn-secondary" onclick="renderStep(2)">← Back</button>'+
+      '<button class="btn btn-primary" onclick="launchTournament()">🚀 Launch Tournament</button></div></div>';
+    content.innerHTML = html;
+  }
+}
+
+function selectStrategy(id) {
+  CONFIG.strategy = id;
+  renderStep(1);
+}
+function selectMarket(id) {
+  CONFIG.market = id;
+  renderStep(3);
+}
+function updateParam(key, val, dispId, suffix) {
+  CONFIG[key] = parseFloat(val);
+  document.getElementById(dispId).textContent = val+suffix;
+}
+function advanceStep(next) {
+  if (next===2 && !CONFIG.strategy) { alert('Please select a strategy first.'); return; }
+  if (next===4 && !CONFIG.market) { alert('Please select a market first.'); return; }
+  renderStep(next);
+}
+function updateStepIndicator(active) {
+  [1,2,3].forEach(i => {
+    const step = document.getElementById('csi'+i);
+    const labels = step.querySelectorAll('.csi-label');
+    const num = step.querySelector('.csi-num');
+    const statusClass = i < active ? 'done' : i===active ? 'active' : 'pending';
+    step.className = 'csi-step '+statusClass;
+    step.querySelector('.csi-label').className = 'csi-label '+statusClass;
+    if (i < active) { num.style.background='var(--green)'; num.style.color='#fff'; }
+    else if (i===active) { num.style.background='var(--blue)'; num.style.color='#fff'; }
+    else { num.style.background='var(--border2)'; num.style.color='var(--dim)'; }
+    if (i < 3) {
+      const line = document.getElementById('csi-line'+i);
+      if (line) line.className = 'csi-line' + (i < active ? ' done' : '');
+    }
+  });
+}
+
+function launchTournament() {
+  if (!CONFIG.market) { alert('Select a market first.'); return; }
+  document.getElementById('config').classList.add('hidden');
+  document.getElementById('tournament').classList.remove('hidden');
+  const stratNames = {mm:'Market Maker',momentum:'Momentum',meanrev:'Mean Reversion'};
+  const botName = 'YOUR_BOT ('+stratNames[CONFIG.strategy]+')';
+  document.getElementById('your-bot-name').textContent = botName;
+  // Init tournament state
+  T = {timeLeft:180,tick:0,interval:null,price:100,history:[100],trueVal:100,
+    botPnL:[0,0,0,0,0],yourPnL:0,botPos:[0,0,0,0,0],yourPos:0,
+    yourTrades:0,eventLog:[],pnlHistory:[[0],[0],[0],[0],[0],[0]]};
+  updateLB();
+  setTimeout(() => {
+    const canvas = document.getElementById('pnl-chart');
+    canvas.width = Math.max(350, canvas.parentElement.offsetWidth - 28);
+    canvas.height = 220;
+    T.interval = setInterval(tournamentTick, 1000);
+    document.getElementById('th-phase').textContent = 'Tournament in progress...';
+  }, 150);
+}
+
+function tournamentTick() {
+  T.tick++;
+  T.timeLeft--;
+  // Price evolution based on market type
+  const market = CONFIG.market;
+  let drift = 0, vol = 0.008;
+  if (market === 'alpha') { drift = 0.003; vol = 0.006; } // trending
+  else if (market === 'beta') { drift = -0.05*(T.price-100)/100; vol = 0.010; } // mean-reverting
+  else { vol = 0.025; drift = (Math.random()-0.5)*0.01; } // volatile
+
+  // Occasional news shock
+  if (T.tick % 30 === 0) {
+    const shock = (Math.random()-0.5)*0.12;
+    T.trueVal *= (1+shock);
+    const dir = shock > 0 ? '↑' : '↓';
+    addEvent('News shock '+dir+' '+Math.abs(Math.round(shock*100))+'%', shock>0?'var(--green)':'var(--red)');
+  }
+  // Mean revert trueVal to 100 slowly for BETA
+  if (market === 'beta') T.trueVal += 0.02*(100-T.trueVal);
+
+  const ret = drift + vol*(Math.random()*2-1);
+  T.price = Math.max(40, Math.min(220, T.price*(1+ret)));
+  T.price += 0.1*(T.trueVal - T.price);
+  T.history.push(T.price);
+  if (T.history.length > 60) T.history.shift();
+
+  // YOUR BOT logic
+  yourBotLogic();
+
+  // BOTS logic
+  BOTS_FIELD.forEach((bot,i) => {
+    botLogic(i, bot.strategy);
+  });
+
+  // PnL snapshots
+  T.pnlHistory[0].push(T.yourPnL + T.yourPos*T.price - T.yourPos*100);
+  BOTS_FIELD.forEach((_,i) => {
+    T.pnlHistory[i+1].push(T.botPnL[i] + T.botPos[i]*T.price - T.botPos[i]*100);
+  });
+
+  updateTimerUI();
+  updateLB();
+  drawPnLChart();
+
+  if (T.timeLeft <= 0) { clearInterval(T.interval); endTournament(); }
+}
+
+function yourBotLogic() {
+  const strat = CONFIG.strategy;
+  const p = T.price;
+  const hist = T.history;
+  const spreadW = CONFIG.spreadWidth/100;
+  const posLim = CONFIG.posLimit;
+  const agg = CONFIG.aggression/100;
+
+  if (strat === 'mm') {
+    const bid = p*(1-spreadW/2), ask = p*(1+spreadW/2);
+    // Random fill probability
+    if (Math.random() < 0.3*agg && Math.abs(T.yourPos) < posLim) {
+      const side = Math.random() > 0.5 ? 1 : -1;
+      const fillPrice = side > 0 ? ask : bid;
+      T.yourPnL += side>0 ? (p-fillPrice)*5 : (fillPrice-p)*5;
+      T.yourPos += side*5;
+      T.yourTrades++;
+    }
+  } else if (strat === 'momentum') {
+    if (hist.length >= 10) {
+      const fast = avg(hist.slice(-5));
+      const slow = avg(hist.slice(-15));
+      if (fast > slow*(1+0.002*agg) && T.yourPos < posLim) {
+        const qty = Math.floor(10*agg);
+        T.yourPnL -= p*qty;
+        T.yourPos += qty;
+        T.yourTrades++;
+      } else if (fast < slow*(1-0.002*agg) && T.yourPos > -posLim) {
+        const qty = Math.floor(10*agg);
+        T.yourPnL += p*qty;
+        T.yourPos -= qty;
+        T.yourTrades++;
+      }
+    }
+  } else { // meanrev
+    if (hist.length >= 20) {
+      const mean = avg(hist.slice(-20));
+      const dev = (p-mean)/mean;
+      const thresh = 0.015*(1-agg*0.5);
+      if (dev < -thresh && T.yourPos < posLim) {
+        const qty = Math.floor(8*agg);
+        T.yourPnL -= p*qty;
+        T.yourPos += qty;
+        T.yourTrades++;
+      } else if (dev > thresh && T.yourPos > -posLim) {
+        const qty = Math.floor(8*agg);
+        T.yourPnL += p*qty;
+        T.yourPos -= qty;
+        T.yourTrades++;
+      }
+    }
+  }
+}
+
+function botLogic(i, strat) {
+  const p = T.price;
+  const hist = T.history;
+  const posLim = 150;
+  if (strat === 'mm') {
+    if (Math.random() < 0.25 && Math.abs(T.botPos[i]) < posLim) {
+      const side = Math.random()>0.5?1:-1;
+      T.botPnL[i] += side*p*0.003*5;
+      T.botPos[i] += side*5;
+    }
+  } else if (strat === 'momentum') {
+    if (hist.length >= 10) {
+      const fast = avg(hist.slice(-5));
+      const slow = avg(hist.slice(-12));
+      if (fast > slow*1.003 && T.botPos[i] < posLim) { T.botPnL[i]-=p*8; T.botPos[i]+=8; }
+      else if (fast < slow*0.997 && T.botPos[i] > -posLim) { T.botPnL[i]+=p*8; T.botPos[i]-=8; }
+    }
+  } else {
+    if (hist.length >= 20) {
+      const m = avg(hist.slice(-20));
+      const dev = (p-m)/m;
+      if (dev < -0.018 && T.botPos[i] < posLim) { T.botPnL[i]-=p*6; T.botPos[i]+=6; }
+      else if (dev > 0.018 && T.botPos[i] > -posLim) { T.botPnL[i]+=p*6; T.botPos[i]-=6; }
+    }
+  }
+}
+
+function avg(arr) { return arr.reduce((a,b)=>a+b,0)/arr.length; }
+
+function getTotalPnL(idx) {
+  const pos = idx===0 ? T.yourPos : T.botPos[idx-1];
+  const pnl = idx===0 ? T.yourPnL : T.botPnL[idx-1];
+  return pnl + pos*T.price - pos*100;
+}
+
+function addEvent(msg, color) {
+  T.eventLog.unshift({tick:T.tick, msg, color});
+  if (T.eventLog.length > 15) T.eventLog.pop();
+  const el = document.getElementById('event-log-content');
+  if (!el) return;
+  const elapsed = T.tick;
+  const m=Math.floor((180-T.timeLeft)/60).toString().padStart(2,'0');
+  const s=((180-T.timeLeft)%60).toString().padStart(2,'0');
+  el.innerHTML = T.eventLog.map(e=>'<div class="el-entry"><span class="el-time">'+m+':'+s+'</span>'+
+    '<span style="color:'+e.color+'">'+e.msg+'</span></div>').join('');
+}
+
+function updateTimerUI() {
+  const m=Math.floor(T.timeLeft/60).toString().padStart(2,'0');
+  const s=(T.timeLeft%60).toString().padStart(2,'0');
+  const el=document.getElementById('th-timer');
+  if(el){el.textContent=m+':'+s;el.className='th-timer'+(T.timeLeft<20?' crit':T.timeLeft<45?' warn':'');}
+}
+
+function updateLB() {
+  const entries = [
+    {name:'YOU',pnl:getTotalPnL(0),strategy:CONFIG.strategy,isYou:true,color:'var(--yellow)'},
+    ...BOTS_FIELD.map((b,i)=>({name:b.name,pnl:getTotalPnL(i+1),strategy:b.strategy,isYou:false,color:b.color}))
+  ];
+  entries.sort((a,b)=>b.pnl-a.pnl);
+  const maxPnL = Math.max(1, ...entries.map(e=>Math.abs(e.pnl)));
+  const stratNames = {mm:'Market Maker',momentum:'Momentum',meanrev:'Mean Rev.'};
+  let html='';
+  entries.forEach((e,rank)=>{
+    const pct = Math.min(100,Math.abs(e.pnl)/maxPnL*100);
+    const rankEmoji = rank===0?'🥇':rank===1?'🥈':rank===2?'🥉':'  ';
+    html+='<div class="bot-row">'+
+      '<div class="bot-rank" style="color:'+(rank<3?'var(--yellow)':'var(--dim)')+'">'+rankEmoji+'</div>'+
+      '<div><div class="bot-name" style="color:'+e.color+'">'+e.name+(e.isYou?'<span class="you-badge strategy-badge">YOU</span>':'')+'</div>'+
+      '<div class="bot-strategy">'+stratNames[e.strategy]+'</div>'+
+      '<div class="bot-bar-track"><div class="bot-bar-fill" style="width:'+pct+'%;background:'+e.color+'"></div></div></div>'+
+      '<div class="bot-pnl" style="color:'+(e.pnl>=0?'var(--green)':'var(--red)')+'">'+
+      (e.pnl>=0?'+':'')+e.pnl.toFixed(0)+'</div>'+
+      '</div>';
+  });
+  const el=document.getElementById('lb-content');
+  if(el)el.innerHTML=html;
+}
+
+function drawPnLChart() {
+  const canvas=document.getElementById('pnl-chart');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0a1020';
+  ctx.fillRect(0,0,W,H);
+  // Grid
+  ctx.strokeStyle='#1e2d4a';ctx.lineWidth=0.5;
+  for(let i=0;i<=4;i++){const y=H/5*i+H/10;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  // Zero line
+  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();
+  // All PnL histories
+  const colors=['var(--yellow)','#ef4444','#a855f7','#06b6d4','#f97316','#6366f1'];
+  const allVals=T.pnlHistory.flat();
+  const minV=Math.min(-10,...allVals),maxV=Math.max(10,...allVals);
+  const range=maxV-minV||1;
+  T.pnlHistory.forEach((hist,idx)=>{
+    if(hist.length<2)return;
+    const color=colors[idx];
+    ctx.strokeStyle=color;ctx.lineWidth=idx===0?2.5:1;
+    ctx.beginPath();
+    hist.forEach((v,i)=>{
+      const x=(i/(hist.length-1))*(W-10)+5;
+      const y=H-((v-minV)/range)*(H-20)-10;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  });
+  // Labels
+  ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='9px sans-serif';
+  ctx.fillText('+'+maxV.toFixed(0),4,14);
+  ctx.fillText(minV.toFixed(0),4,H-4);
+}
+
+function endTournament() {
+  clearInterval(T.interval);
+  document.getElementById('tournament').classList.add('hidden');
+  document.getElementById('results').classList.remove('hidden');
+  const yourFinalPnL = getTotalPnL(0);
+  const allPnLs = [yourFinalPnL,...BOTS_FIELD.map((_,i)=>getTotalPnL(i+1))];
+  const rank = allPnLs.filter(p=>p>yourFinalPnL).length+1;
+  let medal='📊',title='Tournament Over!';
+  if(rank===1){medal='🥇';title='Champion!';}
+  else if(rank===2){medal='🥈';title='Runner-Up!';}
+  else if(rank===3){medal='🥉';title='Third Place!';}
+  else{medal='📉';title='Keep Building!';}
+  document.getElementById('res-medal').textContent=medal;
+  document.getElementById('res-title').textContent=title;
+  document.getElementById('res-sub').textContent='Rank #'+rank+' of 6 bots · '+T.yourTrades+' trades executed';
+  document.getElementById('rs-rank').textContent='#'+rank+'/6';
+  document.getElementById('rs-pnl').textContent=(yourFinalPnL>=0?'+':'')+'€'+yourFinalPnL.toFixed(0);
+  document.getElementById('rs-pnl').style.color=yourFinalPnL>=0?'var(--green)':'var(--red)';
+  document.getElementById('rs-trades').textContent=T.yourTrades;
+  // Analysis
+  const marketNames={alpha:'ALPHA (Trending)',beta:'BETA (Mean-Reverting)',gamma:'GAMMA (Volatile)'};
+  const stratNames={mm:'Market Maker',momentum:'Momentum',meanrev:'Mean Reversion'};
+  const goodMatch={alpha:'momentum',beta:'meanrev',gamma:'mm'};
+  const isGoodMatch = goodMatch[CONFIG.market]===CONFIG.strategy;
+  const analysis = isGoodMatch
+    ? 'Great match! '+stratNames[CONFIG.strategy]+' suits '+marketNames[CONFIG.market]+' well. Your edge was well-directed. Try higher aggression next time for more P&L.'
+    : 'Strategy mismatch detected. '+stratNames[CONFIG.strategy]+' underperforms in '+marketNames[CONFIG.market]+'. The ideal strategy here is '+stratNames[goodMatch[CONFIG.market]]+'. Try again with the right pairing!';
+  document.getElementById('analysis-text').textContent=analysis;
+  // Final LB
+  const entries=[
+    {name:'YOU',pnl:yourFinalPnL,isYou:true},
+    ...BOTS_FIELD.map((b,i)=>({name:b.name,pnl:getTotalPnL(i+1),isYou:false}))
+  ];
+  entries.sort((a,b)=>b.pnl-a.pnl);
+  let flbHtml='';
+  entries.forEach((e,r)=>{
+    flbHtml+='<div class="bot-row">'+
+      '<div class="bot-rank" style="color:var(--dim)">#'+(r+1)+'</div>'+
+      '<div class="bot-name" style="color:'+(e.isYou?'var(--yellow)':'var(--dim2)')+'">'+e.name+'</div>'+
+      '<div class="bot-pnl" style="color:'+(e.pnl>=0?'var(--green)':'var(--red)')+';margin-left:auto;">'+
+      (e.pnl>=0?'+':'')+'€'+e.pnl.toFixed(0)+'</div></div>';
+  });
+  document.getElementById('final-lb-content').innerHTML=flbHtml;
+}
+
+function restartAll() {
+  CONFIG.strategy=null;CONFIG.market=null;
+  document.getElementById('results').classList.add('hidden');
+  document.getElementById('setup').classList.remove('hidden');
+}
+</script>
+
+<script>
+(function(){
+  function setTheme(t,save){
+    if(save) localStorage.setItem('imc-theme',t);
+    var root=document.documentElement;
+    if(t==='dark') root.setAttribute('data-theme','dark');
+    else if(t==='light') root.setAttribute('data-theme','light');
+    else root.removeAttribute('data-theme');
+    document.querySelectorAll('.tnb').forEach(function(b){
+      b.classList.toggle('active', b.dataset.t===t);
+    });
+  }
+  window.setTheme=setTheme;
+  // Apply saved theme on load
+  setTheme(localStorage.getItem('imc-theme')||'system', false);
+})();
+</script>
+</body>
+</html>
