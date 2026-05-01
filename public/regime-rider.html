@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regime Rider — IMC Prep Suite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06090f;--bg2:#0b111c;--bg3:#101824;--bg4:#162030;
+  --border:#1a2d46;--border2:#243d5a;--text:#b0c8e4;--dim:#4a6a8a;
+  --bright:#e0eefa;--green:#00d888;--red:#ff3d5a;--yellow:#ffc840;
+  --blue:#3a90ff;--purple:#9d60ff;
+}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh}
+.hidden{display:none!important}
+.suite-nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.suite-nav a{color:var(--dim);text-decoration:none;font-size:0.75rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;transition:color .15s}
+.suite-nav a:hover{color:var(--text)}
+.suite-nav a.active{color:var(--blue)}
+.suite-nav .brand{color:var(--bright);font-weight:700;font-size:0.8rem;margin-right:8px}
+
+/* ── SETUP ─────────────────────────────── */
+#setup{max-width:740px;margin:0 auto;padding:48px 24px}
+.page-title{font-size:2rem;font-weight:700;color:var(--bright);margin-bottom:6px}
+.page-sub{color:var(--dim);font-size:0.9rem;margin-bottom:32px}
+.theory-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin-bottom:16px}
+.theory-card h3{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--blue);margin-bottom:10px}
+.theory-card p{font-size:0.875rem;line-height:1.65;color:var(--text)}
+.theory-card code{background:var(--bg4);color:var(--green);padding:1px 5px;border-radius:3px;font-family:'DM Mono',monospace;font-size:0.82rem}
+.regime-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px}
+.regime-pill{border-radius:8px;padding:14px 16px;border:1px solid}
+.regime-pill h4{font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px}
+.regime-pill p{font-size:0.78rem;line-height:1.5;color:var(--text);opacity:.85}
+.regime-pill.trend{border-color:rgba(0,216,136,.3);background:rgba(0,216,136,.04)}
+.regime-pill.trend h4{color:var(--green)}
+.regime-pill.chop{border-color:rgba(255,200,64,.3);background:rgba(255,200,64,.04)}
+.regime-pill.chop h4{color:var(--yellow)}
+.regime-pill.vol{border-color:rgba(255,61,90,.3);background:rgba(255,61,90,.04)}
+.regime-pill.vol h4{color:var(--red)}
+.rule-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.rule-num{background:var(--bg4);color:var(--blue);font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:700;width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.rule-row p{font-size:0.875rem;line-height:1.6;color:var(--text)}
+.start-btn{margin-top:28px;background:var(--blue);color:#fff;border:none;padding:14px 40px;border-radius:8px;font-size:0.95rem;font-weight:700;cursor:pointer;transition:opacity .15s}
+.start-btn:hover{opacity:.85}
+
+/* ── GAME ──────────────────────────────── */
+#game{display:flex;flex-direction:column;height:calc(100vh - 41px)}
+.game-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:18px;flex-shrink:0}
+.stat-block{display:flex;flex-direction:column;gap:2px}
+.stat-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--dim)}
+.stat-value{font-size:1.05rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--bright)}
+.stat-value.blue{color:var(--blue)}
+.sep{width:1px;height:36px;background:var(--border);margin:0 2px}
+.game-body{flex:1;display:grid;grid-template-columns:1fr 290px;min-height:0}
+
+/* Chart area */
+.chart-area{display:flex;flex-direction:column;background:var(--bg);padding:14px;gap:10px;min-height:0;overflow:hidden}
+canvas{display:block;width:100%;border-radius:8px}
+
+/* Indicator row */
+.indicator-row{display:flex;gap:10px;flex-shrink:0}
+.indicator-card{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px}
+.ind-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--dim);margin-bottom:6px}
+.ind-bar-track{height:8px;background:var(--bg4);border-radius:4px;overflow:hidden;margin-bottom:4px}
+.ind-bar-fill{height:8px;border-radius:4px;transition:width .4s}
+.ind-value{font-size:0.8rem;font-family:'DM Mono',monospace;font-weight:700;color:var(--bright)}
+
+/* Round flash */
+.round-flash{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px 16px;text-align:center;flex-shrink:0}
+.rf-question{font-size:0.8rem;color:var(--dim);margin-bottom:6px}
+.rf-countdown{font-size:1.4rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--yellow)}
+
+/* Side panel */
+.side-panel{background:var(--bg2);border-left:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.panel-section{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px}
+.panel-section h4{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--dim);margin-bottom:10px}
+
+/* Classification buttons */
+.regime-btn-group{display:grid;grid-template-columns:1fr;gap:7px;margin-bottom:8px}
+.regime-btn{padding:10px 12px;border-radius:7px;border:1px solid;font-size:0.82rem;font-weight:700;cursor:pointer;transition:all .2s;text-align:left;background:transparent}
+.regime-btn.trend{border-color:rgba(0,216,136,.35);color:var(--green)}
+.regime-btn.trend:hover:not(:disabled){background:rgba(0,216,136,.12)}
+.regime-btn.trend.selected{background:rgba(0,216,136,.18);border-color:var(--green)}
+.regime-btn.chop{border-color:rgba(255,200,64,.35);color:var(--yellow)}
+.regime-btn.chop:hover:not(:disabled){background:rgba(255,200,64,.12)}
+.regime-btn.chop.selected{background:rgba(255,200,64,.18);border-color:var(--yellow)}
+.regime-btn.volatile{border-color:rgba(255,61,90,.35);color:var(--red)}
+.regime-btn.volatile:hover:not(:disabled){background:rgba(255,61,90,.12)}
+.regime-btn.volatile.selected{background:rgba(255,61,90,.18);border-color:var(--red)}
+.regime-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* Strategy buttons */
+.strat-btn-group{display:grid;grid-template-columns:1fr;gap:7px}
+.strat-btn{padding:10px 12px;border-radius:7px;border:1px solid var(--border2);font-size:0.82rem;font-weight:700;cursor:pointer;transition:all .2s;text-align:left;background:transparent;color:var(--text)}
+.strat-btn:hover:not(:disabled){border-color:var(--blue);color:var(--blue)}
+.strat-btn.selected{background:rgba(58,144,255,.12);border-color:var(--blue);color:var(--blue)}
+.strat-btn:disabled{opacity:.3;cursor:not-allowed}
+
+.confirm-btn{width:100%;padding:11px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:0.88rem;font-weight:700;cursor:pointer;transition:opacity .15s;margin-top:8px}
+.confirm-btn:hover:not(:disabled){opacity:.85}
+.confirm-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* Scoreboard */
+.score-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;font-size:0.8rem}
+.score-row span:first-child{color:var(--dim)}
+.score-row span:last-child{font-family:'DM Mono',monospace;font-weight:600;color:var(--bright)}
+
+/* Round feedback */
+.round-result{border-radius:8px;padding:10px 14px;font-size:0.82rem;line-height:1.5;display:none}
+.round-result.correct{background:rgba(0,216,136,.08);border:1px solid rgba(0,216,136,.3);color:var(--green)}
+.round-result.partial{background:rgba(255,200,64,.08);border:1px solid rgba(255,200,64,.3);color:var(--yellow)}
+.round-result.wrong{background:rgba(255,61,90,.08);border:1px solid rgba(255,61,90,.3);color:var(--red)}
+
+/* History */
+.hist-log{max-height:140px;overflow-y:auto}
+.hist-row{font-size:0.72rem;font-family:'DM Mono',monospace;padding:3px 0;border-bottom:1px solid var(--border);color:var(--dim);display:flex;justify-content:space-between}
+.hist-row .pts{font-weight:700}
+.hist-row .pts.pos{color:var(--green)}.hist-row .pts.neg{color:var(--red)}.hist-row .pts.zero{color:var(--dim)}
+
+/* ── RESULTS ──────────────────────────── */
+#results{max-width:660px;margin:0 auto;padding:48px 24px}
+.res-title{font-size:1.8rem;font-weight:700;color:var(--bright);margin-bottom:4px}
+.res-sub{color:var(--dim);font-size:0.88rem;margin-bottom:32px}
+.res-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+.res-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.res-card .val{font-size:1.5rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--bright);margin-bottom:4px}
+.res-card .val.pos{color:var(--green)}.res-card .val.neg{color:var(--red)}
+.res-card .lbl{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--dim)}
+.breakdown-table{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px}
+.bt-header{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:10px 16px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--dim);border-bottom:1px solid var(--border)}
+.bt-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;padding:10px 16px;font-size:0.8rem;border-bottom:1px solid var(--border);font-family:'DM Mono',monospace}
+.bt-row:last-child{border-bottom:none}
+.play-again{background:var(--blue);color:#fff;border:none;padding:12px 32px;border-radius:8px;font-size:0.9rem;font-weight:700;cursor:pointer;transition:opacity .15s}
+.play-again:hover{opacity:.85}
+
+.feedback-toast{position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:8px;font-size:0.82rem;font-weight:600;border-left:3px solid;animation:slideIn .25s ease;z-index:99;background:var(--bg3);max-width:300px}
+@keyframes slideIn{from{transform:translateX(60px);opacity:0}to{transform:none;opacity:1}}
+
+/* ── LIGHT MODE ── */
+[data-theme="light"]{
+  --bg:#f0f4f8!important;--panel:#ffffff!important;--panel2:#e8edf3!important;
+  --border:#c5d0de!important;--border2:#d5dde8!important;
+  --text:#1e2d3d!important;--dim:#6b7d8f!important;--dim2:#4a5a6a!important;
+  --blue:#2563eb!important;--blue-l:#1d4ed8!important;
+  --green:#16a34a!important;--red:#dc2626!important;
+  --yellow:#b45309!important;--purple:#7c3aed!important;
+  --cyan:#0e7490!important;--teal:#0f766e!important;--orange:#c2410c!important;
+  --green-bg:rgba(22,163,74,0.12)!important;--red-bg:rgba(220,38,38,0.12)!important;
+  --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
+  --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
+  --orange-bg:rgba(194,65,12,0.12)!important;
+}
+@media(prefers-color-scheme:light){
+  :root:not([data-theme]){
+    --bg:#f0f4f8!important;--panel:#ffffff!important;--panel2:#e8edf3!important;
+    --border:#c5d0de!important;--border2:#d5dde8!important;
+    --text:#1e2d3d!important;--dim:#6b7d8f!important;--dim2:#4a5a6a!important;
+    --blue:#2563eb!important;--blue-l:#1d4ed8!important;
+    --green:#16a34a!important;--red:#dc2626!important;
+    --yellow:#b45309!important;--purple:#7c3aed!important;
+    --cyan:#0e7490!important;--teal:#0f766e!important;--orange:#c2410c!important;
+    --green-bg:rgba(22,163,74,0.12)!important;--red-bg:rgba(220,38,38,0.12)!important;
+    --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
+    --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
+    --orange-bg:rgba(194,65,12,0.12)!important;
+  }
+}
+/* Theme toggle button in nav */
+.theme-nav-btns{margin-left:auto;display:flex;gap:3px;align-items:center;}
+.tnb{padding:3px 8px;border-radius:5px;border:1px solid var(--border2);
+  background:transparent;color:var(--dim);font-size:10px;font-weight:700;
+  cursor:pointer;transition:all .12s;line-height:1;}
+.tnb:hover{color:var(--text);}
+.tnb.active{background:var(--panel);border-color:var(--border);color:var(--text);}
+</style>
+</head>
+<body>
+
+<nav class="suite-nav">
+  <a href="index.html" class="brand">⌂ Hub</a>
+  <a href="quant-relay.html">Relay</a>
+  <a href="alpha-factory.html">Alpha Factory</a>
+  <a href="cmi-challenge.html">CMI</a>
+  <a href="arbitrage-sprint.html">Arb Sprint</a>
+  <a href="price-war.html">Price War</a>
+  <a href="algo-blitz.html">Algo Blitz</a>
+  <a href="bot-builder.html">Bot Builder</a>
+  <a href="basket-blitz.html">Basket</a>
+  <a href="options-outcry.html">Outcry</a>
+  <a href="momentum-trainer.html">Momentum</a>
+  <a href="spread-trader.html">Spread</a>
+  <a href="regime-rider.html" class="active">Regime</a>
+<span class="theme-nav-btns"><button class="tnb" data-t="light" onclick="setTheme('light',true)" title="Light">☀</button><button class="tnb" data-t="system" onclick="setTheme('system',true)" title="System">⊙</button><button class="tnb" data-t="dark" onclick="setTheme('dark',true)" title="Dark">☾</button></span>
+</nav>
+
+<!-- SETUP -->
+<div id="setup">
+  <div class="page-title">Regime Rider</div>
+  <div class="page-sub">Identify market regimes and apply the right strategy — beginner level</div>
+
+  <div class="theory-card">
+    <h3>The Concept: Market Regimes</h3>
+    <p>Markets don't behave the same way all the time. They cycle through <strong style="color:var(--bright)">regimes</strong> — distinct states with different statistical properties. A strategy that crushes it in a trending market will bleed in a choppy one. The key skill: <em>identify what regime you're in, then apply the appropriate strategy.</em> This is regime detection.</p>
+    <div class="regime-grid">
+      <div class="regime-pill trend">
+        <h4>📈 Trending</h4>
+        <p>Strong directional move. Low-moderate vol. SMA spread is wide and growing. Follow the trend — momentum works here.</p>
+      </div>
+      <div class="regime-pill chop">
+        <h4>↔ Choppy</h4>
+        <p>No clear direction. Low vol. Price oscillates around a mean. Fade extremes — mean reversion works here.</p>
+      </div>
+      <div class="regime-pill vol">
+        <h4>⚡ Volatile</h4>
+        <p>High, unpredictable vol. Large random swings. No strategy edge. Stay flat — protect capital.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="theory-card">
+    <h3>How to Play</h3>
+    <div class="rule-row"><div class="rule-num">1</div><p>Every 15 seconds a new <strong style="color:var(--bright)">classification round</strong> begins. You see the price chart, a volatility meter, and a trend-strength meter.</p></div>
+    <div class="rule-row"><div class="rule-num">2</div><p>Read the two indicators and <strong>classify the regime</strong> (Trending / Choppy / Volatile) then <strong>pick a strategy</strong> (Follow Trend / Fade Extremes / Stay Flat).</p></div>
+    <div class="rule-row"><div class="rule-num">3</div><p>Scoring: <strong style="color:var(--green)">+3 pts</strong> for correct regime AND correct strategy. <strong style="color:var(--yellow)">+1 pt</strong> for correct regime only. <strong style="color:var(--red)">−1 pt</strong> for wrong regime.</p></div>
+    <div class="rule-row"><div class="rule-num">4</div><p>After each round, you see the correct answer and an explanation. Game lasts 8 rounds (~2 minutes).</p></div>
+  </div>
+
+  <div class="theory-card">
+    <h3>The Two Indicators to Read</h3>
+    <p><strong style="color:var(--red)">Volatility Meter</strong> shows 20-bar realised vol (annualised). Low = below 15%, Medium = 15–35%, High = above 35%. <strong style="color:var(--blue)">Trend Strength</strong> shows how wide the SMA-10/SMA-30 spread is as a % of price. Strong (>0.8%) means clear trend. Weak (<0.3%) means flat or oscillating. Together they identify the regime: low vol + strong trend = Trending; low vol + weak trend = Choppy; high vol = Volatile (regardless of trend).</p>
+  </div>
+
+  <button class="start-btn" onclick="startGame()">Start Reading →</button>
+</div>
+
+<!-- GAME -->
+<div id="game" class="hidden">
+  <div class="game-header">
+    <div class="stat-block">
+      <div class="stat-label">Round</div>
+      <div class="stat-value blue" id="hdr-round">1 / 8</div>
+    </div>
+    <div class="sep"></div>
+    <div class="stat-block">
+      <div class="stat-label">Score</div>
+      <div class="stat-value" id="hdr-score">0 pts</div>
+    </div>
+    <div class="sep"></div>
+    <div class="stat-block">
+      <div class="stat-label">Correct / Total</div>
+      <div class="stat-value" id="hdr-acc">0 / 0</div>
+    </div>
+    <div class="sep"></div>
+    <div class="stat-block">
+      <div class="stat-label">Current Price</div>
+      <div class="stat-value" id="hdr-price">—</div>
+    </div>
+    <div class="sep"></div>
+    <div class="stat-block">
+      <div class="stat-label">Round Timer</div>
+      <div class="stat-value blue" id="hdr-time">15s</div>
+    </div>
+  </div>
+
+  <div class="game-body">
+    <div class="chart-area">
+      <canvas id="chart" height="240"></canvas>
+
+      <div class="indicator-row">
+        <div class="indicator-card">
+          <div class="ind-label" style="color:var(--red)">⚡ Volatility (20-bar realised, ann.)</div>
+          <div class="ind-bar-track">
+            <div class="ind-bar-fill" id="vol-fill" style="background:var(--red);width:0%"></div>
+          </div>
+          <div class="ind-value" id="vol-val">—</div>
+          <div style="font-size:0.7rem;color:var(--dim);margin-top:3px" id="vol-desc">—</div>
+        </div>
+        <div class="indicator-card">
+          <div class="ind-label" style="color:var(--blue)">📊 Trend Strength (SMA spread %)</div>
+          <div class="ind-bar-track">
+            <div class="ind-bar-fill" id="trend-fill" style="background:var(--blue);width:0%"></div>
+          </div>
+          <div class="ind-value" id="trend-val">—</div>
+          <div style="font-size:0.7rem;color:var(--dim);margin-top:3px" id="trend-desc">—</div>
+        </div>
+      </div>
+
+      <div class="round-flash">
+        <div class="rf-question" id="rf-q">Analyse the chart and indicators, then classify the regime →</div>
+        <div class="rf-countdown" id="rf-cd">15s</div>
+      </div>
+    </div>
+
+    <div class="side-panel">
+      <div class="panel-section">
+        <h4>Step 1 — Classify Regime</h4>
+        <div class="regime-btn-group">
+          <button class="regime-btn trend" id="btn-trend" onclick="selectRegime('trending')">📈 TRENDING</button>
+          <button class="regime-btn chop" id="btn-chop"  onclick="selectRegime('choppy')">↔ CHOPPY</button>
+          <button class="regime-btn volatile" id="btn-vol" onclick="selectRegime('volatile')">⚡ VOLATILE</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h4>Step 2 — Pick Strategy</h4>
+        <div class="strat-btn-group">
+          <button class="strat-btn" id="btn-follow" onclick="selectStrat('follow')">🏄 Follow the Trend</button>
+          <button class="strat-btn" id="btn-fade"   onclick="selectStrat('fade')">↩ Fade Extremes (Mean Rev)</button>
+          <button class="strat-btn" id="btn-flat"   onclick="selectStrat('flat')">🛡 Stay Flat (No Trade)</button>
+        </div>
+        <button class="confirm-btn" id="btn-confirm" onclick="submitAnswer()" disabled>Confirm Answer →</button>
+      </div>
+
+      <div class="round-result" id="round-result"></div>
+
+      <div class="panel-section">
+        <h4>Score</h4>
+        <div class="score-row"><span>Total Points</span><span id="sc-pts">0</span></div>
+        <div class="score-row"><span>Regime Accuracy</span><span id="sc-racc">—</span></div>
+        <div class="score-row"><span>Strategy Accuracy</span><span id="sc-sacc">—</span></div>
+      </div>
+
+      <div class="panel-section">
+        <h4>Round History</h4>
+        <div class="hist-log" id="hist-log"><div class="hist-row"><span>No rounds yet</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="results" class="hidden">
+  <div class="res-title">Regime Rider Complete</div>
+  <div class="res-sub">Here's how well you read the market</div>
+  <div class="res-grid">
+    <div class="res-card">
+      <div class="val" id="res-score">0</div>
+      <div class="lbl">Total Points</div>
+    </div>
+    <div class="res-card">
+      <div class="val" id="res-racc">0%</div>
+      <div class="lbl">Regime Accuracy</div>
+    </div>
+    <div class="res-card">
+      <div class="val" id="res-sacc">0%</div>
+      <div class="lbl">Strategy Accuracy</div>
+    </div>
+  </div>
+  <div class="breakdown-table">
+    <div class="bt-header"><span>Round</span><span>True Regime</span><span>Your Guess</span><span>Points</span></div>
+    <div id="bt-body"></div>
+  </div>
+  <div class="theory-card" style="margin-bottom:20px">
+    <h3>Key Takeaway</h3>
+    <p id="res-feedback">—</p>
+  </div>
+  <button class="play-again" onclick="location.reload()">Play Again</button>
+</div>
+
+<script>
+// ── Constants ──────────────────────────────────────────────────────────────
+const TOTAL_ROUNDS  = 8;
+const ROUND_SECS    = 15;
+const CHART_N       = 60;
+const TICK_MS       = 300;   // fast ticks — accumulate history during round
+const TICKS_PER_ROUND = Math.floor(ROUND_SECS * 1000 / TICK_MS);
+
+// Regime definitions
+const REGIMES = {
+  trending: { drift: 0.0025, vol: 0.009, label: 'Trending' },
+  choppy:   { drift: 0.0002, vol: 0.005, label: 'Choppy'   },
+  volatile: { drift: 0.0005, vol: 0.022, label: 'Volatile' },
+};
+
+// Correct strategy per regime
+const CORRECT_STRAT = { trending:'follow', choppy:'fade', volatile:'flat' };
+
+// ── State ──────────────────────────────────────────────────────────────────
+let prices = [];
+let G = {
+  round: 0,
+  score: 0,
+  roundsAnswered: 0,
+  regimeCorrect: 0,
+  stratCorrect: 0,
+  history: [],
+  trueRegime: null,
+  guessRegime: null,
+  guessStrat: null,
+  ticksInRound: 0,
+  roundTimer: null,
+  tickInterval: null,
+  countdownSec: ROUND_SECS,
+  answered: false,
+};
+
+// ── Math ───────────────────────────────────────────────────────────────────
+function randn(){ let u=0,v=0; while(!u)u=Math.random(); while(!v)v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+function sma(arr,n){ if(arr.length<n)return null; return arr.slice(-n).reduce((a,b)=>a+b,0)/n; }
+
+// ── Regime selection ───────────────────────────────────────────────────────
+function pickRegime() {
+  const keys = Object.keys(REGIMES);
+  return keys[Math.floor(Math.random() * keys.length)];
+}
+
+// ── Price tick ─────────────────────────────────────────────────────────────
+function tick() {
+  const r = REGIMES[G.trueRegime];
+  const last = prices[prices.length - 1];
+  const newP = last * Math.exp(r.drift * (Math.random()<0.5?1:-1) + r.vol * randn());
+  prices.push(newP);
+  if (prices.length > CHART_N + 20) prices.shift();
+  G.ticksInRound++;
+  drawChart();
+  updateIndicators();
+}
+
+// ── Drawing ────────────────────────────────────────────────────────────────
+function drawChart() {
+  const canvas = document.getElementById('chart');
+  const W = canvas.width, H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  const disp = prices.slice(-CHART_N);
+  if (disp.length < 2) return;
+
+  const minP = Math.min(...disp) * 0.995;
+  const maxP = Math.max(...disp) * 1.005;
+  const xp = i => (i / (CHART_N - 1)) * (W - 40) + 10;
+  const yp = v => H - 8 - ((v - minP) / (maxP - minP)) * (H - 16);
+
+  // BG
+  ctx.fillStyle = '#0b111c'; ctx.fillRect(0, 0, W, H);
+
+  // Regime shade (subtle)
+  const shadeColors = { trending:'rgba(0,216,136,0.03)', choppy:'rgba(255,200,64,0.03)', volatile:'rgba(255,61,90,0.03)' };
+  ctx.fillStyle = shadeColors[G.trueRegime] || 'transparent';
+  ctx.fillRect(10, 8, W - 50, H - 16);
+
+  // Grid
+  ctx.strokeStyle = '#1a2d46'; ctx.lineWidth = 0.5;
+  [0.25, 0.5, 0.75].forEach(f => {
+    const y = 8 + f * (H - 16);
+    ctx.beginPath(); ctx.moveTo(10, y); ctx.lineTo(W - 40, y); ctx.stroke();
+    const val = maxP - f * (maxP - minP);
+    ctx.fillStyle = '#4a6a8a'; ctx.font = '10px DM Mono,monospace';
+    ctx.fillText(val.toFixed(2), W - 38, y + 4);
+  });
+
+  // SMA-30 (blue)
+  drawSMALine(ctx, disp, xp, yp, 30, '#3a90ff', 1.0);
+  // SMA-10 (yellow)
+  drawSMALine(ctx, disp, xp, yp, 10, '#ffc840', 1.0);
+
+  // Price line
+  ctx.strokeStyle = '#b0c8e4'; ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  disp.forEach((v, i) => { i === 0 ? ctx.moveTo(xp(i), yp(v)) : ctx.lineTo(xp(i), yp(v)); });
+  ctx.stroke();
+
+  // Current price dot
+  ctx.fillStyle = '#e0eefa';
+  ctx.beginPath(); ctx.arc(xp(disp.length - 1), yp(disp[disp.length - 1]), 3, 0, Math.PI * 2); ctx.fill();
+
+  // Legend
+  ctx.font = '10px DM Mono,monospace';
+  ctx.fillStyle = '#ffc840'; ctx.fillText('SMA10', 12, 20);
+  ctx.fillStyle = '#3a90ff'; ctx.fillText('SMA30', 68, 20);
+  ctx.fillStyle = '#b0c8e4'; ctx.fillText('Price', 124, 20);
+}
+
+function drawSMALine(ctx, disp, xp, yp, n, color, lw) {
+  ctx.strokeStyle = color; ctx.lineWidth = lw;
+  ctx.beginPath(); let started = false;
+  for (let i = 0; i < disp.length; i++) {
+    const slice = disp.slice(Math.max(0, i - n + 1), i + 1);
+    if (slice.length < n) continue;
+    const v = slice.reduce((a, b) => a + b, 0) / n;
+    if (!started) { ctx.moveTo(xp(i), yp(v)); started = true; }
+    else ctx.lineTo(xp(i), yp(v));
+  }
+  ctx.stroke();
+}
+
+// ── Indicators ─────────────────────────────────────────────────────────────
+function updateIndicators() {
+  const disp = prices.slice(-CHART_N);
+  const cur = disp[disp.length - 1];
+
+  // Realised vol: 20-bar log returns std, annualised
+  const window20 = disp.slice(-21);
+  let rvol = 0;
+  if (window20.length >= 2) {
+    const rets = window20.slice(1).map((v, i) => Math.log(v / window20[i]));
+    const m = rets.reduce((a, b) => a + b, 0) / rets.length;
+    const variance = rets.reduce((a, b) => a + (b - m) ** 2, 0) / rets.length;
+    rvol = Math.sqrt(variance) * Math.sqrt(252 * (1000 / TICK_MS)) * 100; // annualised %
+  }
+
+  // Trend strength: |SMA10 - SMA30| / price
+  const f = sma(disp, 10), s = sma(disp, 30);
+  const trendStr = (f && s) ? Math.abs(f - s) / cur * 100 : 0;
+
+  // Update vol bar
+  const volPct = Math.min(rvol / 60 * 100, 100);
+  document.getElementById('vol-fill').style.width = volPct + '%';
+  document.getElementById('vol-fill').style.background = rvol > 35 ? 'var(--red)' : rvol > 15 ? 'var(--yellow)' : 'var(--green)';
+  document.getElementById('vol-val').textContent = rvol.toFixed(1) + '%  annualised';
+  document.getElementById('vol-desc').textContent = rvol > 35 ? 'HIGH — large random swings' : rvol > 15 ? 'MEDIUM — moderate moves' : 'LOW — calm market';
+
+  // Update trend bar
+  const trendPct = Math.min(trendStr / 2 * 100, 100);
+  document.getElementById('trend-fill').style.width = trendPct + '%';
+  document.getElementById('trend-fill').style.background = trendStr > 0.8 ? 'var(--blue)' : trendStr > 0.3 ? 'var(--purple)' : 'var(--dim)';
+  document.getElementById('trend-val').textContent = trendStr.toFixed(3) + '% spread';
+  document.getElementById('trend-desc').textContent = trendStr > 0.8 ? 'STRONG — clear directional trend' : trendStr > 0.3 ? 'MODERATE — some direction' : 'WEAK — flat / oscillating';
+
+  document.getElementById('hdr-price').textContent = cur.toFixed(2);
+}
+
+// ── Round management ───────────────────────────────────────────────────────
+function startRound() {
+  G.round++;
+  G.answered = false;
+  G.guessRegime = null;
+  G.guessStrat = null;
+  G.ticksInRound = 0;
+  G.countdownSec = ROUND_SECS;
+  G.trueRegime = pickRegime();
+
+  // Reset UI
+  ['btn-trend','btn-chop','btn-vol'].forEach(id => {
+    const b = document.getElementById(id);
+    b.classList.remove('selected'); b.disabled = false;
+  });
+  ['btn-follow','btn-fade','btn-flat'].forEach(id => {
+    const b = document.getElementById(id);
+    b.classList.remove('selected'); b.disabled = false;
+  });
+  document.getElementById('btn-confirm').disabled = true;
+  document.getElementById('round-result').style.display = 'none';
+
+  document.getElementById('hdr-round').textContent = G.round + ' / ' + TOTAL_ROUNDS;
+  document.getElementById('rf-q').textContent = 'Round ' + G.round + ' — classify the regime and pick a strategy';
+  document.getElementById('rf-cd').textContent = ROUND_SECS + 's';
+  document.getElementById('rf-cd').style.color = 'var(--yellow)';
+
+  // Countdown timer
+  clearInterval(G.roundTimer);
+  G.roundTimer = setInterval(() => {
+    G.countdownSec--;
+    document.getElementById('rf-cd').textContent = G.countdownSec + 's';
+    if (G.countdownSec <= 5) document.getElementById('rf-cd').style.color = 'var(--red)';
+    if (G.countdownSec <= 0) {
+      clearInterval(G.roundTimer);
+      if (!G.answered) submitAnswer(true); // auto-submit (no answer = wrong)
+    }
+  }, 1000);
+}
+
+// ── Answer submission ──────────────────────────────────────────────────────
+function selectRegime(r) {
+  G.guessRegime = r;
+  ['btn-trend','btn-chop','btn-vol'].forEach(id => document.getElementById(id).classList.remove('selected'));
+  const map = { trending:'btn-trend', choppy:'btn-chop', volatile:'btn-vol' };
+  document.getElementById(map[r]).classList.add('selected');
+  checkConfirmReady();
+}
+
+function selectStrat(s) {
+  G.guessStrat = s;
+  ['btn-follow','btn-fade','btn-flat'].forEach(id => document.getElementById(id).classList.remove('selected'));
+  const map = { follow:'btn-follow', fade:'btn-fade', flat:'btn-flat' };
+  document.getElementById(map[s]).classList.add('selected');
+  checkConfirmReady();
+}
+
+function checkConfirmReady() {
+  document.getElementById('btn-confirm').disabled = !(G.guessRegime && G.guessStrat);
+}
+
+function submitAnswer(auto) {
+  if (G.answered) return;
+  G.answered = true;
+  clearInterval(G.roundTimer);
+
+  // Disable buttons
+  ['btn-trend','btn-chop','btn-vol','btn-follow','btn-fade','btn-flat','btn-confirm']
+    .forEach(id => document.getElementById(id).disabled = true);
+
+  const tr = G.trueRegime;
+  const correctStrat = CORRECT_STRAT[tr];
+  const gr = G.guessRegime || 'none';
+  const gs = G.guessStrat  || 'none';
+  const regimeOk   = gr === tr;
+  const stratOk    = gs === correctStrat;
+  const bothOk     = regimeOk && stratOk;
+
+  // Score
+  let pts = 0;
+  if (auto) { pts = 0; }
+  else if (bothOk)   { pts = 3; G.regimeCorrect++; G.stratCorrect++; }
+  else if (regimeOk) { pts = 1; G.regimeCorrect++; }
+  else               { pts = -1; }
+
+  if (!auto) G.roundsAnswered++;
+  G.score += pts;
+
+  // Explanation
+  const regimeNames = { trending:'Trending 📈', choppy:'Choppy ↔', volatile:'Volatile ⚡' };
+  const stratNames  = { follow:'Follow Trend', fade:'Fade Extremes', flat:'Stay Flat' };
+  const regimeExpl  = {
+    trending: 'The vol was low-moderate and the SMA spread was wide — a clear directional trend. Follow-trend strategies profit here.',
+    choppy:   'Vol was low and the SMA lines were flat/tangled — the market oscillates around a mean. Mean reversion is the edge here.',
+    volatile: 'Vol was very high with large random swings. No strategy has a reliable edge — preserving capital is the priority.',
+  };
+
+  let resultClass, summary;
+  if (auto)       { resultClass='wrong';   summary='⏰ Time\'s up! No answer submitted.'; }
+  else if (bothOk){ resultClass='correct'; summary='✓ Perfect! +3 points.'; }
+  else if (regimeOk){ resultClass='partial'; summary='✓ Correct regime, wrong strategy. +1 point.'; }
+  else            { resultClass='wrong';   summary='✗ Wrong regime. −1 point.'; }
+
+  const resEl = document.getElementById('round-result');
+  resEl.className = 'round-result ' + resultClass;
+  resEl.innerHTML = `<strong>${summary}</strong><br>
+    True regime: <strong>${regimeNames[tr]}</strong>  ·  Correct strategy: <strong>${stratNames[correctStrat]}</strong><br>
+    <span style="opacity:.85;font-size:.78rem">${regimeExpl[tr]}</span>`;
+  resEl.style.display = 'block';
+
+  // History
+  G.history.push({ round: G.round, tr, gr, pts });
+  addHistRow(G.round, regimeNames[tr], gr==='none'?'—':regimeNames[gr], pts);
+
+  // Scoreboard
+  document.getElementById('hdr-score').textContent = G.score + ' pts';
+  document.getElementById('hdr-acc').textContent = G.regimeCorrect + ' / ' + G.roundsAnswered;
+  document.getElementById('sc-pts').textContent = G.score;
+  document.getElementById('sc-racc').textContent = G.roundsAnswered > 0 ? Math.round(G.regimeCorrect / G.roundsAnswered * 100) + '%' : '—';
+  document.getElementById('sc-sacc').textContent = G.roundsAnswered > 0 ? Math.round(G.stratCorrect  / G.roundsAnswered * 100) + '%' : '—';
+
+  toast(auto ? '⏰ Time\'s up!' : bothOk ? '✓ Perfect! +3' : regimeOk ? 'Regime right! +1' : '✗ Wrong regime −1',
+        auto ? '#ffc840' : bothOk ? '#00d888' : regimeOk ? '#ffc840' : '#ff3d5a');
+
+  // Advance
+  if (G.round >= TOTAL_ROUNDS) {
+    setTimeout(endGame, 2500);
+  } else {
+    setTimeout(startRound, 2800);
+  }
+}
+
+function addHistRow(rnd, trueR, guessR, pts) {
+  const log = document.getElementById('hist-log');
+  if (log.children.length === 1 && log.children[0].children.length === 1) log.innerHTML = '';
+  const d = document.createElement('div');
+  d.className = 'hist-row';
+  d.innerHTML = `<span>R${rnd}</span><span>${trueR.replace(/ [📈↔⚡]/,'')||'—'}</span><span>${guessR.replace(/ [📈↔⚡]/,'')||'—'}</span><span class="pts ${pts>0?'pos':pts<0?'neg':'zero'}">${pts>0?'+':''}${pts}p</span>`;
+  log.prepend(d);
+}
+
+// ── Start / End ────────────────────────────────────────────────────────────
+function startGame() {
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
+
+  // Seed prices
+  prices = [100];
+  for (let i = 0; i < 30; i++) {
+    prices.push(prices[prices.length - 1] * Math.exp(0.008 * randn()));
+  }
+
+  function initCanvas() {
+    const canvas = document.getElementById('chart');
+    const bw = canvas.parentElement.getBoundingClientRect().width;
+    canvas.width = Math.max(400, bw > 0 ? bw - 28 : window.innerWidth - 330);
+    canvas.height = 240;
+    drawChart();
+    G.tickInterval = setInterval(tick, TICK_MS);
+    startRound();
+  }
+  requestAnimationFrame(() => requestAnimationFrame(initCanvas));
+}
+
+function endGame() {
+  clearInterval(G.tickInterval);
+  clearInterval(G.roundTimer);
+  document.getElementById('game').classList.add('hidden');
+  document.getElementById('results').classList.remove('hidden');
+
+  const maxScore = TOTAL_ROUNDS * 3;
+  document.getElementById('res-score').textContent = G.score + ' / ' + maxScore;
+  document.getElementById('res-score').className = 'val ' + (G.score > maxScore * 0.5 ? 'pos' : G.score < 0 ? 'neg' : '');
+  const racc = G.roundsAnswered > 0 ? Math.round(G.regimeCorrect / G.roundsAnswered * 100) : 0;
+  const sacc = G.roundsAnswered > 0 ? Math.round(G.stratCorrect  / G.roundsAnswered * 100) : 0;
+  document.getElementById('res-racc').textContent = racc + '%';
+  document.getElementById('res-sacc').textContent = sacc + '%';
+
+  // Breakdown table
+  const tbody = document.getElementById('bt-body');
+  const rnames = { trending:'Trending 📈', choppy:'Choppy ↔', volatile:'Volatile ⚡' };
+  G.history.forEach(h => {
+    const row = document.createElement('div');
+    row.className = 'bt-row';
+    const correct = h.tr === h.gr;
+    row.innerHTML = `
+      <span style="color:var(--dim)">Round ${h.round}</span>
+      <span style="color:${h.tr==='trending'?'var(--green)':h.tr==='choppy'?'var(--yellow)':'var(--red)'}">${rnames[h.tr]}</span>
+      <span style="color:${correct?'var(--green)':'var(--red)'}">${h.gr==='none'?'—':rnames[h.gr]||h.gr}</span>
+      <span style="color:${h.pts>0?'var(--green)':h.pts<0?'var(--red)':'var(--dim)'}">${h.pts>0?'+':''}${h.pts} pts</span>`;
+    tbody.appendChild(row);
+  });
+
+  let fb = '';
+  if (racc >= 80) fb = 'Excellent regime detection! You can reliably distinguish market states. Now practice applying this in the full Momentum Trainer and Spread Trader games — and eventually the advanced bot games.';
+  else if (racc >= 50) fb = 'Solid foundation. The trickiest case is usually Choppy vs Trending when vol is similar — focus on the SMA spread width. Wide and diverging = Trending. Flat and tangled = Choppy.';
+  else fb = 'Keep practicing! Key rule: check vol first (if high → Volatile regardless). Then check SMA spread direction. Grows steadily → Trending. Oscillates near 0 → Choppy.';
+  document.getElementById('res-feedback').textContent = fb;
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function toast(msg, color) {
+  const t = document.createElement('div');
+  t.className = 'feedback-toast'; t.style.borderLeftColor = color; t.style.color = color;
+  t.textContent = msg; document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+}
+</script>
+
+<script>
+(function(){
+  function setTheme(t,save){
+    if(save) localStorage.setItem('imc-theme',t);
+    var root=document.documentElement;
+    if(t==='dark') root.setAttribute('data-theme','dark');
+    else if(t==='light') root.setAttribute('data-theme','light');
+    else root.removeAttribute('data-theme');
+    document.querySelectorAll('.tnb').forEach(function(b){
+      b.classList.toggle('active', b.dataset.t===t);
+    });
+  }
+  window.setTheme=setTheme;
+  // Apply saved theme on load
+  setTheme(localStorage.getItem('imc-theme')||'system', false);
+})();
+</script>
+</body>
+</html>
