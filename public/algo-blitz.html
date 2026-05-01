@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Algo Blitz | IMC Tech Race Prep</title>
+<style>
+:root{
+  --bg:#060d1a;--panel:#0d1829;--border:#1e3a5f;--border2:#1e2d4a;
+  --text:#e2e8f0;--dim:#64748b;--dim2:#94a3b8;
+  --blue:#3b82f6;--blue-l:#60a5fa;--green:#22c55e;--red:#ef4444;
+  --yellow:#eab308;--purple:#a855f7;--cyan:#06b6d4;
+  --green-bg:rgba(34,197,94,0.12);--red-bg:rgba(239,68,68,0.12);
+  --blue-bg:rgba(59,130,246,0.12);--yellow-bg:rgba(234,179,8,0.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;min-height:100vh;}
+a{color:var(--blue-l);text-decoration:none;}
+a:hover{text-decoration:underline;}
+.hidden{display:none!important;}
+
+/* NAV */
+nav{background:#0a1220;border-bottom:1px solid var(--border2);padding:8px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;}
+.brand{color:var(--yellow);font-weight:700;font-size:13px;}
+.cur{color:var(--text);font-weight:700;}
+.sep{color:var(--border);}
+
+/* SETUP */
+#setup{max-width:680px;margin:40px auto;padding:0 20px;}
+.setup-hero{text-align:center;margin-bottom:32px;}
+.setup-tag{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--blue-l);text-transform:uppercase;margin-bottom:8px;}
+.setup-title{font-size:30px;font-weight:900;color:#fff;margin-bottom:6px;}
+.setup-sub{color:var(--dim2);font-size:14px;}
+.rules-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:24px 0;}
+.rule-card{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:14px 16px;}
+.rule-icon{font-size:20px;margin-bottom:6px;}
+.rule-title{font-size:12px;font-weight:700;color:var(--blue-l);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;}
+.rule-text{font-size:12px;color:var(--dim2);line-height:1.5;}
+.rule-card.warn .rule-title{color:var(--red);}
+.rule-card.warn{border-color:rgba(239,68,68,.3);}
+.btn{display:inline-block;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;border:none;transition:all .15s;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{background:#2563eb;}
+.btn-secondary{background:var(--panel);color:var(--dim2);border:1px solid var(--border);}
+.btn-secondary:hover{color:var(--text);}
+.setup-start{text-align:center;margin-top:20px;}
+
+/* GAME */
+#game{display:grid;grid-template-columns:1fr 240px;gap:0;height:100vh;}
+.game-main{padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
+.game-sidebar{background:var(--panel);border-left:1px solid var(--border2);padding:16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;}
+
+/* Timer + Progress */
+.top-bar{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:12px 18px;}
+.timer{font-size:28px;font-weight:900;color:var(--blue-l);font-variant-numeric:tabular-nums;min-width:70px;}
+.timer.warn{color:var(--yellow);}
+.timer.crit{color:var(--red);}
+.progress-section{flex:1;}
+.progress-label{font-size:11px;color:var(--dim);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.progress-track{height:8px;background:var(--border2);border-radius:4px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--blue);border-radius:4px;transition:width .3s;}
+.q-count{font-size:13px;color:var(--dim2);font-weight:600;white-space:nowrap;}
+.score-badge{background:var(--blue-bg);border:1px solid rgba(59,130,246,.3);border-radius:8px;padding:8px 14px;text-align:center;}
+.score-val{font-size:20px;font-weight:900;color:var(--blue-l);}
+.score-lbl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;}
+
+/* Question Card */
+.q-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px 24px;}
+.q-tier{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;}
+.q-tier-1{color:var(--green);}
+.q-tier-2{color:var(--blue-l);}
+.q-tier-3{color:var(--yellow);}
+.q-tier-4{color:var(--purple);}
+.q-tier-5{color:var(--red);}
+.q-num{font-size:12px;color:var(--dim);margin-bottom:10px;font-weight:600;}
+.q-prompt{font-size:15px;color:var(--text);line-height:1.7;margin-bottom:18px;}
+.q-prompt code{background:#111e33;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:13px;color:var(--cyan);}
+.choices{display:flex;flex-direction:column;gap:8px;}
+.choice{padding:11px 16px;border-radius:8px;border:1px solid var(--border2);cursor:pointer;font-size:13px;color:var(--dim2);transition:all .15s;display:flex;align-items:center;gap:10px;}
+.choice:hover{border-color:var(--blue);color:var(--text);background:var(--blue-bg);}
+.choice.selected{border-color:var(--blue);background:var(--blue-bg);color:var(--text);}
+.choice.correct{border-color:var(--green);background:var(--green-bg);color:var(--green);}
+.choice.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red);}
+.choice-key{font-weight:800;font-size:12px;min-width:18px;color:var(--dim);}
+.numeric-input{width:160px;background:#111e33;border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:15px;color:var(--text);outline:none;}
+.numeric-input:focus{border-color:var(--blue);}
+.numeric-input.correct-input{border-color:var(--green);}
+.numeric-input.wrong-input{border-color:var(--red);}
+.submit-row{display:flex;align-items:center;gap:12px;margin-top:14px;}
+.feedback{font-size:13px;font-weight:600;padding:8px 14px;border-radius:6px;}
+.feedback.correct{background:var(--green-bg);color:var(--green);}
+.feedback.wrong{background:var(--red-bg);color:var(--red);}
+.feedback.penalty{background:var(--yellow-bg);color:var(--yellow);}
+.explanation{font-size:12px;color:var(--dim2);margin-top:10px;padding:10px 14px;background:#0a1620;border-radius:6px;border-left:3px solid var(--blue);line-height:1.6;}
+
+/* Penalty flash */
+.penalty-overlay{position:fixed;inset:0;background:rgba(239,68,68,.18);pointer-events:none;animation:penaltyFlash .6s ease-out forwards;z-index:100;}
+@keyframes penaltyFlash{0%{opacity:1;}100%{opacity:0;}}
+
+/* Sidebar */
+.sb-title{font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;}
+.tier-progress{display:flex;flex-direction:column;gap:5px;}
+.tier-row{display:flex;align-items:center;gap:6px;font-size:11px;}
+.tier-label{width:55px;color:var(--dim);}
+.tier-track{flex:1;height:5px;background:var(--border2);border-radius:3px;overflow:hidden;}
+.tier-fill{height:100%;border-radius:3px;}
+.tier-count{color:var(--dim);font-size:10px;min-width:24px;text-align:right;}
+
+/* Leaderboard */
+.lb-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border2);}
+.lb-row:last-child{border-bottom:none;}
+.lb-rank{font-size:11px;font-weight:800;color:var(--dim);min-width:18px;}
+.lb-rank.you{color:var(--yellow);}
+.lb-name{flex:1;font-size:12px;color:var(--dim2);}
+.lb-name.you{color:var(--yellow);font-weight:700;}
+.lb-q{font-size:11px;font-weight:700;color:var(--blue-l);}
+.lb-q.you{color:var(--yellow);}
+.lb-bot-bar{position:relative;height:3px;background:var(--border2);border-radius:2px;margin-top:2px;overflow:hidden;}
+.lb-bot-fill{height:100%;border-radius:2px;background:var(--blue);transition:width 1s;}
+
+/* Penalty display */
+.penalty-display{font-size:11px;color:var(--red);font-weight:700;}
+
+/* RESULTS */
+#results{max-width:640px;margin:40px auto;padding:20px;text-align:center;}
+.results-title{font-size:28px;font-weight:900;color:#fff;margin-bottom:4px;}
+.results-sub{color:var(--dim2);margin-bottom:28px;}
+.results-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:16px;}
+.stat-val{font-size:24px;font-weight:900;color:var(--blue-l);}
+.stat-lbl{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+.medal{font-size:48px;margin-bottom:8px;}
+.tier-summary{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:16px;text-align:left;margin-bottom:16px;}
+.ts-title{font-size:11px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:10px;}
+.ts-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border2);font-size:12px;}
+.ts-row:last-child{border-bottom:none;}
+
+/* ── LIGHT MODE ── */
+[data-theme="light"]{
+  --bg:#f0f4f8!important;--panel:#ffffff!important;--panel2:#e8edf3!important;
+  --border:#c5d0de!important;--border2:#d5dde8!important;
+  --text:#1e2d3d!important;--dim:#6b7d8f!important;--dim2:#4a5a6a!important;
+  --blue:#2563eb!important;--blue-l:#1d4ed8!important;
+  --green:#16a34a!important;--red:#dc2626!important;
+  --yellow:#b45309!important;--purple:#7c3aed!important;
+  --cyan:#0e7490!important;--teal:#0f766e!important;--orange:#c2410c!important;
+  --green-bg:rgba(22,163,74,0.12)!important;--red-bg:rgba(220,38,38,0.12)!important;
+  --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
+  --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
+  --orange-bg:rgba(194,65,12,0.12)!important;
+}
+@media(prefers-color-scheme:light){
+  :root:not([data-theme]){
+    --bg:#f0f4f8!important;--panel:#ffffff!important;--panel2:#e8edf3!important;
+    --border:#c5d0de!important;--border2:#d5dde8!important;
+    --text:#1e2d3d!important;--dim:#6b7d8f!important;--dim2:#4a5a6a!important;
+    --blue:#2563eb!important;--blue-l:#1d4ed8!important;
+    --green:#16a34a!important;--red:#dc2626!important;
+    --yellow:#b45309!important;--purple:#7c3aed!important;
+    --cyan:#0e7490!important;--teal:#0f766e!important;--orange:#c2410c!important;
+    --green-bg:rgba(22,163,74,0.12)!important;--red-bg:rgba(220,38,38,0.12)!important;
+    --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
+    --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
+    --orange-bg:rgba(194,65,12,0.12)!important;
+  }
+}
+/* Theme toggle button in nav */
+.theme-nav-btns{margin-left:auto;display:flex;gap:3px;align-items:center;}
+.tnb{padding:3px 8px;border-radius:5px;border:1px solid var(--border2);
+  background:transparent;color:var(--dim);font-size:10px;font-weight:700;
+  cursor:pointer;transition:all .12s;line-height:1;}
+.tnb:hover{color:var(--text);}
+.tnb.active{background:var(--panel);border-color:var(--border);color:var(--text);}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="brand">⌂ Hub</a><span class="sep">|</span>
+  <span style="color:var(--dim);font-size:11px;">Collab:</span>
+  <a href="quant-relay.html">Relay</a>
+  <a href="alpha-factory.html">Alpha Factory</a>
+  <span class="sep">|</span>
+
+  <span style="color:var(--dim);font-size:11px;">Trading:</span>
+  <a href="price-war.html">Price War</a>
+  <a href="arbitrage-sprint.html">Arb Sprint</a>
+  <span class="sep">|</span>
+  <span style="color:var(--dim);font-size:11px;">Tech:</span>
+  <span class="cur">Algo Blitz</span>
+  <a href="bot-builder.html">Bot Builder</a>
+  <span class="sep">|</span>
+  <a href="momentum-trainer.html">Momentum</a>
+  <a href="spread-trader.html">Spread</a>
+  <a href="regime-rider.html">Regime</a>
+  <span class="sep">|</span>
+  <a href="basket-blitz.html">Basket</a>
+  <a href="options-outcry.html">Outcry</a>
+  <a href="cmi-challenge.html">CMI</a>
+<span class="theme-nav-btns"><button class="tnb" data-t="light" onclick="setTheme('light',true)" title="Light">☀</button><button class="tnb" data-t="system" onclick="setTheme('system',true)" title="System">⊙</button><button class="tnb" data-t="dark" onclick="setTheme('dark',true)" title="Dark">☾</button></span>
+</nav>
+
+<!-- MODE SWITCHER -->
+<div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 24px;display:flex;align-items:center;gap:10px;">
+  <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);">Mode:</span>
+  <button id="ab-mode-classic" onclick="abSwitchMode('classic')" style="padding:5px 16px;border-radius:6px;border:1px solid var(--blue);background:rgba(58,144,255,.15);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;">Classic Quiz</button>
+  <button id="ab-mode-judge" onclick="abSwitchMode('judge')" style="padding:5px 16px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--dim);font-size:12px;font-weight:700;cursor:pointer;">⚖ Code Judge</button>
+  <span style="margin-left:auto;font-size:11px;color:var(--dim);opacity:.6;">Code Judge: write real algorithms — test cases auto-verify your solution</span>
+</div>
+
+<!-- SETUP -->
+<div id="setup">
+  <div class="setup-hero">
+    <div class="setup-tag">IMC Tech Race Simulator</div>
+    <div class="setup-title">⚡ Algo Blitz</div>
+    <div class="setup-sub">20 problems · 60 minutes · No AI · Live leaderboard</div>
+  </div>
+  <div class="rules-grid">
+    <div class="rule-card">
+      <div class="rule-icon">⏱️</div>
+      <div class="rule-title">60-Minute Timer</div>
+      <div class="rule-text">Clock starts immediately. Wrong answers add a 2-minute penalty. First to finish all 20 wins — but accuracy matters.</div>
+    </div>
+    <div class="rule-card warn">
+      <div class="rule-icon">🚫</div>
+      <div class="rule-title">No AI Allowed</div>
+      <div class="rule-text">Just like the real IMC Tech Race: no Copilot, Claude, ChatGPT, or Gemini. Google is fair game. Train like the real thing.</div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-icon">📊</div>
+      <div class="rule-title">5 Tiers of Problems</div>
+      <div class="rule-text">Warm-Up → CS Fundamentals → Finance-Aware → Algo Hard → Brain Teasers. Each tier harder than the last.</div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-icon">🏆</div>
+      <div class="rule-title">Live Leaderboard</div>
+      <div class="rule-text">4 simulated IMC competitors race alongside you. Track them in real time. Can you finish before IMC_Alex?</div>
+    </div>
+  </div>
+  <div class="setup-start">
+    <button class="btn btn-primary" onclick="startGame()">Start Race ⚡</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="game" class="hidden">
+  <div class="game-main">
+    <div class="top-bar">
+      <div>
+        <div id="timer" class="timer">60:00</div>
+        <div id="penalty-text" class="penalty-display"></div>
+      </div>
+      <div class="progress-section">
+        <div class="progress-label">Progress — Question <span id="q-num-label">1</span> of 20</div>
+        <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="q-count" id="q-count-label">0 / 20 solved</div>
+      <div class="score-badge">
+        <div class="score-val" id="score-val">0</div>
+        <div class="score-lbl">Points</div>
+      </div>
+    </div>
+    <div id="q-card" class="q-card"></div>
+  </div>
+
+  <div class="game-sidebar">
+    <div>
+      <div class="sb-title" style="margin-bottom:10px;">Tier Progress</div>
+      <div class="tier-progress">
+        <div class="tier-row"><span class="tier-label q-tier-1">Warm-Up</span><div class="tier-track"><div class="tier-fill" id="tf1" style="width:0%;background:var(--green)"></div></div><span class="tier-count" id="tc1">0/4</span></div>
+        <div class="tier-row"><span class="tier-label q-tier-2">CS Fund.</span><div class="tier-track"><div class="tier-fill" id="tf2" style="width:0%;background:var(--blue)"></div></div><span class="tier-count" id="tc2">0/4</span></div>
+        <div class="tier-row"><span class="tier-label q-tier-3">Finance</span><div class="tier-track"><div class="tier-fill" id="tf3" style="width:0%;background:var(--yellow)"></div></div><span class="tier-count" id="tc3">0/4</span></div>
+        <div class="tier-row"><span class="tier-label q-tier-4">Algo Hard</span><div class="tier-track"><div class="tier-fill" id="tf4" style="width:0%;background:var(--purple)"></div></div><span class="tier-count" id="tc4">0/4</span></div>
+        <div class="tier-row"><span class="tier-label q-tier-5">Brainteaser</span><div class="tier-track"><div class="tier-fill" id="tf5" style="width:0%;background:var(--red)"></div></div><span class="tier-count" id="tc5">0/4</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sb-title" style="margin-bottom:10px;">🏆 Live Leaderboard</div>
+      <div id="leaderboard"></div>
+    </div>
+
+    <div style="font-size:11px;color:var(--dim);line-height:1.6;margin-top:auto;padding-top:10px;border-top:1px solid var(--border2);">
+      ⚡ Tip: Skip hard questions mentally — the real Tech Race allows skipping and returning. Tier 5 brain teasers are worth the most points.
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="results" class="hidden">
+  <div id="medal" class="medal">🥇</div>
+  <div class="results-title" id="res-title">Race Complete!</div>
+  <div class="results-sub" id="res-sub">Here's how you performed</div>
+  <div class="results-grid">
+    <div class="stat-card"><div class="stat-val" id="res-score">0</div><div class="stat-lbl">Points</div></div>
+    <div class="stat-card"><div class="stat-val" id="res-solved">0/20</div><div class="stat-lbl">Solved</div></div>
+    <div class="stat-card"><div class="stat-val" id="res-time">--</div><div class="stat-lbl">Time Used</div></div>
+  </div>
+  <div class="tier-summary">
+    <div class="ts-title">Tier Breakdown</div>
+    <div class="ts-row"><span style="color:var(--green)">Warm-Up (1-4)</span><span id="ts1">0/4</span></div>
+    <div class="ts-row"><span style="color:var(--blue-l)">CS Fundamentals (5-8)</span><span id="ts2">0/4</span></div>
+    <div class="ts-row"><span style="color:var(--yellow)">Finance-Aware (9-12)</span><span id="ts3">0/4</span></div>
+    <div class="ts-row"><span style="color:var(--purple)">Algo Hard (13-16)</span><span id="ts4">0/4</span></div>
+    <div class="ts-row"><span style="color:var(--red)">Brain Teasers (17-20)</span><span id="ts5">0/4</span></div>
+  </div>
+  <button class="btn btn-primary" onclick="restartGame()" style="margin-right:10px;">Race Again</button>
+  <a href="index.html"><button class="btn btn-secondary">Back to Hub</button></a>
+</div>
+
+<script>
+const QUESTIONS = [
+  // TIER 1 — Warm-Up
+  {tier:1,type:'mc',prompt:'A function runs a nested loop: the outer loop runs <code>n</code> times, the inner loop runs <code>log(n)</code> times. What is the overall time complexity?',choices:['O(n)','O(n log n)','O(n²)','O(log n)'],answer:1,explanation:'Each outer iteration does O(log n) work, repeated n times → O(n log n). Classic merge sort complexity.'},
+  {tier:1,type:'mc',prompt:'Evaluate: <code>0b101010 AND 0b011011</code> in decimal. (42 AND 27)',choices:['8','10','12','16'],answer:1,explanation:'101010 AND 011011 = 001010 = 8+2 = 10. AND keeps only bits that are 1 in both operands.'},
+  {tier:1,type:'numeric',prompt:'You have a circular buffer of size 7. Items are inserted at indices 0,1,2,3,4,5,6. What index does the <em>next</em> item go to?',answer:'0',explanation:'7 mod 7 = 0. Circular buffers wrap around using modular arithmetic — fundamental in ring buffer / FIFO implementations.'},
+  {tier:1,type:'mc',prompt:'Recurrence: <code>T(n) = T(n-1) + O(1)</code>, base case <code>T(1) = O(1)</code>. What is T(n)?',choices:['O(1)','O(log n)','O(n)','O(n²)'],answer:2,explanation:'Each level adds O(1) work. There are n levels total → T(n) = O(n). This is the pattern of simple linear recursion (e.g. computing factorial).'},
+  // TIER 2 — CS Fundamentals
+  {tier:2,type:'numeric',prompt:'In a 4×4 grid, you start at cell (0,0). Moving only up/down/left/right (4-directional), what is the minimum number of moves to reach (3,3)?',answer:'6',explanation:'Manhattan distance = |3-0| + |3-0| = 6. BFS on an unweighted grid finds the shortest path equal to the Manhattan distance when no obstacles exist.'},
+  {tier:2,type:'numeric',prompt:'Binary search for value <strong>70</strong> in sorted array [10,20,30,40,50,60,70,80,90,100]. How many comparisons are made until it is found?',answer:'4',explanation:'Step1: mid=idx4=50, 70>50 → right. Step2: mid=idx7=80, 70<80 → left. Step3: mid=idx5=60, 70>60 → right. Step4: mid=idx6=70, found! = 4 comparisons.'},
+  {tier:2,type:'numeric',prompt:'Array: [3, 1, 4, 1, 5, 9, 2, 6]. Using a prefix sum array, what is the sum of elements at indices 2 through 5 (0-indexed, inclusive)?',answer:'19',explanation:'Elements: arr[2]=4, arr[3]=1, arr[4]=5, arr[5]=9. Sum = 4+1+5+9 = 19. Prefix sums allow O(1) range queries after O(n) preprocessing.'},
+  {tier:2,type:'numeric',prompt:'After inserting all of [3, 1, 4, 1, 5, 9, 2, 6] into a max-heap, what value sits at the root?',answer:'9',explanation:'A max-heap guarantees the maximum element is always at the root. After all insertions, 9 (the largest) bubbles to the top via heapify.'},
+  // TIER 3 — Finance-Aware
+  {tier:3,type:'numeric',prompt:'A data stream arrives: 5, 3, 8, 1. After processing the 4th element, the sorted array is [1, 3, 5, 8]. What is the <strong>median</strong>?',answer:'4',explanation:'Even number of elements: median = (3+5)/2 = 4.0. In a live trading feed, running median (via two heaps) tracks the central price efficiently.'},
+  {tier:3,type:'mc',prompt:'Array: [2,1,5,3,6,4,8,2], sliding window size 3. What is the maximum value in the window containing elements [5, 3, 6]?',choices:['5','3','6','4'],answer:2,explanation:'Max of [5,3,6] = 6. The sliding window maximum problem is solved in O(n) using a monotonic deque — used in rolling vol calculations in trading.'},
+  {tier:3,type:'numeric',prompt:'A market buy order for <strong>150 units</strong> arrives. The order book asks are: 100 units @ €10.00, then 200 units @ €10.05. What is the total cost paid (€)?',answer:'1502.5',explanation:'First 100 units @ €10.00 = €1000. Next 50 units @ €10.05 = €502.50. Total = €1502.50. This is how market orders "walk the book" in real trading.'},
+  {tier:3,type:'numeric',prompt:'Order queue (FIFO): BUY 100 arrives, then BUY 50. A SELL 80 matches against the queue. How many units from the <em>first</em> BUY order remain unfilled?',answer:'20',explanation:'SELL 80 matches 80 from the front (BUY 100). 100−80 = 20 units remain in that order. The BUY 50 is untouched. This is exchange-level order matching.'},
+  // TIER 4 — Algo Hard
+  {tier:4,type:'numeric',prompt:'Coin denominations: [1, 5, 10, 25] cents. What is the <strong>minimum number of coins</strong> needed to make exactly 41 cents?',answer:'4',explanation:'Greedy works here: 1×25 + 1×10 + 1×5 + 1×1 = 4 coins. For arbitrary denominations, use dynamic programming. Greedy works when denominations form a "canonical" system.'},
+  {tier:4,type:'numeric',prompt:'Meeting room bookings (start, end): [(0,30), (5,10), (15,20)]. What is the <strong>minimum number of rooms</strong> required to hold all meetings simultaneously?',answer:'2',explanation:'At t=5: meetings (0,30) and (5,10) overlap → 2 rooms needed. At t=15: meetings (0,30) and (15,20) overlap → still 2. Max simultaneous = 2. Classic sweep line / heap problem.'},
+  {tier:4,type:'numeric',prompt:'Directed weighted graph: A→B(3), A→C(1), C→B(1), B→D(1), C→D(4). What is the shortest path distance from A to D?',answer:'3',explanation:'Paths: A→B→D=3+1=4, A→C→D=1+4=5, A→C→B→D=1+1+1=3. Dijkstra\'s algorithm finds the shortest path = 3. Use a min-heap for O((V+E) log V).'},
+  {tier:4,type:'numeric',prompt:'String: "AABAACAADAABAABA". Pattern: "AABA". How many <strong>overlapping occurrences</strong> of the pattern are there?',answer:'3',explanation:'Occurrences start at indices 0, 9, 12. Count = 3. KMP (Knuth-Morris-Pratt) finds all occurrences in O(n+m) using a failure function to avoid redundant comparisons.'},
+  // TIER 5 — Brain Teasers
+  {tier:5,type:'numeric',prompt:'You flip a fair coin. Heads: win €3. Tails: lose €1. What is the <strong>expected value</strong> (€) of a single flip?',answer:'1',explanation:'EV = 0.5×(+3) + 0.5×(−1) = 1.5 − 0.5 = €1.00. This is Kelly Criterion territory: positive EV bets should be taken; sizing depends on edge and bankroll.'},
+  {tier:5,type:'numeric',prompt:'A trading desk has 8 analysts. You must select a 3-person sub-committee. How many distinct committees are possible?',answer:'56',explanation:'C(8,3) = 8!/(3!×5!) = (8×7×6)/(3×2×1) = 336/6 = 56. Combinatorics appears everywhere in options pricing (binomial trees) and portfolio construction.'},
+  {tier:5,type:'mc',prompt:'Nim game: piles of 3, 5, 7 stones. It\'s your turn. XOR of all piles = 3⊕5⊕7 = 1 ≠ 0, so <em>you can win</em>. Which move puts your opponent in a losing position?',choices:['Remove 2 from pile of 3','Remove 2 from pile of 5','Remove 1 from pile of 7','Remove 3 from pile of 7'],answer:2,explanation:'To win, make XOR=0. 3⊕5=6. We need pile₃ = 6, so remove 7−6=1 from pile of 7. New piles: 3,5,6. Check: 3⊕5⊕6=0 ✓. Opponent is now in a losing position.'},
+  {tier:5,type:'mc',prompt:'100 traders, 99 are profitable. You pick one at random — they ARE profitable. <strong>Without replacement</strong>, you now pick a second trader at random from the remaining 99. What is the probability they are also profitable?',choices:['99/100','98/99','97/100','1/2'],answer:1,explanation:'After removing 1 profitable trader: 98 profitable remain out of 99 total. P = 98/99 ≈ 0.99. Without replacement changes the sample space — a key concept in Bayesian updating.'},
+];
+
+const BOTS = [
+  {name:'IMC_Alex', speed:1.15, color:'var(--red)'},
+  {name:'IMC_Riya', speed:0.95, color:'var(--purple)'},
+  {name:'IMC_Kai',  speed:0.88, color:'var(--cyan)'},
+  {name:'IMC_Zara', speed:0.78, color:'var(--green)'},
+];
+
+let G = {
+  qIdx: 0,
+  solved: 0,
+  score: 0,
+  totalTime: 3600, // seconds
+  elapsed: 0,
+  penalties: 0,
+  penaltySeconds: 0,
+  answered: false,
+  selectedChoice: null,
+  tierCorrect: [0,0,0,0,0],
+  interval: null,
+  botProgress: [0,0,0,0],
+  botSpeed: BOTS.map(b => b.speed),
+  finished: false,
+};
+
+function startGame() {
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
+  renderQuestion();
+  updateLeaderboard();
+  G.interval = setInterval(tick, 1000);
+}
+
+function tick() {
+  G.elapsed++;
+  // Bot progress
+  BOTS.forEach((_,i) => {
+    const baseRate = 20 / (G.totalTime * G.botSpeed[i]); // qs per second
+    const jitter = 0.7 + Math.random() * 0.6;
+    G.botProgress[i] = Math.min(20, G.botProgress[i] + baseRate * jitter);
+  });
+  const remaining = G.totalTime - G.elapsed;
+  if (remaining <= 0 || G.solved >= 20) { endGame(); return; }
+  updateTimer(remaining);
+  updateLeaderboard();
+  // Bot can finish before player
+  if (G.botProgress[0] >= 20 && !G.finished) {
+    // Bot finished — still let player continue
+  }
+}
+
+function updateTimer(rem) {
+  const m = Math.floor(rem/60).toString().padStart(2,'0');
+  const s = (rem%60).toString().padStart(2,'0');
+  const el = document.getElementById('timer');
+  el.textContent = m+':'+s;
+  el.className = 'timer' + (rem < 300 ? ' crit' : rem < 600 ? ' warn' : '');
+}
+
+function renderQuestion() {
+  const q = QUESTIONS[G.qIdx];
+  const tierLabels = ['','Tier 1 — Warm-Up','Tier 2 — CS Fundamentals','Tier 3 — Finance-Aware','Tier 4 — Algo Hard','Tier 5 — Brain Teasers'];
+  const tierClass = ['','q-tier-1','q-tier-2','q-tier-3','q-tier-4','q-tier-5'];
+  G.answered = false;
+  G.selectedChoice = null;
+  let html = `
+    <div class="q-tier ${tierClass[q.tier]}">${tierLabels[q.tier]}</div>
+    <div class="q-num">Question ${G.qIdx+1} of 20</div>
+    <div class="q-prompt">${q.prompt}</div>`;
+  if (q.type === 'mc') {
+    html += '<div class="choices">';
+    const keys = ['A','B','C','D'];
+    q.choices.forEach((c,i) => {
+      html += `<div class="choice" id="ch${i}" onclick="selectChoice(${i})"><span class="choice-key">${keys[i]}</span>${c}</div>`;
+    });
+    html += '</div>';
+  } else {
+    html += `<div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
+      <input type="text" class="numeric-input" id="num-input" placeholder="Enter answer..." onkeydown="if(event.key==='Enter')submitAnswer()">
+    </div>`;
+  }
+  html += `<div class="submit-row">
+    <button class="btn btn-primary" onclick="submitAnswer()">Submit ↵</button>
+    <div id="feedback-box"></div>
+  </div>
+  <div id="explanation-box"></div>`;
+  document.getElementById('q-card').innerHTML = html;
+  document.getElementById('q-num-label').textContent = G.qIdx+1;
+  const pct = (G.qIdx/20)*100;
+  document.getElementById('prog-fill').style.width = pct+'%';
+  if (q.type === 'mc') {
+    // nothing extra
+  } else {
+    setTimeout(() => {
+      const inp = document.getElementById('num-input');
+      if (inp) inp.focus();
+    }, 50);
+  }
+}
+
+function selectChoice(i) {
+  if (G.answered) return;
+  G.selectedChoice = i;
+  document.querySelectorAll('.choice').forEach((c,j) => {
+    c.className = 'choice' + (j===i ? ' selected' : '');
+  });
+}
+
+function submitAnswer() {
+  if (G.answered) { advanceQuestion(); return; }
+  const q = QUESTIONS[G.qIdx];
+  let correct = false;
+  if (q.type === 'mc') {
+    if (G.selectedChoice === null) return;
+    correct = (G.selectedChoice === q.answer);
+  } else {
+    const inp = document.getElementById('num-input');
+    if (!inp || inp.value.trim() === '') return;
+    const userVal = parseFloat(inp.value.replace(',','.'));
+    const correctVal = parseFloat(q.answer);
+    correct = Math.abs(userVal - correctVal) < 0.01;
+    inp.className = 'numeric-input ' + (correct ? 'correct-input' : 'wrong-input');
+  }
+  G.answered = true;
+  const fb = document.getElementById('feedback-box');
+  const expBox = document.getElementById('explanation-box');
+  expBox.innerHTML = `<div class="explanation">💡 ${q.explanation}</div>`;
+  if (correct) {
+    G.solved++;
+    G.score += tierScore(q.tier);
+    G.tierCorrect[q.tier-1]++;
+    fb.innerHTML = `<div class="feedback correct">✓ Correct! +${tierScore(q.tier)} pts</div>`;
+    if (q.type === 'mc') {
+      document.getElementById('ch'+q.answer).className = 'choice correct';
+    }
+    updateSidebar();
+    document.getElementById('q-count-label').textContent = G.solved+' / 20 solved';
+    document.getElementById('score-val').textContent = G.score;
+  } else {
+    G.penalties++;
+    G.penaltySeconds += 120;
+    G.elapsed = Math.min(G.totalTime - 1, G.elapsed + 120);
+    fb.innerHTML = `<div class="feedback wrong">✗ Wrong — 2-minute penalty</div>`;
+    if (q.type === 'mc') {
+      if (G.selectedChoice !== null) document.getElementById('ch'+G.selectedChoice).className = 'choice wrong';
+      document.getElementById('ch'+q.answer).className = 'choice correct';
+    }
+    // Flash overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'penalty-overlay';
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.remove(), 700);
+    const pt = document.getElementById('penalty-text');
+    pt.textContent = `−2:00 penalty (${G.penalties} total)`;
+    setTimeout(() => pt.textContent = '', 2000);
+  }
+  const btn = document.querySelector('.submit-row .btn-primary');
+  if (btn) btn.textContent = 'Next Question →';
+}
+
+function tierScore(tier) {
+  const scores = [0, 5, 8, 12, 18, 25];
+  return scores[tier];
+}
+
+function advanceQuestion() {
+  if (G.qIdx < 19) {
+    G.qIdx++;
+    renderQuestion();
+  } else {
+    endGame();
+  }
+}
+
+function updateSidebar() {
+  const counts = G.tierCorrect;
+  const ids = ['tf1','tf2','tf3','tf4','tf5'];
+  const tc = ['tc1','tc2','tc3','tc4','tc5'];
+  counts.forEach((c,i) => {
+    document.getElementById(ids[i]).style.width = (c/4*100)+'%';
+    document.getElementById(tc[i]).textContent = c+'/4';
+  });
+}
+
+function updateLeaderboard() {
+  const entries = [
+    {name:'You', q: G.solved, isYou:true, botIdx:-1},
+    ...BOTS.map((b,i) => ({name:b.name, q: Math.min(20, Math.floor(G.botProgress[i])), isYou:false, botIdx:i}))
+  ];
+  entries.sort((a,b) => b.q - a.q || (a.isYou ? -1 : 1));
+  let html = '';
+  entries.forEach((e,rank) => {
+    const rankClass = e.isYou ? 'lb-rank you' : 'lb-rank';
+    const nameClass = e.isYou ? 'lb-name you' : 'lb-name';
+    const qClass = e.isYou ? 'lb-q you' : 'lb-q';
+    const color = e.isYou ? 'var(--yellow)' : BOTS[e.botIdx]?.color || 'var(--blue)';
+    const pct = (e.q/20)*100;
+    html += `<div class="lb-row">
+      <div class="${rankClass}">#${rank+1}</div>
+      <div style="flex:1;">
+        <div style="display:flex;justify-content:space-between;">
+          <span class="${nameClass}">${e.name}</span>
+          <span class="${qClass}">${e.q}/20</span>
+        </div>
+        <div class="lb-bot-bar"><div class="lb-bot-fill" style="width:${pct}%;background:${color}"></div></div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('leaderboard').innerHTML = html;
+}
+
+function endGame() {
+  if (G.finished) return;
+  G.finished = true;
+  clearInterval(G.interval);
+  document.getElementById('game').classList.add('hidden');
+  document.getElementById('results').classList.remove('hidden');
+  const used = G.elapsed;
+  const m = Math.floor(used/60), s = used%60;
+  const timeStr = m+'m '+s+'s';
+  // Medal
+  const pct = G.solved/20;
+  let medal = '🥇', title = 'Race Complete!';
+  if (pct >= 0.9) { medal = '🥇'; title = 'Dominant Performance!'; }
+  else if (pct >= 0.7) { medal = '🥈'; title = 'Strong Finish!'; }
+  else if (pct >= 0.5) { medal = '🥉'; title = 'Solid Effort!'; }
+  else { medal = '📈'; title = 'Keep Training!'; }
+  document.getElementById('medal').textContent = medal;
+  document.getElementById('res-title').textContent = title;
+  document.getElementById('res-sub').textContent = `${G.penalties} penalty(ies) — that's ${G.penaltySeconds/60} minutes of penalties`;
+  document.getElementById('res-score').textContent = G.score;
+  document.getElementById('res-solved').textContent = G.solved+'/20';
+  document.getElementById('res-time').textContent = timeStr;
+  // Tier summary
+  const tierMax = [0,4,4,4,4,4];
+  for (let t=1; t<=5; t++) {
+    document.getElementById('ts'+t).textContent = G.tierCorrect[t-1]+'/4';
+  }
+}
+
+function restartGame() {
+  G = {qIdx:0,solved:0,score:0,totalTime:3600,elapsed:0,penalties:0,penaltySeconds:0,answered:false,selectedChoice:null,tierCorrect:[0,0,0,0,0],interval:null,botProgress:[0,0,0,0],botSpeed:BOTS.map(b=>b.speed),finished:false};
+  document.getElementById('results').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
+  renderQuestion();
+  updateSidebar();
+  updateLeaderboard();
+  document.getElementById('timer').textContent = '60:00';
+  document.getElementById('prog-fill').style.width = '0%';
+  document.getElementById('score-val').textContent = '0';
+  document.getElementById('q-count-label').textContent = '0 / 20 solved';
+  document.getElementById('q-num-label').textContent = '1';
+  G.interval = setInterval(tick, 1000);
+}
+
+function abSwitchMode(m) {
+  const isJudge = m === 'judge';
+  ['setup','game','results'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.classList.add('hidden');
+  });
+  document.getElementById('cj-panel').classList.toggle('hidden', !isJudge);
+  if(!isJudge) document.getElementById('setup').classList.remove('hidden');
+  document.getElementById('ab-mode-classic').style.cssText = isJudge
+    ? 'padding:5px 16px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--dim);font-size:12px;font-weight:700;cursor:pointer;'
+    : 'padding:5px 16px;border-radius:6px;border:1px solid var(--blue);background:rgba(58,144,255,.15);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;';
+  document.getElementById('ab-mode-judge').style.cssText = isJudge
+    ? 'padding:5px 16px;border-radius:6px;border:1px solid var(--green);background:rgba(0,216,136,.12);color:var(--green);font-size:12px;font-weight:700;cursor:pointer;'
+    : 'padding:5px 16px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--dim);font-size:12px;font-weight:700;cursor:pointer;';
+  if(isJudge) initCodeJudge();
+}
+</script>
+
+<!-- ═══════════════════════════════════════════════════════
+     CODE JUDGE — Algo Blitz
+═══════════════════════════════════════════════════════ -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+
+<style>
+#cj-panel{display:flex;flex-direction:column;height:calc(100vh - 84px);background:var(--bg)}
+.cj-top{display:flex;align-items:center;gap:16px;background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;flex-shrink:0}
+.cj-prob-select{background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:6px;font-size:13px;cursor:pointer;max-width:320px}
+.cj-score-pill{background:rgba(255,200,64,.12);border:1px solid rgba(255,200,64,.3);color:var(--yellow);padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700}
+.cj-layout{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:0}
+.cj-left{border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0;overflow-y:auto}
+.cj-right{display:flex;flex-direction:column;min-height:0}
+.cj-prob-panel{padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.cj-tier{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.cj-prob-title{font-size:15px;font-weight:700;color:var(--bright);margin-bottom:8px}
+.cj-prob-desc{font-size:13px;line-height:1.65;color:var(--text)}
+.cj-prob-desc code{background:var(--bg4);color:var(--green);padding:1px 5px;border-radius:3px;font-family:'DM Mono',monospace;font-size:12px}
+.cj-examples{margin-top:12px;background:var(--bg3);border-radius:6px;padding:10px 12px;font-size:12px;font-family:'DM Mono',monospace;line-height:1.8;color:var(--dim)}
+.cj-editor-wrap{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.cj-editor-wrap .CodeMirror{flex:1;height:100%}
+.cj-toolbar{background:var(--bg2);border-top:1px solid var(--border);padding:8px 14px;display:flex;gap:8px;align-items:center;flex-shrink:0}
+.cj-err{padding:5px 14px;font-size:11px;font-family:'DM Mono',monospace;color:var(--red);background:rgba(255,61,90,.08);border-top:1px solid rgba(255,61,90,.2);flex-shrink:0;min-height:24px}
+.cj-results-panel{flex:1;overflow-y:auto;padding:14px 16px}
+.cj-res-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:10px}
+.cj-case{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:6px;margin-bottom:6px;font-size:12px;font-family:'DM Mono',monospace}
+.cj-case.pass{background:rgba(0,216,136,.08);border:1px solid rgba(0,216,136,.2)}
+.cj-case.fail{background:rgba(255,61,90,.08);border:1px solid rgba(255,61,90,.2)}
+.cj-case.err{background:rgba(255,200,64,.08);border:1px solid rgba(255,200,64,.2)}
+.cj-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.cj-case-text{flex:1;line-height:1.6;color:var(--text)}
+.cj-case-text .label{color:var(--dim);font-size:11px}
+.cj-score-bar{background:var(--bg3);border-radius:8px;padding:12px 14px;margin-top:12px}
+.cj-solved-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.cj-badge{padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700}
+</style>
+
+<div id="cj-panel" class="hidden">
+  <div class="cj-top">
+    <select class="cj-prob-select" id="cj-prob-sel" onchange="cjLoadProblem(parseInt(this.value))">
+    </select>
+    <div class="cj-score-pill" id="cj-score-pill">0 / 10 solved</div>
+    <div style="margin-left:auto;font-size:11px;color:var(--dim);">Write JS · Run Tests · All test cases must pass</div>
+  </div>
+  <div class="cj-layout">
+    <div class="cj-left">
+      <div class="cj-prob-panel" id="cj-prob-panel"></div>
+      <div class="cj-editor-wrap"><textarea id="cj-code"></textarea></div>
+      <div class="cj-err" id="cj-err"></div>
+      <div class="cj-toolbar">
+        <button class="ql-btn run" style="background:var(--green);color:#000;" onclick="cjRun()">▶ Run Tests</button>
+        <button class="ql-btn reset" onclick="cjResetCode()">↺ Reset</button>
+        <button class="ql-btn" style="background:var(--bg4);border:1px solid var(--border2);color:var(--dim);" onclick="cjHint()">💡 Hint</button>
+      </div>
+    </div>
+    <div class="cj-right">
+      <div class="cj-results-panel">
+        <div class="cj-res-title">Test results</div>
+        <div id="cj-cases" style="color:var(--dim);font-size:13px;">Run your code to see results.</div>
+        <div class="cj-score-bar">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:8px;">Progress</div>
+          <div id="cj-solved-list" class="cj-solved-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CJ_PROBLEMS = [
+  {
+    tier: 1, tierColor: 'var(--green)', title: 'VWAP Calculator',
+    desc: 'Compute the Volume-Weighted Average Price from a list of trades. Each trade is <code>{price, volume}</code>. Return a number rounded to 2 decimal places.',
+    examples: 'vwap([{price:100,volume:50},{price:102,volume:100}])\n// → 101.33',
+    starter: `function vwap(trades) {
+  // trades: array of {price, volume}
+  // return: number (VWAP, 2 decimal places)
+
+}`,
+    tests: [
+      {input:[[{price:100,volume:50},{price:102,volume:100}]],expected:101.33,desc:'Basic 2-trade VWAP'},
+      {input:[[{price:50,volume:200},{price:60,volume:200}]],expected:55.00,desc:'Equal volumes'},
+      {input:[[{price:100,volume:1}]],expected:100.00,desc:'Single trade'},
+      {input:[[{price:10,volume:90},{price:20,volume:10}]],expected:11.00,desc:'Skewed volumes'},
+    ],
+    fn: 'vwap',
+    hint: 'VWAP = Σ(price × volume) / Σ(volume). Use reduce to sum both, then divide.'
+  },
+  {
+    tier: 1, tierColor: 'var(--green)', title: 'Running Median (Two Heaps)',
+    desc: 'Given a stream of numbers, return an array where each element is the median of all numbers seen so far (rounded to 2 decimal places). Use the two-heap (max-heap + min-heap) technique.',
+    examples: 'runningMedian([5,2,4,1,3])\n// → [5,3.5,4,3,3]',
+    starter: `function runningMedian(nums) {
+  // Return array of running medians
+  // Hint: simulate two heaps with sorted arrays
+
+}`,
+    tests: [
+      {input:[[5,2,4,1,3]],expected:[5,3.5,4,3,3],desc:'5-element stream'},
+      {input:[[1,2]],expected:[1,1.5],desc:'Two elements'},
+      {input:[[3]],expected:[3],desc:'Single element'},
+      {input:[[7,1,3,5,9]],expected:[7,4,3,4,5],desc:'Odd/even alternating'},
+    ],
+    fn: 'runningMedian',
+    hint: 'Sort array as you insert, pick middle. Or simulate max-heap with negated values in a sorted array.'
+  },
+  {
+    tier: 2, tierColor: 'var(--blue)', title: 'FX Triangular Arbitrage',
+    desc: 'Given a 3-currency FX matrix (as a 2D array indexed [from][to]), detect if a triangular arbitrage exists. Return the profit % above 1.0 if arbitrage exists, else return 0. Currencies are USD=0, EUR=1, GBP=2. Check all 6 triangular paths.',
+    examples: 'fxArbitrage([[1,0.9,0.75],[1.12,1,0.84],[1.35,1.21,1]])\n// → 0 (no arbitrage)\nfxArbitrage([[1,1.1,0.75],[0.95,1,0.84],[1.35,1.21,1]])\n// → some positive number',
+    starter: `function fxArbitrage(rates) {
+  // rates[i][j] = how much of currency j you get per unit of currency i
+  // Return: profit % above 1.0, or 0 if no arbitrage
+
+}`,
+    tests: [
+      {input:[[[1,0.9,0.75],[1.12,1,0.84],[1.35,1.21,1]]],expected:0,desc:'No arbitrage'},
+      {input:[[[1,1.0,0.75],[1.0,1,0.84],[1.35,1.22,1]]],expected:v=>v>=0,desc:'Returns non-negative'},
+      {input:[[[1,2,1],[0.5,1,1],[1,1,1]]],expected:v=>v>0,desc:'Clear arbitrage USD→EUR→GBP→USD'},
+    ],
+    fn: 'fxArbitrage',
+    hint: 'Try all 6 paths: A→B→C→A and A→C→B→A for each combo. Multiply the 3 rates and subtract 1 if >1.'
+  },
+  {
+    tier: 2, tierColor: 'var(--blue)', title: 'Rolling Sharpe Ratio',
+    desc: 'Given an array of daily returns and a window size, compute the rolling Sharpe ratio (annualised, assuming 252 trading days, risk-free rate = 0). Return an array the same length as returns, with <code>null</code> for indices before the first full window.',
+    examples: 'rollingSharpe([0.01,-0.005,0.02,-0.01,0.015], 3)\n// → [null, null, <sharpe of first 3>, ...]',
+    starter: `function rollingSharpe(returns, window) {
+  // returns: array of daily returns (e.g. 0.01 = 1%)
+  // window: lookback period
+  // Return: array same length, null before full window
+
+}`,
+    tests: [
+      {input:[[0.01,-0.005,0.02,-0.01,0.015],3],expected:a=>a.length===5&&a[0]===null&&a[1]===null&&typeof a[2]==='number',desc:'Correct length and null padding'},
+      {input:[[0.01,0.01,0.01,0.01],4],expected:a=>a[3]===null||a[3]===Infinity||(a[3]>0),desc:'Positive Sharpe on positive returns'},
+      {input:[[0],1],expected:[null],desc:'Single zero return'},
+    ],
+    fn: 'rollingSharpe',
+    hint: 'For each window: mean=sum/n, std=sqrt(Σ(r-mean)²/n), sharpe=(mean/std)*sqrt(252). Handle std=0 by returning null or Infinity.'
+  },
+  {
+    tier: 3, tierColor: 'var(--yellow)', title: 'FIFO Order Matching Engine',
+    desc: 'Implement a FIFO order book match. Given arrays of <code>{price, qty, id}</code> bids (sorted descending by price) and asks (sorted ascending), return an array of fills: <code>{bidId, askId, price, qty}</code>. Match at the ask price. Handle partial fills.',
+    examples: 'matchOrders(\n  [{price:101,qty:10,id:\'b1\'},{price:100,qty:5,id:\'b2\'}],\n  [{price:100,qty:8,id:\'a1\'}]\n)\n// → [{bidId:\'b1\',askId:\'a1\',price:100,qty:8}]',
+    starter: `function matchOrders(bids, asks) {
+  // bids: [{price, qty, id}] — sorted descending
+  // asks: [{price, qty, id}] — sorted ascending
+  // Return: [{bidId, askId, price, qty}]
+  const fills = [];
+
+  return fills;
+}`,
+    tests: [
+      {input:[[{price:101,qty:10,id:'b1'},{price:100,qty:5,id:'b2'}],[{price:100,qty:8,id:'a1'}]],expected:f=>f.length===1&&f[0].qty===8&&f[0].bidId==='b1',desc:'Single partial fill'},
+      {input:[[{price:105,qty:5,id:'b1'}],[{price:100,qty:5,id:'a1'}]],expected:f=>f.length===1&&f[0].qty===5,desc:'Full fill'},
+      {input:[[{price:99,qty:10,id:'b1'}],[{price:100,qty:10,id:'a1'}]],expected:f=>f.length===0,desc:'No cross — bid below ask'},
+      {input:[[{price:100,qty:15,id:'b1'}],[{price:100,qty:8,id:'a1'},{price:100,qty:7,id:'a2'}]],expected:f=>f.length===2&&f[0].qty===8&&f[1].qty===7,desc:'One bid fills two asks'},
+    ],
+    fn: 'matchOrders',
+    hint: 'Walk through bids and asks simultaneously. While bid.price >= ask.price, match min(bid.qty, ask.qty), advance whichever is fully consumed.'
+  },
+  {
+    tier: 3, tierColor: 'var(--yellow)', title: 'Put-Call Parity Screener',
+    desc: 'Given a list of options <code>{type, strike, price, stock, expiry}</code> (expiry is years to maturity, risk-free rate = 0.05), return the indices of any pair (call + put) with the same strike that violates put-call parity by more than 1%. Parity: <code>C - P = S - K·e^(-r·T)</code>. Return an array of <code>{callIdx, putIdx, violation}</code>.',
+    examples: '// C=10, P=5, S=100, K=95, r=0.05, T=1\n// C-P=5, S-K*e^(-rT)=100-90.24=9.76  → violation=4.76',
+    starter: `function pcpScreener(options) {
+  // options: [{type:'call'|'put', strike, price, stock, expiry}]
+  // Return: [{callIdx, putIdx, violation}] for each violating pair
+
+}`,
+    tests: [
+      {input:[[{type:'call',strike:100,price:10,stock:100,expiry:1},{type:'put',strike:100,price:5,stock:100,expiry:1}]],expected:r=>r.length===1&&Math.abs(r[0].violation)>1,desc:'Detects violation'},
+      {input:[[{type:'call',strike:100,price:10,stock:100,expiry:1},{type:'put',strike:100,price:9.5,stock:100,expiry:1}]],expected:r=>r.length===0||r[0].violation<2,desc:'Near-parity not flagged'},
+    ],
+    fn: 'pcpScreener',
+    hint: 'Group options by strike. For each call+put pair: compute C-P and S-K*exp(-r*T). If |difference|>0.01*S, flag it.'
+  },
+  {
+    tier: 4, tierColor: 'var(--red)', title: 'Optimal TWAP Split',
+    desc: 'You need to sell <code>totalQty</code> shares over <code>n</code> buckets. Minimize market impact: impact cost per bucket = <code>alpha * qty²</code>. Find the optimal qty per bucket (integers, summing to totalQty) that minimizes total impact. With uniform linear impact, the answer is equal splitting — but confirm this and handle the remainder allocation. Return array of <code>n</code> integers.',
+    examples: 'twapSplit(100, 4)\n// → [25, 25, 25, 25]\ntwapSplit(103, 4)\n// → [26, 26, 26, 25] or similar (remainder distributed)',
+    starter: `function twapSplit(totalQty, n) {
+  // Return array of n integers summing to totalQty
+  // Distribute as evenly as possible
+
+}`,
+    tests: [
+      {input:[100,4],expected:[25,25,25,25],desc:'Even split'},
+      {input:[103,4],expected:a=>a.length===4&&a.reduce((s,v)=>s+v,0)===103&&Math.max(...a)-Math.min(...a)<=1,desc:'Remainder distributed, max-min ≤ 1'},
+      {input:[1,5],expected:a=>a.reduce((s,v)=>s+v,0)===1&&a.length===5,desc:'qty < n'},
+      {input:[10,1],expected:[10],desc:'Single bucket'},
+    ],
+    fn: 'twapSplit',
+    hint: 'base = Math.floor(total/n), remainder = total % n. Give (base+1) to the first `remainder` buckets.'
+  },
+  {
+    tier: 4, tierColor: 'var(--red)', title: 'Z-Score Pair Selector',
+    desc: 'Given a list of price series (each an array), find the pair with the highest absolute correlation among all combinations. Return <code>{i, j, correlation}</code> (indices into the input array, i < j, correlation rounded to 4dp). Use Pearson correlation.',
+    examples: 'bestPair([[1,2,3],[1,2,3],[3,2,1]])\n// → {i:0, j:1, correlation:1.0}',
+    starter: `function bestPair(series) {
+  // series: array of price arrays (same length)
+  // Return: {i, j, correlation} for the highest |correlation| pair
+
+}`,
+    tests: [
+      {input:[[[1,2,3],[1,2,3],[3,2,1]]],expected:r=>r.i===0&&r.j===1&&r.correlation===1,desc:'Perfect correlation pair'},
+      {input:[[[1,2,3,4],[4,3,2,1],[2,2,2,2]]],expected:r=>Math.abs(r.correlation)===1,desc:'Picks perfectly correlated (or anti-correlated) pair'},
+      {input:[[[1,2],[3,4]]],expected:r=>r.i===0&&r.j===1,desc:'Only one pair'},
+    ],
+    fn: 'bestPair',
+    hint: 'Pearson(X,Y) = [Σ(xi-x̄)(yi-ȳ)] / [√Σ(xi-x̄)² × √Σ(yi-ȳ)²]. Try all pairs, track max |corr|.'
+  },
+  {
+    tier: 5, tierColor: 'var(--purple)', title: 'Max Profit: At Most K Trades',
+    desc: 'Given a price array and integer k, find the maximum profit achievable with at most k buy-sell transactions (must sell before next buy). Classic DP — solve in O(n·k) time.',
+    examples: 'maxProfit([3,2,6,5,0,3], 2)\n// → 7  (buy@2,sell@6 + buy@0,sell@3)',
+    starter: `function maxProfit(prices, k) {
+  // Return maximum profit with at most k transactions
+
+}`,
+    tests: [
+      {input:[[3,2,6,5,0,3],2],expected:7,desc:'Classic example'},
+      {input:[[1,2,3,4,5],1],expected:4,desc:'1 transaction — buy low sell high'},
+      {input:[[7,6,4,3,1],3],expected:0,desc:'Decreasing prices — profit is 0'},
+      {input:[[1,2,4,2,5,7,2,4,9,0],4],expected:v=>v>=13,desc:'Many transactions possible'},
+    ],
+    fn: 'maxProfit',
+    hint: 'DP: dp[t][i] = max profit using t transactions up to price[i]. Or use the buy/sell state machine for k≥n/2 (unlimited trades).'
+  },
+  {
+    tier: 5, tierColor: 'var(--purple)', title: 'Minimum Variance Portfolio',
+    desc: 'Given a 2D covariance matrix (as array of arrays) and expected returns array, find the minimum variance portfolio weights (sum to 1, no short-selling constraint). For a 2-asset case, use the closed-form formula. For N assets, implement gradient descent or return null.',
+    examples: 'minVarPortfolio([[0.04,0.01],[0.01,0.09]])\n// → [0.8, 0.2]  (approx)',
+    starter: `function minVarPortfolio(cov) {
+  // cov: NxN covariance matrix (array of arrays)
+  // Return: weight array summing to 1
+  // For N=2: use closed-form. For N>2: gradient descent is fine.
+
+}`,
+    tests: [
+      {input:[[[0.04,0.01],[0.01,0.09]]],expected:w=>Math.abs(w[0]+w[1]-1)<0.01&&w[0]>0.5,desc:'2-asset: lower-var asset gets more weight'},
+      {input:[[[0.01,0],[0,0.01]]],expected:w=>Math.abs(w[0]-0.5)<0.05&&Math.abs(w[1]-0.5)<0.05,desc:'Equal variance → equal weights'},
+    ],
+    fn: 'minVarPortfolio',
+    hint: '2-asset: w1=(σ2²-σ12)/(σ1²+σ2²-2σ12), w2=1-w1. Where σ12=cov[0][1], σ1²=cov[0][0], σ2²=cov[1][1].'
+  }
+];
+
+let cjEditor = null;
+let cjCurrentIdx = 0;
+let cjSolved = new Set();
+
+function initCodeJudge() {
+  if (cjEditor) return;
+  // Populate selector
+  const sel = document.getElementById('cj-prob-sel');
+  CJ_PROBLEMS.forEach((p,i)=>{
+    const opt=document.createElement('option');
+    opt.value=i;
+    opt.textContent='T'+p.tier+' — '+p.title;
+    sel.appendChild(opt);
+  });
+  cjEditor = CodeMirror.fromTextArea(document.getElementById('cj-code'),{
+    mode:'javascript',theme:'dracula',lineNumbers:true,
+    tabSize:2,indentWithTabs:false,matchBrackets:true,autoCloseBrackets:true
+  });
+  cjEditor.setSize('100%','100%');
+  cjLoadProblem(0);
+}
+
+function cjLoadProblem(idx) {
+  cjCurrentIdx = idx;
+  const p = CJ_PROBLEMS[idx];
+  const panel = document.getElementById('cj-prob-panel');
+  panel.innerHTML =
+    '<div class="cj-tier" style="color:'+p.tierColor+'">Tier '+p.tier+'</div>'+
+    '<div class="cj-prob-title">'+p.title+'</div>'+
+    '<div class="cj-prob-desc">'+p.desc+'</div>'+
+    '<pre class="cj-examples" style="margin-top:10px">'+p.examples+'</pre>';
+  if(cjEditor) cjEditor.setValue(p.starter);
+  document.getElementById('cj-err').textContent='';
+  document.getElementById('cj-cases').innerHTML='<span style="color:var(--dim);font-size:13px;">Run your code to see results.</span>';
+  cjUpdateProgress();
+}
+
+function cjRun() {
+  const p = CJ_PROBLEMS[cjCurrentIdx];
+  const code = cjEditor ? cjEditor.getValue() : '';
+  document.getElementById('cj-err').textContent = '';
+  let fn;
+  try {
+    fn = new Function(code + '\nreturn ' + p.fn + ';')();
+    if (typeof fn !== 'function') throw new Error(p.fn + ' is not a function');
+  } catch(e) {
+    document.getElementById('cj-err').textContent = '⚠ ' + e.message;
+    return;
+  }
+  const casesEl = document.getElementById('cj-cases');
+  casesEl.innerHTML = '';
+  let allPass = true;
+  p.tests.forEach((tc,i)=>{
+    const div = document.createElement('div');
+    let result, passed, errMsg='';
+    try {
+      result = fn(...tc.input.map(a=>JSON.parse(JSON.stringify(a))));
+      if (typeof tc.expected === 'function') {
+        passed = tc.expected(result);
+      } else if (Array.isArray(tc.expected)) {
+        passed = JSON.stringify(result) === JSON.stringify(tc.expected);
+      } else if (typeof tc.expected === 'number') {
+        passed = Math.abs((result||0) - tc.expected) < 0.01;
+      } else {
+        passed = result === tc.expected;
+      }
+    } catch(e) {
+      passed = false; errMsg = e.message;
+    }
+    if(!passed) allPass=false;
+    div.className = 'cj-case ' + (errMsg?'err':passed?'pass':'fail');
+    div.innerHTML = '<div class="cj-icon">'+(errMsg?'⚠':passed?'✓':'✗')+'</div>'+
+      '<div class="cj-case-text">'+
+      '<div class="label">Case '+(i+1)+': '+tc.desc+'</div>'+
+      (errMsg?'<div style="color:var(--red)">'+errMsg+'</div>':
+       !passed?'<div style="color:var(--dim)">Got: '+JSON.stringify(result)+' · Expected: '+
+        (typeof tc.expected==='function'?'function check':JSON.stringify(tc.expected))+'</div>':'')+'</div>';
+    casesEl.appendChild(div);
+  });
+  if(allPass){
+    cjSolved.add(cjCurrentIdx);
+    cjUpdateProgress();
+    const banner=document.createElement('div');
+    banner.style.cssText='background:rgba(0,216,136,.12);border:1px solid var(--green);border-radius:6px;padding:10px 14px;margin-top:8px;font-size:13px;font-weight:700;color:var(--green);';
+    banner.textContent='✓ All tests passed! Problem solved.';
+    casesEl.appendChild(banner);
+  }
+}
+
+function cjHint() {
+  const p = CJ_PROBLEMS[cjCurrentIdx];
+  const casesEl = document.getElementById('cj-cases');
+  const hint = document.createElement('div');
+  hint.style.cssText='background:rgba(157,96,255,.08);border:1px solid rgba(157,96,255,.2);border-radius:6px;padding:10px 14px;margin-top:8px;font-size:13px;color:var(--purple);';
+  hint.textContent='💡 Hint: '+p.hint;
+  casesEl.insertBefore(hint, casesEl.firstChild);
+}
+
+function cjResetCode() {
+  if(cjEditor) cjEditor.setValue(CJ_PROBLEMS[cjCurrentIdx].starter);
+  document.getElementById('cj-err').textContent='';
+}
+
+function cjUpdateProgress() {
+  document.getElementById('cj-score-pill').textContent=cjSolved.size+' / 10 solved';
+  const list=document.getElementById('cj-solved-list');
+  list.innerHTML='';
+  CJ_PROBLEMS.forEach((p,i)=>{
+    const b=document.createElement('div');
+    b.className='cj-badge';
+    b.style.cssText='background:'+(cjSolved.has(i)?'rgba(0,216,136,.15)':'var(--bg4)')+';border:1px solid '+(cjSolved.has(i)?'var(--green)':'var(--border2)')+';color:'+(cjSolved.has(i)?'var(--green)':'var(--dim)')+';cursor:pointer;';
+    b.textContent=(cjSolved.has(i)?'✓ ':'')+'T'+p.tier+' '+p.title.split(' ')[0];
+    b.onclick=()=>{document.getElementById('cj-prob-sel').value=i;cjLoadProblem(i);};
+    list.appendChild(b);
+  });
+}
+</script>
+
+<script>
+(function(){
+  function setTheme(t,save){
+    if(save) localStorage.setItem('imc-theme',t);
+    var root=document.documentElement;
+    if(t==='dark') root.setAttribute('data-theme','dark');
+    else if(t==='light') root.setAttribute('data-theme','light');
+    else root.removeAttribute('data-theme');
+    document.querySelectorAll('.tnb').forEach(function(b){
+      b.classList.toggle('active', b.dataset.t===t);
+    });
+  }
+  window.setTheme=setTheme;
+  // Apply saved theme on load
+  setTheme(localStorage.getItem('imc-theme')||'system', false);
+})();
+</script>
+</body>
+</html>
