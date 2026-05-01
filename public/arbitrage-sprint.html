@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arbitrage Sprint | IMC Trading Race Prep</title>
+<style>
+:root{
+  --bg:#060d1a;--panel:#0d1829;--border:#1e3a5f;--border2:#1e2d4a;
+  --text:#e2e8f0;--dim:#64748b;--dim2:#94a3b8;
+  --blue:#3b82f6;--blue-l:#60a5fa;--green:#22c55e;--red:#ef4444;
+  --yellow:#eab308;--purple:#a855f7;--cyan:#06b6d4;
+  --green-bg:rgba(34,197,94,0.12);--red-bg:rgba(239,68,68,0.12);
+  --blue-bg:rgba(59,130,246,0.12);--yellow-bg:rgba(234,179,8,0.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;min-height:100vh;}
+a{color:var(--blue-l);text-decoration:none;}
+a:hover{text-decoration:underline;}
+.hidden{display:none!important;}
+nav{background:#0a1220;border-bottom:1px solid var(--border2);padding:8px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;}
+.brand{color:var(--yellow);font-weight:700;font-size:13px;}
+.cur{color:var(--text);font-weight:700;}
+.sep{color:var(--border);}
+.btn{display:inline-block;padding:11px 28px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .15s;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{background:#2563eb;}
+.btn-secondary{background:var(--panel);color:var(--dim2);border:1px solid var(--border);}
+.btn-secondary:hover{color:var(--text);}
+.btn-green{background:var(--green);color:#fff;}
+.btn-green:hover{background:#16a34a;}
+
+/* SETUP */
+#setup{max-width:700px;margin:40px auto;padding:0 20px;}
+.setup-hero{text-align:center;margin-bottom:28px;}
+.setup-tag{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--yellow);text-transform:uppercase;margin-bottom:8px;}
+.setup-title{font-size:30px;font-weight:900;color:#fff;margin-bottom:6px;}
+.setup-sub{color:var(--dim2);font-size:14px;}
+.round-preview{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:24px 0;}
+.rp-card{background:var(--panel);border:1px solid var(--border2);border-radius:8px;padding:12px;text-align:center;}
+.rp-num{font-size:20px;font-weight:900;color:var(--yellow);margin-bottom:4px;}
+.rp-name{font-size:11px;font-weight:700;color:var(--dim2);margin-bottom:4px;}
+.rp-time{font-size:10px;color:var(--dim);}
+
+/* ROUND INTRO */
+#round-intro{max-width:600px;margin:60px auto;padding:20px;text-align:center;}
+.ri-round{font-size:13px;font-weight:700;letter-spacing:2px;color:var(--yellow);text-transform:uppercase;margin-bottom:10px;}
+.ri-title{font-size:26px;font-weight:900;color:#fff;margin-bottom:8px;}
+.ri-desc{color:var(--dim2);font-size:13px;line-height:1.7;margin-bottom:20px;max-width:460px;margin-left:auto;margin-right:auto;}
+.ri-tip{background:var(--blue-bg);border:1px solid rgba(59,130,246,.3);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--dim2);margin-bottom:20px;text-align:left;}
+.ri-tip strong{color:var(--blue-l);}
+.countdown{font-size:64px;font-weight:900;color:var(--yellow);}
+
+/* GAME AREA */
+#game-area{max-width:900px;margin:20px auto;padding:0 20px;}
+.game-header{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:12px 18px;margin-bottom:14px;}
+.gh-round{font-size:13px;font-weight:700;color:var(--yellow);}
+.gh-name{font-size:15px;font-weight:900;color:#fff;flex:1;}
+.gh-timer{font-size:28px;font-weight:900;color:var(--blue-l);font-variant-numeric:tabular-nums;}
+.gh-timer.warn{color:var(--yellow);}
+.gh-timer.crit{color:var(--red);}
+.gh-score{background:var(--yellow-bg);border:1px solid rgba(234,179,8,.3);border-radius:6px;padding:6px 12px;text-align:center;}
+.gh-score-val{font-size:18px;font-weight:900;color:var(--yellow);}
+.gh-score-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;}
+
+/* ROUND 1 — FX ARBITRAGE */
+.fx-section{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.fx-matrix-wrap{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.fx-title{font-size:11px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:10px;}
+.fx-matrix{border-collapse:collapse;width:100%;font-size:12px;}
+.fx-matrix th{background:#111e33;color:var(--blue-l);font-weight:700;padding:7px 10px;text-align:center;border:1px solid var(--border2);}
+.fx-matrix td{padding:7px 10px;text-align:center;border:1px solid var(--border2);color:var(--dim2);}
+.fx-matrix tr:hover td{background:rgba(59,130,246,.06);}
+.fx-paths{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.path-option{padding:12px 14px;border:1px solid var(--border2);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:all .15s;}
+.path-option:hover{border-color:var(--blue);background:var(--blue-bg);}
+.path-option.selected{border-color:var(--yellow);background:var(--yellow-bg);}
+.path-option.correct{border-color:var(--green);background:var(--green-bg);}
+.path-option.wrong{border-color:var(--red);background:var(--red-bg);}
+.path-route{font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;}
+.path-result{font-size:13px;font-weight:900;}
+
+/* ROUND 2 — STAT ARB */
+.stat-arb-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;}
+.sa-chart-panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.sa-info-panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;}
+.zscore-gauge{background:#111e33;border-radius:8px;padding:12px;text-align:center;}
+.zscore-val{font-size:28px;font-weight:900;}
+.zscore-lbl{font-size:10px;color:var(--dim);text-transform:uppercase;}
+.action-btn{padding:10px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:none;width:100%;transition:all .15s;margin-bottom:6px;}
+.ab-long{background:rgba(34,197,94,.2);color:var(--green);border:1px solid rgba(34,197,94,.4);}
+.ab-long:hover{background:rgba(34,197,94,.35);}
+.ab-short{background:rgba(239,68,68,.2);color:var(--red);border:1px solid rgba(239,68,68,.4);}
+.ab-short:hover{background:rgba(239,68,68,.35);}
+.ab-flat{background:var(--border2);color:var(--dim2);border:1px solid var(--border);}
+.ab-flat:hover{background:var(--border);}
+.action-btn.selected-ab{box-shadow:0 0 0 2px var(--yellow);}
+
+/* ROUND 3 — OPTIONS */
+.options-table-wrap{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;}
+.opt-table{border-collapse:collapse;width:100%;font-size:12px;}
+.opt-table th{background:#111e33;color:var(--blue-l);font-weight:700;padding:8px 12px;border:1px solid var(--border2);}
+.opt-table td{padding:8px 12px;border:1px solid var(--border2);color:var(--dim2);}
+.opt-table tr.selectable{cursor:pointer;}
+.opt-table tr.selectable:hover td{background:rgba(59,130,246,.07);}
+.opt-table tr.selected-opt td{background:rgba(234,179,8,.1);color:var(--text);}
+.opt-table tr.correct-opt td{background:rgba(34,197,94,.1);color:var(--green);}
+.opt-table tr.wrong-opt td{background:rgba(239,68,68,.1);color:var(--red);}
+.parity-formula{background:#111e33;border-radius:6px;padding:10px 14px;font-size:12px;color:var(--cyan);margin-bottom:12px;font-family:monospace;}
+
+/* ROUND 4 — NEWS PRICING */
+.news-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:14px;}
+.news-headline{font-size:16px;font-weight:700;color:#fff;margin-bottom:6px;}
+.news-body{font-size:12px;color:var(--dim2);line-height:1.6;}
+.news-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;}
+.ns-stat{background:#111e33;border-radius:6px;padding:8px;text-align:center;}
+.ns-val{font-size:14px;font-weight:700;color:var(--text);}
+.ns-lbl{font-size:10px;color:var(--dim);}
+.pricing-section{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.price-slider{width:100%;-webkit-appearance:none;height:6px;border-radius:3px;background:linear-gradient(to right,var(--red),var(--yellow),var(--green));outline:none;cursor:pointer;margin:12px 0;}
+.price-display{font-size:32px;font-weight:900;color:var(--yellow);text-align:center;margin:8px 0;}
+.price-range{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);}
+
+/* ROUND 5 — ORDER BOOK */
+.r5-grid{display:grid;grid-template-columns:220px 1fr;gap:14px;}
+.ob-panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.ob-title{font-size:11px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:10px;}
+.ob-ask-row,.ob-bid-row{display:flex;justify-content:space-between;padding:4px 6px;border-radius:4px;font-size:12px;margin-bottom:2px;}
+.ob-ask-row{background:rgba(239,68,68,.08);color:var(--red);}
+.ob-bid-row{background:rgba(34,197,94,.08);color:var(--green);}
+.ob-spread{text-align:center;font-size:10px;color:var(--dim);padding:4px 0;border-top:1px dashed var(--border);border-bottom:1px dashed var(--border);margin:4px 0;}
+.r5-trade{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.r5-chart-area{background:#111e33;border-radius:6px;margin-bottom:10px;}
+.trade-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.tc-input{background:#111e33;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:14px;color:var(--text);width:100%;outline:none;}
+.tc-input:focus{border-color:var(--blue);}
+.trade-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.tb-buy{padding:10px;background:rgba(34,197,94,.2);color:var(--green);border:1px solid rgba(34,197,94,.4);border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;}
+.tb-buy:hover{background:rgba(34,197,94,.35);}
+.tb-sell{padding:10px;background:rgba(239,68,68,.2);color:var(--red);border:1px solid rgba(239,68,68,.4);border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;}
+.tb-sell:hover{background:rgba(239,68,68,.35);}
+.pos-row{display:flex;justify-content:space-between;font-size:12px;color:var(--dim2);padding:6px 0;border-top:1px solid var(--border2);}
+
+/* FEEDBACK BANNER */
+.feedback-banner{padding:12px 18px;border-radius:8px;font-size:13px;font-weight:700;margin-top:12px;}
+.fb-correct{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.3);}
+.fb-wrong{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.3);}
+.fb-info{background:var(--blue-bg);color:var(--blue-l);border:1px solid rgba(59,130,246,.3);}
+
+/* SCORE TRACKER */
+.score-tracker{display:flex;gap:6px;margin-bottom:12px;}
+.score-seg{flex:1;height:6px;border-radius:3px;background:var(--border2);}
+.score-seg.won{background:var(--green);}
+.score-seg.lost{background:var(--red);}
+.score-seg.current{background:var(--yellow);animation:pulse .8s infinite alternate;}
+@keyframes pulse{from{opacity:.6;}to{opacity:1;}}
+
+/* RESULTS */
+#results{max-width:600px;margin:50px auto;padding:20px;text-align:center;}
+.res-medal{font-size:56px;margin-bottom:10px;}
+.res-title{font-size:28px;font-weight:900;color:#fff;margin-bottom:4px;}
+.res-sub{color:var(--dim2);margin-bottom:24px;}
+.res-rounds{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:20px;}
+.rr-card{background:var(--panel);border:1px solid var(--border2);border-radius:8px;padding:10px;text-align:center;}
+.rr-num{font-size:12px;font-weight:700;color:var(--dim);margin-bottom:4px;}
+.rr-result{font-size:18px;}
+.rr-pts{font-size:11px;font-weight:700;}
+.total-score-box{background:var(--yellow-bg);border:1px solid rgba(234,179,8,.3);border-radius:10px;padding:20px;margin-bottom:20px;}
+.tsb-val{font-size:40px;font-weight:900;color:var(--yellow);}
+.tsb-lbl{font-size:12px;color:var(--dim2);}
+
+/* ── LIGHT MODE ── */
+[data-theme="light"]{
+  --bg:#f0f4f8!important;--panel:#ffffff!important;--panel2:#e8edf3!important;
+  --border:#c5d0de!important;--border2:#d5dde8!important;
+  --text:#1e2d3d!important;--dim:#6b7d8f!important;--dim2:#4a5a6a!important;
+  --blue:#2563eb!important;--blue-l:#1d4ed8!important;
+  --green:#16a34a!important;--red:#dc2626!important;
+  --yellow:#b45309!important;--purple:#7c3aed!important;
+  --cyan:#0e7490!important;--teal:#0f766e!important;--orange:#c2410c!important;
+  --green-bg:rgba(22,163,74,0.12)!important;--red-bg:rgba(220,38,38,0.12)!important;
+  --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
+  --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
+  --orange-bg:rgba(194,65,12,0.12)!important;
+}
+@media(prefers-color-scheme:light){
+  :root:not([data-theme]){
+    --bg:#f0f4f8!important;--panel:#ffffff!important;--panel2:#e8edf3!important;
+    --border:#c5d0de!important;--border2:#d5dde8!important;
+    --text:#1e2d3d!important;--dim:#6b7d8f!important;--dim2:#4a5a6a!important;
+    --blue:#2563eb!important;--blue-l:#1d4ed8!important;
+    --green:#16a34a!important;--red:#dc2626!important;
+    --yellow:#b45309!important;--purple:#7c3aed!important;
+    --cyan:#0e7490!important;--teal:#0f766e!important;--orange:#c2410c!important;
+    --green-bg:rgba(22,163,74,0.12)!important;--red-bg:rgba(220,38,38,0.12)!important;
+    --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
+    --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
+    --orange-bg:rgba(194,65,12,0.12)!important;
+  }
+}
+/* Theme toggle button in nav */
+.theme-nav-btns{margin-left:auto;display:flex;gap:3px;align-items:center;}
+.tnb{padding:3px 8px;border-radius:5px;border:1px solid var(--border2);
+  background:transparent;color:var(--dim);font-size:10px;font-weight:700;
+  cursor:pointer;transition:all .12s;line-height:1;}
+.tnb:hover{color:var(--text);}
+.tnb.active{background:var(--panel);border-color:var(--border);color:var(--text);}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="brand">⌂ Hub</a><span class="sep">|</span>
+  <span style="color:var(--dim);font-size:11px;">Collab:</span>
+  <a href="quant-relay.html">Relay</a>
+  <a href="alpha-factory.html">Alpha Factory</a>
+  <span class="sep">|</span>
+
+  <span style="color:var(--dim);font-size:11px;">Trading:</span>
+  <a href="cmi-challenge.html">CMI</a>
+  <a href="price-war.html">Price War</a>
+  <span class="cur">Arb Sprint</span>
+  <span class="sep">|</span>
+  <span style="color:var(--dim);font-size:11px;">Tech:</span>
+  <a href="algo-blitz.html">Algo Blitz</a>
+  <a href="bot-builder.html">Bot Builder</a>
+  <span class="sep">|</span>
+  <a href="momentum-trainer.html">Momentum</a>
+  <a href="spread-trader.html">Spread</a>
+  <a href="regime-rider.html">Regime</a>
+  <span class="sep">|</span>
+  <a href="basket-blitz.html">Basket</a>
+  <a href="options-outcry.html">Outcry</a>
+  <a href="cmi-challenge.html">CMI</a>
+<span class="theme-nav-btns"><button class="tnb" data-t="light" onclick="setTheme('light',true)" title="Light">☀</button><button class="tnb" data-t="system" onclick="setTheme('system',true)" title="System">⊙</button><button class="tnb" data-t="dark" onclick="setTheme('dark',true)" title="Dark">☾</button></span>
+</nav>
+
+<!-- SETUP -->
+<div id="setup">
+  <div class="setup-hero">
+    <div class="setup-tag">IMC Prosperity · Manual Challenge Replica</div>
+    <div class="setup-title">🏁 Arbitrage Sprint</div>
+    <div class="setup-sub">5 escalating rounds · Speed bonus · Real IMC challenge formats</div>
+  </div>
+  <div class="round-preview">
+    <div class="rp-card"><div class="rp-num">R1</div><div class="rp-name">FX Arbitrage</div><div class="rp-time">3 min</div></div>
+    <div class="rp-card"><div class="rp-num">R2</div><div class="rp-name">Stat Arb</div><div class="rp-time">3 min</div></div>
+    <div class="rp-card"><div class="rp-num">R3</div><div class="rp-name">Options</div><div class="rp-time">3 min</div></div>
+    <div class="rp-card"><div class="rp-num">R4</div><div class="rp-name">News Pricing</div><div class="rp-time">90 sec</div></div>
+    <div class="rp-card"><div class="rp-num">R5</div><div class="rp-name">Order Book</div><div class="rp-time">2 min</div></div>
+  </div>
+  <div style="background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:16px;margin-bottom:20px;font-size:13px;color:var(--dim2);line-height:1.7;">
+    <strong style="color:var(--text);">⚡ Scoring:</strong> Each round has a base score + speed bonus. Get the right answer quickly to score max points. In Rounds 4 and 5, closeness to correct answer determines your score.
+  </div>
+  <div style="text-align:center;">
+    <button class="btn btn-primary" onclick="beginRound(0)">Start Sprint 🚀</button>
+  </div>
+</div>
+
+<!-- ROUND INTRO -->
+<div id="round-intro" class="hidden">
+  <div class="ri-round" id="ri-round-label"></div>
+  <div class="ri-title" id="ri-title"></div>
+  <div class="ri-desc" id="ri-desc"></div>
+  <div class="ri-tip" id="ri-tip"></div>
+  <div class="countdown" id="ri-countdown">3</div>
+</div>
+
+<!-- GAME AREA -->
+<div id="game-area" class="hidden">
+  <div class="game-header">
+    <div><div class="gh-round" id="gh-round"></div><div class="gh-name" id="gh-name"></div></div>
+    <div id="gh-timer" class="gh-timer">3:00</div>
+    <div class="gh-score"><div class="gh-score-val" id="gh-score">0</div><div class="gh-score-lbl">Total Pts</div></div>
+  </div>
+  <div class="score-tracker" id="score-tracker"></div>
+  <div id="round-content"></div>
+  <div id="round-feedback"></div>
+  <div style="margin-top:14px;text-align:right;" id="next-btn-wrap" class="hidden">
+    <button class="btn btn-primary" id="next-btn" onclick="nextRound()">Next Round →</button>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="results" class="hidden">
+  <div class="res-medal" id="res-medal">🥇</div>
+  <div class="res-title" id="res-title">Sprint Complete!</div>
+  <div class="res-sub" id="res-sub">Final scores across all 5 rounds</div>
+  <div class="total-score-box">
+    <div class="tsb-val" id="res-total">0</div>
+    <div class="tsb-lbl">Total Points (max 500)</div>
+  </div>
+  <div class="res-rounds" id="res-rounds"></div>
+  <button class="btn btn-primary" onclick="restartSprint()" style="margin-right:10px;">Sprint Again</button>
+  <a href="index.html"><button class="btn btn-secondary">Back to Hub</button></a>
+</div>
+
+<script>
+const ROUNDS = [
+  {
+    num:1, name:'FX Arbitrage Matrix', time:180,
+    intro:'Given a 5-currency FX matrix, find the path that converts 1000 EUR into the most EUR after 4 hops.',
+    tip:'<strong>How to approach:</strong> Multiply conversion rates along each path. Start from EUR, pass through 3 intermediary currencies, and return to EUR. The best cycle exploits a mispricing.',
+    maxPts:100
+  },
+  {
+    num:2, name:'Statistical Arbitrage', time:180,
+    intro:'Two historically correlated stocks have diverged. Based on the Z-score of their spread, decide your trade.',
+    tip:'<strong>Z-score rules:</strong> |Z| > 2: strong signal. Positive Z (spread above mean): short the spread (sell A, buy B). Negative Z: long the spread (buy A, sell B). Z near 0: no edge.',
+    maxPts:100
+  },
+  {
+    num:3, name:'Options Mispricing', time:180,
+    intro:'Six options quotes are shown for the same underlying stock. Two of them violate put-call parity. Find them.',
+    tip:'<strong>Put-Call Parity:</strong> C − P = S − K·e^(−rT). Simplified: Call Price − Put Price ≈ Stock Price − Strike Price (for at-the-money, ignoring carry). Select exactly 2 mispriced options.',
+    maxPts:100
+  },
+  {
+    num:4, name:'News Pricing Challenge', time:90,
+    intro:'A company just released its earnings report. Based on the news and company stats shown, price the stock. Closest answer scores most.',
+    tip:'<strong>Approach:</strong> Current price is the anchor. Read EPS surprise carefully — a 10% EPS beat rarely moves stock 10%. Typical reaction: 3-8% for strong beats. Adjust for sector tone.',
+    maxPts:100
+  },
+  {
+    num:5, name:'Live Order Book Trading', time:120,
+    intro:'Trade a single asset for 2 minutes against a live order book. Your P&L at the end is your score. Manage inventory carefully.',
+    tip:'<strong>Strategy:</strong> The price has a hidden drift. Watch 5 ticks before trading. Buy low, sell high. Avoid large unhedged positions — a reversal will hurt. Close flat if unsure.',
+    maxPts:100
+  }
+];
+
+const G = {
+  round: 0,
+  totalScore: 0,
+  roundScores: [0,0,0,0,0],
+  roundDone: [false,false,false,false,false],
+  timer: null,
+  timeLeft: 0,
+  r1Selected: null,
+  r2Action: null,
+  r3Selected: [],
+  r4Price: 250,
+  r5: { pos:0, cash:10000, price:100, history:[], interval:null }
+};
+
+// ===== ROUND MANAGEMENT =====
+function beginRound(idx) {
+  G.round = idx;
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('results').classList.add('hidden');
+  document.getElementById('game-area').classList.add('hidden');
+  document.getElementById('round-intro').classList.remove('hidden');
+  const r = ROUNDS[idx];
+  document.getElementById('ri-round-label').textContent = 'Round '+r.num+' of 5';
+  document.getElementById('ri-title').textContent = r.name;
+  document.getElementById('ri-desc').textContent = r.intro;
+  document.getElementById('ri-tip').innerHTML = r.tip;
+  let cd = 3;
+  document.getElementById('ri-countdown').textContent = cd;
+  const cdi = setInterval(() => {
+    cd--;
+    if (cd <= 0) { clearInterval(cdi); startRound(idx); }
+    else document.getElementById('ri-countdown').textContent = cd;
+  }, 1000);
+}
+
+function startRound(idx) {
+  document.getElementById('round-intro').classList.add('hidden');
+  document.getElementById('game-area').classList.remove('hidden');
+  document.getElementById('next-btn-wrap').classList.add('hidden');
+  document.getElementById('round-feedback').innerHTML = '';
+  const r = ROUNDS[idx];
+  document.getElementById('gh-round').textContent = 'Round '+r.num+' of 5';
+  document.getElementById('gh-name').textContent = r.name;
+  document.getElementById('gh-score').textContent = G.totalScore;
+  updateScoreTracker();
+  G.timeLeft = r.time;
+  updateRoundTimer();
+  clearInterval(G.timer);
+  G.timer = setInterval(() => {
+    G.timeLeft--;
+    updateRoundTimer();
+    if (G.round === 4) tickR5();
+    if (G.timeLeft <= 0) { clearInterval(G.timer); timeoutRound(); }
+  }, 1000);
+  renderRound(idx);
+}
+
+function updateRoundTimer() {
+  const m = Math.floor(G.timeLeft/60).toString().padStart(2,'0');
+  const s = (G.timeLeft%60).toString().padStart(2,'0');
+  const el = document.getElementById('gh-timer');
+  el.textContent = m+':'+s;
+  el.className = 'gh-timer' + (G.timeLeft < 20 ? ' crit' : G.timeLeft < 45 ? ' warn' : '');
+}
+
+function updateScoreTracker() {
+  let html = '';
+  for (let i=0; i<5; i++) {
+    let cls = 'score-seg';
+    if (i < G.round) cls += G.roundScores[i] > 0 ? ' won' : ' lost';
+    else if (i === G.round) cls += ' current';
+    html += '<div class="'+cls+'"></div>';
+  }
+  document.getElementById('score-tracker').innerHTML = html;
+}
+
+function timeoutRound() {
+  if (G.roundDone[G.round]) return;
+  G.roundDone[G.round] = true;
+  if (G.round === 4) { finalizeR5(); return; }
+  showFeedback(false, 0, 'Time\'s up! No points for this round. Speed matters in the real IMC race.');
+  document.getElementById('next-btn-wrap').classList.remove('hidden');
+}
+
+function showFeedback(correct, pts, msg) {
+  const cls = correct ? 'fb-correct' : (pts > 0 ? 'fb-info' : 'fb-wrong');
+  document.getElementById('round-feedback').innerHTML =
+    '<div class="feedback-banner '+cls+'">'+
+    (correct ? '✓ ' : pts > 0 ? '◎ ' : '✗ ')+msg+
+    (pts > 0 ? ' <strong>+'+pts+' points</strong>' : '')+
+    '</div>';
+}
+
+function nextRound() {
+  clearInterval(G.timer);
+  if (G.round >= 4) { showResults(); return; }
+  beginRound(G.round+1);
+}
+
+function showResults() {
+  document.getElementById('game-area').classList.add('hidden');
+  document.getElementById('results').classList.remove('hidden');
+  const total = G.roundScores.reduce((a,b)=>a+b,0);
+  G.totalScore = total;
+  document.getElementById('res-total').textContent = total;
+  let medal = '📊', title = 'Sprint Complete!', sub = 'Review your weak rounds and try again';
+  if (total >= 400) { medal = '🥇'; title = 'Elite Trader!'; sub = 'IMC would be impressed — top-tier performance'; }
+  else if (total >= 280) { medal = '🥈'; title = 'Strong Performance!'; sub = 'Good fundamentals — polish the harder rounds'; }
+  else if (total >= 160) { medal = '🥉'; title = 'Solid Foundation!'; sub = 'Core skills are there — speed needs work'; }
+  document.getElementById('res-medal').textContent = medal;
+  document.getElementById('res-title').textContent = title;
+  document.getElementById('res-sub').textContent = sub;
+  let rhtml = '';
+  ROUNDS.forEach((r,i) => {
+    const s = G.roundScores[i];
+    rhtml += '<div class="rr-card"><div class="rr-num">R'+(i+1)+'</div>'+
+      '<div class="rr-result">'+(s>=60?'✅':s>0?'🟡':'❌')+'</div>'+
+      '<div class="rr-pts" style="color:'+(s>=60?'var(--green)':s>0?'var(--yellow)':'var(--red)')+'">'+s+'/100</div></div>';
+  });
+  document.getElementById('res-rounds').innerHTML = rhtml;
+}
+
+function restartSprint() {
+  G.round=0; G.totalScore=0; G.roundScores=[0,0,0,0,0]; G.roundDone=[false,false,false,false,false];
+  G.r1Selected=null; G.r2Action=null; G.r3Selected=[];
+  clearInterval(G.timer);
+  document.getElementById('results').classList.add('hidden');
+  beginRound(0);
+}
+
+// ===== ROUND RENDERERS =====
+function renderRound(idx) {
+  const fns = [renderR1, renderR2, renderR3, renderR4, renderR5];
+  fns[idx]();
+}
+
+// ROUND 1 — FX ARBITRAGE
+const FX_MATRIX = {
+  'EUR':{'EUR':1,'USD':1.09,'GBP':0.86,'JPY':162,'CHF':0.97},
+  'USD':{'EUR':0.917,'USD':1,'GBP':0.79,'JPY':148,'CHF':0.89},
+  'GBP':{'EUR':1.162,'USD':1.267,'GBP':1,'JPY':204,'CHF':1.128},
+  'JPY':{'EUR':0.0062,'USD':0.0068,'GBP':0.0049,'JPY':1,'CHF':0.0060},
+  'CHF':{'EUR':1.031,'USD':1.124,'GBP':0.886,'JPY':167,'CHF':1}
+};
+const CURRENCIES = ['EUR','USD','GBP','JPY','CHF'];
+
+// Pre-computed paths (4-hop cycles starting from EUR)
+const FX_PATHS = [
+  {route:'EUR → USD → GBP → CHF → EUR', result: null},
+  {route:'EUR → JPY → USD → GBP → EUR', result: null},
+  {route:'EUR → CHF → JPY → USD → EUR', result: null},
+  {route:'EUR → GBP → USD → JPY → EUR', result: null},
+  {route:'EUR → USD → JPY → CHF → EUR', result: null},
+];
+
+function computePath(route) {
+  const currencies = route.replace(/ → /g,'→').split('→');
+  let val = 1000;
+  for (let i=0; i<currencies.length-1; i++) {
+    val *= FX_MATRIX[currencies[i]][currencies[i+1]];
+  }
+  return Math.round(val*100)/100;
+}
+
+function renderR1() {
+  // Compute path results
+  FX_PATHS.forEach(p => { p.result = computePath(p.route); });
+  // Best path index
+  const best = FX_PATHS.reduce((bi,p,i) => p.result > FX_PATHS[bi].result ? i : bi, 0);
+  G._r1Answer = best;
+  G.r1Selected = null;
+
+  let matHtml = '<thead><tr><th></th>';
+  CURRENCIES.forEach(c => { matHtml += '<th>'+c+'</th>'; });
+  matHtml += '</tr></thead><tbody>';
+  CURRENCIES.forEach(from => {
+    matHtml += '<tr><th>'+from+'</th>';
+    CURRENCIES.forEach(to => {
+      const rate = FX_MATRIX[from][to];
+      matHtml += '<td>'+(from===to?'—':rate.toFixed(4))+'</td>';
+    });
+    matHtml += '</tr>';
+  });
+  matHtml += '</tbody>';
+
+  let pathsHtml = '';
+  FX_PATHS.forEach((p,i) => {
+    const profit = p.result - 1000;
+    const color = profit > 0 ? 'var(--green)' : 'var(--red)';
+    const sign = profit >= 0 ? '+' : '';
+    pathsHtml += '<div class="path-option" id="path'+i+'" onclick="selectPath('+i+')">'+
+      '<div class="path-route">'+p.route+'</div>'+
+      '<div class="path-result" style="color:'+color+'">Result: €'+p.result.toFixed(2)+' ('+sign+profit.toFixed(2)+')</div>'+
+      '</div>';
+  });
+
+  document.getElementById('round-content').innerHTML =
+    '<div class="fx-section">'+
+    '<div class="fx-matrix-wrap"><div class="fx-title">FX Conversion Rates</div><table class="fx-matrix">'+matHtml+'</table></div>'+
+    '<div class="fx-paths"><div class="fx-title">Choose the most profitable 4-hop cycle (start: €1,000)</div>'+pathsHtml+
+    '<div style="margin-top:12px;"><button class="btn btn-green" onclick="submitR1()">Submit Answer ↵</button></div></div>'+
+    '</div>';
+}
+
+function selectPath(i) {
+  if (G.roundDone[0]) return;
+  G.r1Selected = i;
+  document.querySelectorAll('.path-option').forEach((el,j) => {
+    el.className = 'path-option' + (j===i?' selected':'');
+  });
+}
+
+function submitR1() {
+  if (G.r1Selected === null) return;
+  if (G.roundDone[0]) return;
+  G.roundDone[0] = true;
+  clearInterval(G.timer);
+  const correct = G.r1Selected === G._r1Answer;
+  // Score: base 60, + speed bonus (up to 40)
+  const timeBonus = correct ? Math.round((G.timeLeft/180)*40) : 0;
+  const pts = correct ? 60+timeBonus : 0;
+  G.roundScores[0] = pts;
+  G.totalScore += pts;
+  document.getElementById('gh-score').textContent = G.totalScore;
+  document.getElementById('path'+G._r1Answer).className = 'path-option correct';
+  if (!correct && G.r1Selected !== null) document.getElementById('path'+G.r1Selected).className = 'path-option wrong';
+  showFeedback(correct, pts, correct
+    ? 'Correct! Speed bonus: +'+timeBonus+' pts.'
+    : 'Incorrect. Best path was: '+FX_PATHS[G._r1Answer].route+' → €'+FX_PATHS[G._r1Answer].result.toFixed(2));
+  document.getElementById('next-btn-wrap').classList.remove('hidden');
+}
+
+// ROUND 2 — STAT ARB
+function renderR2() {
+  G.r2Action = null;
+  // Simulate spread data: OU process diverged
+  const mu = 0, kappa = 0.3, sigma = 0.8;
+  const N = 40;
+  const spreads = [0];
+  for (let i=1; i<N; i++) {
+    const prev = spreads[i-1];
+    const dt = 1/252;
+    const dS = kappa*(mu-prev)*dt + sigma*Math.sqrt(dt)*(Math.random()*2-1)*1.7;
+    spreads.push(prev+dS);
+  }
+  // Force a divergence at the end
+  for (let i=35; i<N; i++) spreads[i] += 0.08*(i-34);
+  const currentSpread = spreads[N-1];
+  const mean = spreads.reduce((a,b)=>a+b,0)/N;
+  const variance = spreads.reduce((a,b)=>a+(b-mean)*(b-mean),0)/N;
+  const std = Math.sqrt(variance);
+  const zScore = (currentSpread - mean)/std;
+  G._r2Answer = zScore > 1.8 ? 'short' : zScore < -1.8 ? 'long' : 'flat';
+  G._r2Z = zScore;
+
+  // Draw canvas
+  const W=580, H=150;
+  let svgPath = '';
+  spreads.forEach((v,i) => {
+    const x = (i/(N-1))*(W-20)+10;
+    const y = H/2 - v*30;
+    svgPath += (i===0?'M':'L')+x.toFixed(1)+','+y.toFixed(1);
+  });
+  const zColor = Math.abs(zScore) > 2 ? 'var(--red)' : Math.abs(zScore) > 1.5 ? 'var(--yellow)' : 'var(--green)';
+  const zLabel = zScore > 0 ? 'SPREAD HIGH — Short signal' : 'SPREAD LOW — Long signal';
+
+  document.getElementById('round-content').innerHTML =
+    '<div class="stat-arb-grid">'+
+    '<div class="sa-chart-panel">'+
+    '<div class="fx-title">Spread History: Stock A minus Stock B (40 trading days)</div>'+
+    '<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="background:#0a1020;border-radius:6px;">'+
+    '<line x1="10" y1="'+H/2+'" x2="'+(W-10)+'" y2="'+H/2+'" stroke="var(--border2)" stroke-width="1" stroke-dasharray="4,4"/>'+
+    '<line x1="10" y1="'+(H/2-30*2)+'" x2="'+(W-10)+'" y2="'+(H/2-30*2)+'" stroke="rgba(239,68,68,.4)" stroke-width="1" stroke-dasharray="3,3"/>'+
+    '<line x1="10" y1="'+(H/2+30*2)+'" x2="'+(W-10)+'" y2="'+(H/2+30*2)+'" stroke="rgba(34,197,94,.4)" stroke-width="1" stroke-dasharray="3,3"/>'+
+    '<text x="12" y="'+(H/2-30*2-3)+'" fill="rgba(239,68,68,.7)" font-size="9">+2σ</text>'+
+    '<text x="12" y="'+(H/2+30*2+11)+'" fill="rgba(34,197,94,.7)" font-size="9">−2σ</text>'+
+    '<path d="'+svgPath+'" fill="none" stroke="var(--yellow)" stroke-width="2"/>'+
+    '<circle cx="'+(10+(N-1)/(N-1)*(W-20))+'" cy="'+(H/2-currentSpread*30)+'" r="5" fill="'+zColor+'"/>'+
+    '</svg>'+
+    '<div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:var(--dim2);">'+
+    '<div>Stock A: <span style="color:var(--green)">+2.4% today</span></div>'+
+    '<div>Stock B: <span style="color:var(--red)">−3.1% today</span></div>'+
+    '<div>30-day correlation: <span style="color:var(--text)">0.87</span></div>'+
+    '<div>Half-life: <span style="color:var(--text)">~8 days</span></div>'+
+    '</div></div>'+
+    '<div class="sa-info-panel">'+
+    '<div class="zscore-gauge"><div class="zscore-val" style="color:'+zColor+'">'+zScore.toFixed(2)+'</div><div class="zscore-lbl">Current Z-Score</div><div style="font-size:10px;color:var(--dim);margin-top:4px;">'+zLabel+'</div></div>'+
+    '<div>'+
+    '<button class="action-btn ab-long" id="ab-long" onclick="selectR2(\'long\')">LONG SPREAD<br><span style="font-size:10px;font-weight:400">Buy A · Sell B</span></button>'+
+    '<button class="action-btn ab-short" id="ab-short" onclick="selectR2(\'short\')">SHORT SPREAD<br><span style="font-size:10px;font-weight:400">Sell A · Buy B</span></button>'+
+    '<button class="action-btn ab-flat" id="ab-flat" onclick="selectR2(\'flat\')">FLAT — No Edge<br><span style="font-size:10px;font-weight:400">Z-score too small</span></button>'+
+    '</div>'+
+    '<button class="btn btn-green" onclick="submitR2()" style="width:100%;margin-top:4px;">Submit Decision ↵</button>'+
+    '</div></div>';
+}
+
+function selectR2(action) {
+  if (G.roundDone[1]) return;
+  G.r2Action = action;
+  ['long','short','flat'].forEach(a => {
+    const el = document.getElementById('ab-'+a);
+    if (el) el.className = 'action-btn ab-'+a + (a===action?' selected-ab':'');
+  });
+}
+
+function submitR2() {
+  if (!G.r2Action || G.roundDone[1]) return;
+  G.roundDone[1] = true;
+  clearInterval(G.timer);
+  const correct = G.r2Action === G._r2Answer;
+  const timeBonus = correct ? Math.round((G.timeLeft/180)*40) : 0;
+  const pts = correct ? 60+timeBonus : 0;
+  G.roundScores[1] = pts;
+  G.totalScore += pts;
+  document.getElementById('gh-score').textContent = G.totalScore;
+  const actionNames = {long:'LONG SPREAD (Buy A, Sell B)',short:'SHORT SPREAD (Sell A, Buy B)',flat:'FLAT'};
+  const answerName = actionNames[G._r2Answer];
+  showFeedback(correct, pts, correct
+    ? 'Correct! Z='+G._r2Z.toFixed(2)+' → '+answerName+'. Speed bonus: +'+timeBonus+'.'
+    : 'Incorrect. Z='+G._r2Z.toFixed(2)+' → correct action was: '+answerName+'. |Z|>1.8 triggers the trade.');
+  document.getElementById('next-btn-wrap').classList.remove('hidden');
+}
+
+// ROUND 3 — OPTIONS MISPRICING
+const OPTIONS_DATA = [
+  {id:0, strike:240, expiry:'1m', callPrice:12.50, putPrice:7.20, stock:245, mispriced:false},
+  {id:1, strike:250, expiry:'1m', callPrice:5.80, putPrice:9.20, stock:245, mispriced:false},
+  {id:2, strike:245, expiry:'2m', callPrice:11.00, putPrice:9.80, stock:245, mispriced:true},  // C-P should be ~0, but 11-9.8=1.2 vs S-K=0 → mispriced
+  {id:3, strike:260, expiry:'1m', callPrice:1.20, putPrice:16.40, stock:245, mispriced:false},
+  {id:4, strike:235, expiry:'3m', callPrice:18.00, putPrice:4.00, stock:245, mispriced:true},  // C-P=14 but S-K=10 → mispriced
+  {id:5, strike:255, expiry:'2m', callPrice:4.50, putPrice:13.00, stock:245, mispriced:false},
+];
+
+function renderR3() {
+  G.r3Selected = [];
+  document.getElementById('round-content').innerHTML =
+    '<div class="options-table-wrap">'+
+    '<div class="parity-formula">Put-Call Parity: C − P ≈ S − K (ignoring interest/dividends) · Stock Price: €245.00</div>'+
+    '<div class="fx-title" style="margin-bottom:8px;">Click to select the 2 mispriced options (select exactly 2, then submit)</div>'+
+    '<table class="opt-table">'+
+    '<thead><tr><th>#</th><th>Strike</th><th>Expiry</th><th>Call Price (C)</th><th>Put Price (P)</th><th>C − P</th><th>S − K</th></tr></thead>'+
+    '<tbody>'+
+    OPTIONS_DATA.map((o,i) => {
+      const cp = (o.callPrice - o.putPrice).toFixed(2);
+      const sk = (o.stock - o.strike).toFixed(2);
+      return '<tr class="selectable" id="opt-row-'+i+'" onclick="toggleOpt('+i+')">'+
+        '<td>'+(i+1)+'</td><td>€'+o.strike+'</td><td>'+o.expiry+'</td>'+
+        '<td>€'+o.callPrice.toFixed(2)+'</td><td>€'+o.putPrice.toFixed(2)+'</td>'+
+        '<td style="font-weight:700">'+cp+'</td><td style="font-weight:700">'+sk+'</td></tr>';
+    }).join('')+
+    '</tbody></table></div>'+
+    '<div style="display:flex;align-items:center;gap:12px;">'+
+    '<button class="btn btn-green" onclick="submitR3()">Submit Selection ↵</button>'+
+    '<span style="font-size:12px;color:var(--dim)" id="sel-count">0 of 2 selected</span></div>';
+}
+
+function toggleOpt(i) {
+  if (G.roundDone[2]) return;
+  const idx = G.r3Selected.indexOf(i);
+  if (idx >= 0) {
+    G.r3Selected.splice(idx,1);
+    document.getElementById('opt-row-'+i).className = 'selectable';
+  } else if (G.r3Selected.length < 2) {
+    G.r3Selected.push(i);
+    document.getElementById('opt-row-'+i).className = 'selectable selected-opt';
+  }
+  document.getElementById('sel-count').textContent = G.r3Selected.length+' of 2 selected';
+}
+
+function submitR3() {
+  if (G.r3Selected.length !== 2 || G.roundDone[2]) return;
+  G.roundDone[2] = true;
+  clearInterval(G.timer);
+  const mispriced = OPTIONS_DATA.map((o,i)=>o.mispriced?i:-1).filter(i=>i>=0);
+  const correct = G.r3Selected.sort().join(',') === mispriced.sort().join(',');
+  const timeBonus = correct ? Math.round((G.timeLeft/180)*40) : 0;
+  const pts = correct ? 60+timeBonus : 0;
+  G.roundScores[2] = pts;
+  G.totalScore += pts;
+  document.getElementById('gh-score').textContent = G.totalScore;
+  mispriced.forEach(i => { document.getElementById('opt-row-'+i).className = 'selectable correct-opt'; });
+  G.r3Selected.filter(i=>!mispriced.includes(i)).forEach(i => { document.getElementById('opt-row-'+i).className = 'selectable wrong-opt'; });
+  showFeedback(correct, pts, correct
+    ? 'Both mispriced options found! Options #3 and #5: C−P ≠ S−K by too much. Speed bonus: +'+timeBonus+'.'
+    : 'Incorrect selection. Options #3 (Strike €245, 2m) and #5 (Strike €235, 3m) are mispriced — their C−P differs from S−K beyond fair spreads.');
+  document.getElementById('next-btn-wrap').classList.remove('hidden');
+}
+
+// ROUND 4 — NEWS PRICING
+const NEWS_EVENT = {
+  company:'NordTech NV',
+  headline:'NordTech Reports Q3 Earnings: Strong Beat — EPS €3.42 vs €2.80 Expected',
+  body:'Revenue grew 18% year-over-year to €2.1B. Operating margins expanded by 220bps to 24.2%. Management raised full-year guidance by 12%. The beat was driven by AI infrastructure demand.',
+  stats:{sector:'Technology',prevClose:'€210.00',epsEst:'€2.80',epsActual:'€3.42',revGrowth:'+18% YoY',peFwd:'22x'},
+  answer: 224  // ~+6.7% move: strong beat + guidance raise
+};
+
+function renderR4() {
+  G.r4Price = 210;
+  const ev = NEWS_EVENT;
+  document.getElementById('round-content').innerHTML =
+    '<div class="news-card">'+
+    '<div class="news-headline">📰 '+ev.headline+'</div>'+
+    '<div class="news-body">'+ev.body+'</div>'+
+    '<div class="news-stats">'+
+    '<div class="ns-stat"><div class="ns-val">'+ev.stats.sector+'</div><div class="ns-lbl">Sector</div></div>'+
+    '<div class="ns-stat"><div class="ns-val">'+ev.stats.prevClose+'</div><div class="ns-lbl">Prev Close</div></div>'+
+    '<div class="ns-stat"><div class="ns-val">'+ev.stats.epsActual+' vs '+ev.stats.epsEst+'</div><div class="ns-lbl">EPS (Act vs Est)</div></div>'+
+    '<div class="ns-stat"><div class="ns-val">'+ev.stats.revGrowth+'</div><div class="ns-lbl">Revenue Growth</div></div>'+
+    '</div></div>'+
+    '<div class="pricing-section">'+
+    '<div class="fx-title">Your Price Estimate — Drag the slider</div>'+
+    '<input type="range" class="price-slider" id="price-slider" min="175" max="260" value="210" oninput="updatePriceDisplay()">'+
+    '<div class="price-display" id="price-display">€210.00</div>'+
+    '<div class="price-range"><span>€175 (−17%)</span><span>Prev Close: €210</span><span>€260 (+24%)</span></div>'+
+    '<div style="margin-top:14px;"><button class="btn btn-green" onclick="submitR4()">Lock In Price ↵</button></div>'+
+    '</div>';
+}
+
+function updatePriceDisplay() {
+  const v = parseInt(document.getElementById('price-slider').value);
+  G.r4Price = v;
+  const pct = ((v/210-1)*100).toFixed(1);
+  const sign = v>=210?'+':'';
+  document.getElementById('price-display').textContent = '€'+v+'.00 ('+sign+pct+'%)';
+}
+
+function submitR4() {
+  if (G.roundDone[3]) return;
+  G.roundDone[3] = true;
+  clearInterval(G.timer);
+  const ans = NEWS_EVENT.answer;
+  const diff = Math.abs(G.r4Price - ans);
+  let pts = 0;
+  if (diff <= 2) pts = 100;
+  else if (diff <= 5) pts = 80;
+  else if (diff <= 10) pts = 60;
+  else if (diff <= 18) pts = 35;
+  else pts = 10;
+  G.roundScores[3] = pts;
+  G.totalScore += pts;
+  document.getElementById('gh-score').textContent = G.totalScore;
+  const pctErr = ((diff/ans)*100).toFixed(1);
+  showFeedback(diff<=5, pts, 'Consensus price: €'+ans+'.00 (+6.7%). Your estimate: €'+G.r4Price+'.00 (off by €'+diff+' / '+pctErr+'%). '+pts+' points earned.');
+  document.getElementById('next-btn-wrap').classList.remove('hidden');
+  document.getElementById('next-btn').textContent = 'Final Round →';
+}
+
+// ROUND 5 — LIVE ORDER BOOK TRADING
+const R5 = G.r5;
+function initR5State() {
+  G.r5 = {pos:0, cash:10000, price:100, history:[100], interval:null, tick:0, drift:0.15};
+}
+
+function renderR5() {
+  initR5State();
+  renderR5UI();
+}
+
+function renderR5UI() {
+  document.getElementById('round-content').innerHTML =
+    '<div class="r5-grid">'+
+    '<div class="ob-panel">'+
+    '<div class="ob-title">📒 Live Order Book — NORDX</div>'+
+    '<div id="r5-ob"></div>'+
+    '</div>'+
+    '<div class="r5-trade">'+
+    '<div class="fx-title" style="margin-bottom:6px;">Price Chart</div>'+
+    '<svg id="r5-chart" viewBox="0 0 400 100" width="100%" style="background:#0a1020;border-radius:6px;margin-bottom:10px;"></svg>'+
+    '<div class="trade-controls">'+
+    '<div><div style="font-size:10px;color:var(--dim);margin-bottom:3px;">Quantity</div><input type="number" class="tc-input" id="r5-qty" value="10" min="1" max="100"></div>'+
+    '<div><div style="font-size:10px;color:var(--dim);margin-bottom:3px;">Order Type</div>'+
+    '<select class="tc-input" id="r5-type" style="cursor:pointer;"><option value="market">Market</option><option value="limit">Limit (Best)</option></select></div>'+
+    '</div>'+
+    '<div class="trade-btns">'+
+    '<button class="tb-buy" onclick="r5Trade(\'buy\')">BUY ▲</button>'+
+    '<button class="tb-sell" onclick="r5Trade(\'sell\')">SELL ▼</button>'+
+    '</div>'+
+    '<div class="pos-row"><span style="color:var(--dim)">Position</span><span id="r5-pos" style="color:var(--text);font-weight:700">0 shares</span></div>'+
+    '<div class="pos-row"><span style="color:var(--dim)">Cash</span><span id="r5-cash">€10,000</span></div>'+
+    '<div class="pos-row"><span style="color:var(--dim)">Mark P&L</span><span id="r5-pnl" style="font-weight:700">€0</span></div>'+
+    '</div></div>';
+  updateR5UI();
+}
+
+function tickR5() {
+  const r5 = G.r5;
+  r5.tick++;
+  // Random walk with slight upward drift at start, reversal later
+  const drift = r5.tick < 60 ? 0.006 : -0.004;
+  const vol = 0.008;
+  const ret = drift + vol*(Math.random()*2-1)*1.5;
+  r5.price = Math.max(70, Math.min(150, r5.price*(1+ret)));
+  r5.history.push(r5.price);
+  if (r5.history.length > 50) r5.history.shift();
+  updateR5UI();
+}
+
+function updateR5UI() {
+  const r5 = G.r5;
+  const p = r5.price;
+  const spread = p*0.005;
+  const ask = p+spread/2, bid = p-spread/2;
+  // Order book
+  let obHtml = '';
+  for (let i=3; i>=1; i--) {
+    const ap = (ask + i*spread*0.8).toFixed(2);
+    const as = Math.floor(50+Math.random()*150);
+    obHtml += '<div class="ob-ask-row"><span>€'+ap+'</span><span>'+as+'</span></div>';
+  }
+  obHtml += '<div class="ob-spread">spread: €'+spread.toFixed(2)+'</div>';
+  for (let i=1; i<=3; i++) {
+    const bp = (bid - i*spread*0.8).toFixed(2);
+    const bs = Math.floor(50+Math.random()*150);
+    obHtml += '<div class="ob-bid-row"><span>€'+bp+'</span><span>'+bs+'</span></div>';
+  }
+  const obEl = document.getElementById('r5-ob');
+  if (obEl) obEl.innerHTML = obHtml;
+  // Chart
+  const hist = r5.history;
+  const mn = Math.min(...hist)*0.995, mx = Math.max(...hist)*1.005;
+  const W=400, H=100;
+  let pts = hist.map((v,i)=>{
+    const x=(i/(Math.max(hist.length-1,1)))*(W-10)+5;
+    const y=H-((v-mn)/(mx-mn))*(H-10)-5;
+    return x.toFixed(1)+','+y.toFixed(1);
+  }).join(' ');
+  const chartEl = document.getElementById('r5-chart');
+  if (chartEl) {
+    const midY = H-((p-mn)/(mx-mn))*(H-10)-5;
+    chartEl.innerHTML =
+      '<polyline points="'+pts+'" fill="none" stroke="var(--blue-l)" stroke-width="1.5"/>'+
+      '<text x="8" y="12" fill="var(--dim)" font-size="8">€'+mx.toFixed(1)+'</text>'+
+      '<text x="8" y="'+(H-4)+'" fill="var(--dim)" font-size="8">€'+mn.toFixed(1)+'</text>'+
+      '<circle cx="'+(W-5)+'" cy="'+midY.toFixed(1)+'" r="3" fill="var(--yellow)"/>'+
+      '<text x="'+(W-50)+'" y="'+(midY-5)+'" fill="var(--yellow)" font-size="9">€'+p.toFixed(2)+'</text>';
+  }
+  // Position / P&L
+  const markVal = r5.pos * p;
+  const totalVal = r5.cash + markVal;
+  const pnl = totalVal - 10000;
+  const posEl = document.getElementById('r5-pos');
+  if (posEl) posEl.textContent = r5.pos+' shares';
+  const cashEl = document.getElementById('r5-cash');
+  if (cashEl) cashEl.textContent = '€'+r5.cash.toFixed(0);
+  const pnlEl = document.getElementById('r5-pnl');
+  if (pnlEl) { pnlEl.textContent = (pnl>=0?'+':'')+'€'+pnl.toFixed(2); pnlEl.style.color=pnl>=0?'var(--green)':'var(--red)'; }
+}
+
+function r5Trade(side) {
+  if (G.roundDone[4]) return;
+  const qty = parseInt(document.getElementById('r5-qty').value)||10;
+  const r5 = G.r5;
+  const p = r5.price;
+  const spread = p*0.005;
+  if (side==='buy') {
+    const cost = (p+spread/2)*qty;
+    if (r5.cash >= cost && r5.pos+qty <= 500) { r5.cash -= cost; r5.pos += qty; }
+  } else {
+    if (r5.pos >= qty) { r5.cash += (p-spread/2)*qty; r5.pos -= qty; }
+  }
+  updateR5UI();
+}
+
+function finalizeR5() {
+  G.roundDone[4] = true;
+  clearInterval(G.timer);
+  const r5 = G.r5;
+  // Force close position at market
+  if (r5.pos > 0) { r5.cash += r5.pos*r5.price*0.995; r5.pos = 0; }
+  else if (r5.pos < 0) { r5.cash += r5.pos*r5.price*1.005; r5.pos = 0; }
+  const pnl = r5.cash - 10000;
+  let pts = 0;
+  if (pnl >= 200) pts = 100;
+  else if (pnl >= 100) pts = 80;
+  else if (pnl >= 30) pts = 60;
+  else if (pnl >= 0) pts = 40;
+  else if (pnl >= -50) pts = 20;
+  else pts = 5;
+  G.roundScores[4] = pts;
+  G.totalScore += pts;
+  const el = document.getElementById('gh-score');
+  if (el) el.textContent = G.totalScore;
+  updateR5UI();
+  showFeedback(pnl>100, pts, 'Round over! Final P&L: '+(pnl>=0?'+':'')+'€'+pnl.toFixed(2)+'. Earned '+pts+'/100 points.');
+  const nw = document.getElementById('next-btn-wrap');
+  if (nw) nw.classList.remove('hidden');
+  const nb = document.getElementById('next-btn');
+  if (nb) { nb.textContent = 'See Results 🏆'; nb.onclick = showResults; }
+}
+</script>
+
+<script>
+(function(){
+  function setTheme(t,save){
+    if(save) localStorage.setItem('imc-theme',t);
+    var root=document.documentElement;
+    if(t==='dark') root.setAttribute('data-theme','dark');
+    else if(t==='light') root.setAttribute('data-theme','light');
+    else root.removeAttribute('data-theme');
+    document.querySelectorAll('.tnb').forEach(function(b){
+      b.classList.toggle('active', b.dataset.t===t);
+    });
+  }
+  window.setTheme=setTheme;
+  // Apply saved theme on load
+  setTheme(localStorage.getItem('imc-theme')||'system', false);
+})();
+</script>
+</body>
+</html>
