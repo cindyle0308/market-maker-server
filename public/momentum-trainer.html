@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Momentum Trainer — IMC Prep Suite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06090f;--bg2:#0b111c;--bg3:#101824;--bg4:#162030;
+  --border:#1a2d46;--border2:#243d5a;--text:#b0c8e4;--dim:#4a6a8a;
+  --bright:#e0eefa;--green:#00d888;--red:#ff3d5a;--yellow:#ffc840;
+  --blue:#3a90ff;--purple:#9d60ff;
+}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh}
+.hidden{display:none!important}
+/* NAV */
+.suite-nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.suite-nav a{color:var(--dim);text-decoration:none;font-size:0.75rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;transition:color .15s}
+.suite-nav a:hover{color:var(--text)}
+.suite-nav a.active{color:var(--yellow)}
+.suite-nav .brand{color:var(--bright);font-weight:700;font-size:0.8rem;margin-right:8px}
+/* SETUP */
+#setup{max-width:720px;margin:0 auto;padding:48px 24px}
+.page-title{font-size:2rem;font-weight:700;color:var(--bright);margin-bottom:6px}
+.page-sub{color:var(--dim);font-size:0.9rem;margin-bottom:32px}
+.theory-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin-bottom:16px}
+.theory-card h3{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--yellow);margin-bottom:10px}
+.theory-card p{font-size:0.875rem;line-height:1.65;color:var(--text)}
+.theory-card code{background:var(--bg4);color:var(--green);padding:1px 5px;border-radius:3px;font-family:'DM Mono',monospace;font-size:0.82rem}
+.rule-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.rule-num{background:var(--bg4);color:var(--yellow);font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:700;width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.rule-row p{font-size:0.875rem;line-height:1.6;color:var(--text)}
+.start-btn{margin-top:28px;background:var(--yellow);color:#000;border:none;padding:14px 40px;border-radius:8px;font-size:0.95rem;font-weight:700;cursor:pointer;transition:opacity .15s}
+.start-btn:hover{opacity:.85}
+/* GAME */
+#game{display:flex;flex-direction:column;height:calc(100vh - 41px)}
+.game-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:20px;flex-shrink:0}
+.stat-block{display:flex;flex-direction:column;gap:2px}
+.stat-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--dim)}
+.stat-value{font-size:1.05rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--bright)}
+.stat-value.pos{color:var(--green)}
+.stat-value.neg{color:var(--red)}
+.stat-value.yellow{color:var(--yellow)}
+.sep{width:1px;height:36px;background:var(--border);margin:0 4px}
+.game-body{flex:1;display:grid;grid-template-columns:1fr 260px;min-height:0}
+.chart-area{display:flex;flex-direction:column;background:var(--bg);padding:16px;gap:12px;min-height:0}
+canvas#chart{border-radius:8px;width:100%;display:block}
+.signal-bar{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:16px}
+.signal-box{padding:6px 16px;border-radius:6px;font-size:0.8rem;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:0.05em}
+.signal-box.up{background:rgba(0,216,136,.12);border:1px solid var(--green);color:var(--green)}
+.signal-box.down{background:rgba(255,61,90,.12);border:1px solid var(--red);color:var(--red)}
+.signal-box.flat{background:var(--bg4);border:1px solid var(--border2);color:var(--dim)}
+.signal-desc{font-size:0.8rem;color:var(--dim)}
+.hint-box{background:rgba(255,200,64,.07);border:1px solid rgba(255,200,64,.25);border-radius:6px;padding:8px 12px;font-size:0.78rem;color:var(--yellow);line-height:1.5;flex:1}
+/* PANEL */
+.side-panel{background:var(--bg2);border-left:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.panel-section{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px}
+.panel-section h4{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--dim);margin-bottom:10px}
+.pos-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:0.82rem}
+.pos-row span:first-child{color:var(--dim)}
+.pos-row span:last-child{font-family:'DM Mono',monospace;font-weight:600;color:var(--bright)}
+.btn-group{display:flex;flex-direction:column;gap:8px}
+.trade-btn{padding:12px;border-radius:7px;border:none;font-size:0.88rem;font-weight:700;cursor:pointer;transition:all .15s;letter-spacing:0.03em}
+.trade-btn.buy{background:rgba(0,216,136,.15);border:1px solid var(--green);color:var(--green)}
+.trade-btn.buy:hover:not(:disabled){background:rgba(0,216,136,.25)}
+.trade-btn.sell{background:rgba(255,61,90,.15);border:1px solid var(--red);color:var(--red)}
+.trade-btn.sell:hover:not(:disabled){background:rgba(255,61,90,.25)}
+.trade-btn.close{background:var(--bg4);border:1px solid var(--border2);color:var(--dim)}
+.trade-btn.close:hover:not(:disabled){border-color:var(--yellow);color:var(--yellow)}
+.trade-btn:disabled{opacity:.3;cursor:not-allowed}
+.trade-log{max-height:180px;overflow-y:auto}
+.log-entry{font-size:0.75rem;font-family:'DM Mono',monospace;padding:4px 0;border-bottom:1px solid var(--border);color:var(--dim)}
+.log-entry.win{color:var(--green)}
+.log-entry.loss{color:var(--red)}
+/* RESULTS */
+#results{max-width:640px;margin:0 auto;padding:48px 24px}
+.res-title{font-size:1.8rem;font-weight:700;color:var(--bright);margin-bottom:4px}
+.res-sub{color:var(--dim);font-size:0.88rem;margin-bottom:32px}
+.res-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px}
+.res-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.res-card .val{font-size:1.5rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--bright);margin-bottom:4px}
+.res-card .val.pos{color:var(--green)}
+.res-card .val.neg{color:var(--red)}
+.res-card .lbl{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--dim)}
+.play-again{background:var(--yellow);color:#000;border:none;padding:12px 32px;border-radius:8px;font-size:0.9rem;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity .15s}
+.play-again:hover{opacity:.85}
+.feedback-toast{position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:8px;font-size:0.82rem;font-weight:600;border-left:3px solid;animation:slideIn .25s ease;z-index:99}
+@keyframes slideIn{from{transform:translateX(60px);opacity:0}to{transform:none;opacity:1}}
+
+/* ── LIGHT MODE ── */
+[data-theme="light"]{
+  --bg:#f0f4f8!important;--panel:#ffffff!important;--panel2:#e8edf3!important;
+  --border:#c5d0de!important;--border2:#d5dde8!important;
+  --text:#1e2d3d!important;--dim:#6b7d8f!important;--dim2:#4a5a6a!important;
+  --blue:#2563eb!important;--blue-l:#1d4ed8!important;
+  --green:#16a34a!important;--red:#dc2626!important;
+  --yellow:#b45309!important;--purple:#7c3aed!important;
+  --cyan:#0e7490!important;--teal:#0f766e!important;--orange:#c2410c!important;
+  --green-bg:rgba(22,163,74,0.12)!important;--red-bg:rgba(220,38,38,0.12)!important;
+  --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
+  --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
+  --orange-bg:rgba(194,65,12,0.12)!important;
+}
+@media(prefers-color-scheme:light){
+  :root:not([data-theme]){
+    --bg:#f0f4f8!important;--panel:#ffffff!important;--panel2:#e8edf3!important;
+    --border:#c5d0de!important;--border2:#d5dde8!important;
+    --text:#1e2d3d!important;--dim:#6b7d8f!important;--dim2:#4a5a6a!important;
+    --blue:#2563eb!important;--blue-l:#1d4ed8!important;
+    --green:#16a34a!important;--red:#dc2626!important;
+    --yellow:#b45309!important;--purple:#7c3aed!important;
+    --cyan:#0e7490!important;--teal:#0f766e!important;--orange:#c2410c!important;
+    --green-bg:rgba(22,163,74,0.12)!important;--red-bg:rgba(220,38,38,0.12)!important;
+    --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
+    --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
+    --orange-bg:rgba(194,65,12,0.12)!important;
+  }
+}
+/* Theme toggle button in nav */
+.theme-nav-btns{margin-left:auto;display:flex;gap:3px;align-items:center;}
+.tnb{padding:3px 8px;border-radius:5px;border:1px solid var(--border2);
+  background:transparent;color:var(--dim);font-size:10px;font-weight:700;
+  cursor:pointer;transition:all .12s;line-height:1;}
+.tnb:hover{color:var(--text);}
+.tnb.active{background:var(--panel);border-color:var(--border);color:var(--text);}
+</style>
+</head>
+<body>
+
+<nav class="suite-nav">
+  <a href="index.html" class="brand">⌂ Hub</a>
+  <a href="quant-relay.html">Relay</a>
+  <a href="alpha-factory.html">Alpha Factory</a>
+  <a href="cmi-challenge.html">CMI</a>
+  <a href="arbitrage-sprint.html">Arb Sprint</a>
+  <a href="price-war.html">Price War</a>
+  <a href="algo-blitz.html">Algo Blitz</a>
+  <a href="bot-builder.html">Bot Builder</a>
+  <a href="basket-blitz.html">Basket</a>
+  <a href="options-outcry.html">Outcry</a>
+  <a href="momentum-trainer.html" class="active">Momentum</a>
+  <a href="spread-trader.html">Spread</a>
+  <a href="regime-rider.html">Regime</a>
+<span class="theme-nav-btns"><button class="tnb" data-t="light" onclick="setTheme('light',true)" title="Light">☀</button><button class="tnb" data-t="system" onclick="setTheme('system',true)" title="System">⊙</button><button class="tnb" data-t="dark" onclick="setTheme('dark',true)" title="Dark">☾</button></span>
+</nav>
+
+<!-- MODE SWITCHER BAR -->
+<div style="background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 24px;display:flex;align-items:center;gap:10px;">
+  <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);">Mode:</span>
+  <button id="mode-classic" onclick="switchMode('classic')" style="padding:5px 16px;border-radius:6px;border:1px solid var(--yellow);background:rgba(255,200,64,.15);color:var(--yellow);font-size:12px;font-weight:700;cursor:pointer;">Classic</button>
+  <button id="mode-quant" onclick="switchMode('quant')" style="padding:5px 16px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--dim);font-size:12px;font-weight:700;cursor:pointer;">🧪 Quant Lab</button>
+  <span style="margin-left:auto;font-size:11px;color:var(--dim);opacity:.6;">Quant Lab: write a momentum strategy, backtest it, deploy live</span>
+</div>
+
+<!-- SETUP -->
+<div id="setup">
+  <div class="page-title">Momentum Trainer</div>
+  <div class="page-sub">Learn to read SMA crossover signals and ride trends — beginner level</div>
+
+  <div class="theory-card">
+    <h3>The Concept: Simple Moving Average Crossover</h3>
+    <p>A <strong style="color:var(--bright)">moving average</strong> smooths out noisy price data. We use two: a <strong style="color:var(--yellow)">fast SMA (10 bars)</strong> and a <strong style="color:var(--blue)">slow SMA (30 bars)</strong>. When the fast line crosses <em>above</em> the slow line, momentum is turning upward — a <code>BUY signal</code>. When fast crosses <em>below</em> slow, momentum is turning down — a <code>SELL signal</code>. The logic: the recent average is now higher than the longer-term average, so the trend is accelerating upward.</p>
+  </div>
+
+  <div class="theory-card">
+    <h3>How to Play</h3>
+    <div class="rule-row"><div class="rule-num">1</div><p>Watch the chart. The <strong style="color:var(--yellow)">yellow line</strong> is SMA-10 (fast), the <strong style="color:var(--blue)">blue line</strong> is SMA-30 (slow).</p></div>
+    <div class="rule-row"><div class="rule-num">2</div><p>When yellow crosses above blue → click <strong style="color:var(--green)">BUY (LONG)</strong>. When yellow crosses below blue → click <strong style="color:var(--red)">SELL (SHORT)</strong>.</p></div>
+    <div class="rule-row"><div class="rule-num">3</div><p>Click <strong>CLOSE</strong> to exit your position when the signal reverses or you want to lock in profit.</p></div>
+    <div class="rule-row"><div class="rule-num">4</div><p>You are scored on realised P&amp;L over 2 minutes. Each position assumes 100 shares. Hints will guide you for the first few signals.</p></div>
+  </div>
+
+  <div class="theory-card">
+    <h3>What to Watch For</h3>
+    <p>Crossovers work best when the lines have been diverging — a <em>strong</em> crossover. Avoid entering when the two SMAs are nearly flat and weaving together (chop). In this simulator the market has clear regime shifts (trending vs flat) — learn to feel the difference.</p>
+  </div>
+
+  <button class="start-btn" onclick="startGame()">Start Training →</button>
+</div>
+
+<!-- GAME -->
+<div id="game" class="hidden">
+  <div class="game-header">
+    <div class="stat-block">
+      <div class="stat-label">Price</div>
+      <div class="stat-value" id="hdr-price">—</div>
+    </div>
+    <div class="sep"></div>
+    <div class="stat-block">
+      <div class="stat-label">Position</div>
+      <div class="stat-value" id="hdr-pos">FLAT</div>
+    </div>
+    <div class="sep"></div>
+    <div class="stat-block">
+      <div class="stat-label">Unrealised P&L</div>
+      <div class="stat-value" id="hdr-upnl">$0.00</div>
+    </div>
+    <div class="sep"></div>
+    <div class="stat-block">
+      <div class="stat-label">Realised P&L</div>
+      <div class="stat-value" id="hdr-rpnl">$0.00</div>
+    </div>
+    <div class="sep"></div>
+    <div class="stat-block">
+      <div class="stat-label">Time Left</div>
+      <div class="stat-value yellow" id="hdr-time">2:00</div>
+    </div>
+  </div>
+  <div class="game-body">
+    <div class="chart-area">
+      <canvas id="chart" height="280"></canvas>
+      <div class="signal-bar">
+        <div class="signal-box flat" id="signal-box">LOADING</div>
+        <div class="signal-desc" id="signal-desc">Waiting for enough data…</div>
+        <div class="hint-box hidden" id="hint-box"></div>
+      </div>
+    </div>
+    <div class="side-panel">
+      <div class="panel-section">
+        <h4>Your Position</h4>
+        <div class="pos-row"><span>Status</span><span id="pos-status">FLAT</span></div>
+        <div class="pos-row"><span>Entry</span><span id="pos-entry">—</span></div>
+        <div class="pos-row"><span>Qty</span><span id="pos-qty">0 shares</span></div>
+        <div class="pos-row"><span>Unrealised</span><span id="pos-upnl">$0.00</span></div>
+      </div>
+      <div class="panel-section">
+        <h4>Actions</h4>
+        <div class="btn-group">
+          <button class="trade-btn buy" id="btn-long" onclick="enterLong()">▲ GO LONG (BUY)</button>
+          <button class="trade-btn sell" id="btn-short" onclick="enterShort()">▼ GO SHORT (SELL)</button>
+          <button class="trade-btn close" id="btn-close" onclick="closePosition()" disabled>✕ CLOSE POSITION</button>
+        </div>
+      </div>
+      <div class="panel-section">
+        <h4>SMAs</h4>
+        <div class="pos-row"><span style="color:var(--yellow)">SMA-10 (fast)</span><span id="sma-fast">—</span></div>
+        <div class="pos-row"><span style="color:var(--blue)">SMA-30 (slow)</span><span id="sma-slow">—</span></div>
+        <div class="pos-row"><span>Spread</span><span id="sma-spread">—</span></div>
+        <div class="pos-row"><span>Regime</span><span id="regime-label" style="color:var(--purple)">—</span></div>
+      </div>
+      <div class="panel-section">
+        <h4>Trade Log</h4>
+        <div class="trade-log" id="trade-log"><div class="log-entry">No trades yet</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="results" class="hidden">
+  <div class="res-title">Training Complete</div>
+  <div class="res-sub">Here's how you did on momentum signals</div>
+  <div class="res-grid">
+    <div class="res-card">
+      <div class="val" id="res-rpnl">$0</div>
+      <div class="lbl">Realised P&L</div>
+    </div>
+    <div class="res-card">
+      <div class="val" id="res-trades">0</div>
+      <div class="lbl">Trades Made</div>
+    </div>
+    <div class="res-card">
+      <div class="val" id="res-winrate">0%</div>
+      <div class="lbl">Win Rate</div>
+    </div>
+  </div>
+  <div class="theory-card">
+    <h3>Key Takeaway</h3>
+    <p id="res-feedback">—</p>
+  </div>
+  <button class="play-again" onclick="location.reload()">Play Again</button>
+</div>
+
+<script>
+// ── Constants ──────────────────────────────────────────────────────────────
+const TICK_MS   = 1200;   // ms per price tick
+const GAME_SECS = 120;    // 2 minutes
+const CHART_N   = 55;     // bars displayed
+const SMA_FAST  = 10;
+const SMA_SLOW  = 30;
+const QTY       = 100;    // shares per trade
+
+// ── State ──────────────────────────────────────────────────────────────────
+let prices = [];
+let G = {
+  pos: 0,          // 1=long, -1=short, 0=flat
+  entryPrice: 0,
+  rpnl: 0,
+  trades: 0,
+  wins: 0,
+  elapsed: 0,
+  hintCount: 0,
+  lastSignal: null,
+  regime: { dir: 1, ticks: 0, duration: 30, label: 'trending' },
+  interval: null,
+  timer: null,
+};
+
+// ── Math helpers ───────────────────────────────────────────────────────────
+function randn() {
+  let u=0,v=0;
+  while(u===0) u=Math.random();
+  while(v===0) v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function sma(arr, n) {
+  if (arr.length < n) return null;
+  return arr.slice(-n).reduce((a,b)=>a+b,0)/n;
+}
+function fmt(n) { return (n>=0?'+':'')+n.toFixed(2); }
+function fmtD(n) { return (n>=0?'$+':'$-')+Math.abs(n).toFixed(2); }
+
+// ── Regime & tick ──────────────────────────────────────────────────────────
+function stepRegime() {
+  const r = G.regime;
+  r.ticks++;
+  if (r.ticks >= r.duration) {
+    const roll = Math.random();
+    if (roll < 0.45) { r.dir = 1;  r.label = 'uptrend'; }
+    else if (roll < 0.90) { r.dir = -1; r.label = 'downtrend'; }
+    else { r.dir = 0; r.label = 'choppy'; }
+    r.ticks = 0;
+    r.duration = 18 + Math.floor(Math.random()*22);
+  }
+}
+function tick() {
+  stepRegime();
+  const r = G.regime;
+  const drift = r.dir * 0.003;
+  const vol   = r.label === 'choppy' ? 0.006 : 0.010;
+  const last  = prices[prices.length-1];
+  prices.push(last * Math.exp(drift + vol*randn()));
+  if (prices.length > CHART_N + 60) prices.shift();
+  drawChart();
+  updateUI();
+}
+
+// ── Chart ──────────────────────────────────────────────────────────────────
+function drawChart() {
+  const canvas = document.getElementById('chart');
+  const W = canvas.width, H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  const disp = prices.slice(-CHART_N);
+
+  const minP = Math.min(...disp)*0.995;
+  const maxP = Math.max(...disp)*1.005;
+  const xp = i => (i/(CHART_N-1))*(W-50)+10;
+  const yp = p => H-10-((p-minP)/(maxP-minP))*(H-20);
+
+  // BG
+  ctx.fillStyle='#0b111c'; ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle='#1a2d46'; ctx.lineWidth=0.5;
+  for(let i=0;i<=4;i++){
+    const y=10+(i/4)*(H-20);
+    ctx.beginPath();ctx.moveTo(10,y);ctx.lineTo(W-40,y);ctx.stroke();
+    const val=maxP-(i/4)*(maxP-minP);
+    ctx.fillStyle='#4a6a8a';ctx.font='10px DM Mono,monospace';
+    ctx.fillText(val.toFixed(2),W-38,y+4);
+  }
+
+  // Shade position background
+  if(G.pos!==0 && G.entryPrice>0){
+    const ey=yp(G.entryPrice);
+    const cur=yp(disp[disp.length-1]);
+    ctx.fillStyle=G.pos>0?'rgba(0,216,136,0.04)':'rgba(255,61,90,0.04)';
+    ctx.fillRect(10,Math.min(ey,cur),W-50,Math.abs(ey-cur));
+  }
+
+  // Price line
+  ctx.strokeStyle='#b0c8e4'; ctx.lineWidth=1.5;
+  ctx.beginPath();
+  disp.forEach((p,i)=>{ i===0?ctx.moveTo(xp(i),yp(p)):ctx.lineTo(xp(i),yp(p)); });
+  ctx.stroke();
+
+  // SMA fast (yellow)
+  drawSMA(ctx,disp,xp,yp,SMA_FAST,'#ffc840',1.2);
+  // SMA slow (blue)
+  drawSMA(ctx,disp,xp,yp,SMA_SLOW,'#3a90ff',1.2);
+
+  // Entry line
+  if(G.pos!==0 && G.entryPrice>0){
+    ctx.strokeStyle=G.pos>0?'#00d888':'#ff3d5a';
+    ctx.lineWidth=0.8; ctx.setLineDash([5,4]);
+    const ey=yp(G.entryPrice);
+    ctx.beginPath();ctx.moveTo(10,ey);ctx.lineTo(W-40,ey);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=G.pos>0?'#00d888':'#ff3d5a';
+    ctx.font='9px DM Mono,monospace';
+    ctx.fillText('ENTRY '+G.entryPrice.toFixed(2),12,ey-4);
+  }
+
+  // Legend
+  ctx.font='10px DM Mono,monospace';
+  ctx.fillStyle='#ffc840';ctx.fillText('SMA'+SMA_FAST,12,18);
+  ctx.fillStyle='#3a90ff';ctx.fillText('SMA'+SMA_SLOW,70,18);
+}
+
+function drawSMA(ctx,disp,xp,yp,n,color,lw){
+  ctx.strokeStyle=color; ctx.lineWidth=lw;
+  ctx.beginPath(); let started=false;
+  for(let i=0;i<disp.length;i++){
+    const slice=disp.slice(Math.max(0,i-n+1),i+1);
+    if(slice.length<n){continue;}
+    const v=slice.reduce((a,b)=>a+b,0)/n;
+    if(!started){ctx.moveTo(xp(i),yp(v));started=true;}
+    else ctx.lineTo(xp(i),yp(v));
+  }
+  ctx.stroke();
+}
+
+// ── Signal ─────────────────────────────────────────────────────────────────
+function getSignal() {
+  const f=sma(prices,SMA_FAST);
+  const s=sma(prices,SMA_SLOW);
+  if(f===null||s===null) return null;
+  return f>s?'UP':'DOWN';
+}
+
+// ── UI update ──────────────────────────────────────────────────────────────
+function updateUI() {
+  const cur = prices[prices.length-1];
+  const sig = getSignal();
+  const f   = sma(prices,SMA_FAST);
+  const s   = sma(prices,SMA_SLOW);
+
+  document.getElementById('hdr-price').textContent = cur.toFixed(2);
+
+  // Unrealised P&L
+  let upnl = 0;
+  if(G.pos!==0) upnl = (cur-G.entryPrice)*QTY*G.pos;
+  const upnlEl = document.getElementById('hdr-upnl');
+  upnlEl.textContent = fmtD(upnl);
+  upnlEl.className = 'stat-value '+(upnl>0?'pos':upnl<0?'neg':'');
+
+  const rpnlEl = document.getElementById('hdr-rpnl');
+  rpnlEl.textContent = fmtD(G.rpnl);
+  rpnlEl.className = 'stat-value '+(G.rpnl>0?'pos':G.rpnl<0?'neg':'');
+
+  // Signal box
+  const sbox = document.getElementById('signal-box');
+  const sdesc = document.getElementById('signal-desc');
+  if(!sig){ sbox.className='signal-box flat'; sbox.textContent='LOADING'; }
+  else if(sig==='UP'){
+    sbox.className='signal-box up'; sbox.textContent='▲ UPTREND';
+    sdesc.textContent='SMA-10 is above SMA-30 — momentum is bullish';
+  } else {
+    sbox.className='signal-box down'; sbox.textContent='▼ DOWNTREND';
+    sdesc.textContent='SMA-10 is below SMA-30 — momentum is bearish';
+  }
+
+  // SMA panel
+  if(f) document.getElementById('sma-fast').textContent=f.toFixed(3);
+  if(s) document.getElementById('sma-slow').textContent=s.toFixed(3);
+  if(f&&s){
+    const sp=f-s;
+    const spEl=document.getElementById('sma-spread');
+    spEl.textContent=fmt(sp);
+    spEl.style.color=sp>0?'var(--green)':'var(--red)';
+  }
+  document.getElementById('regime-label').textContent=G.regime.label;
+
+  // Position panel
+  const posLabel = G.pos===1?'LONG ▲':G.pos===-1?'SHORT ▼':'FLAT';
+  const posColor = G.pos===1?'var(--green)':G.pos===-1?'var(--red)':'var(--dim)';
+  const psEl=document.getElementById('pos-status');
+  psEl.textContent=posLabel; psEl.style.color=posColor;
+  document.getElementById('hdr-pos').textContent=posLabel;
+  document.getElementById('hdr-pos').style.color=posColor;
+  document.getElementById('pos-entry').textContent=G.pos!==0?G.entryPrice.toFixed(2):'—';
+  document.getElementById('pos-qty').textContent=G.pos!==0?QTY+' shares':'0 shares';
+  const puEl=document.getElementById('pos-upnl');
+  puEl.textContent=fmtD(upnl); puEl.style.color=upnl>0?'var(--green)':upnl<0?'var(--red)':'var(--dim)';
+
+  // Button states
+  document.getElementById('btn-long').disabled  = G.pos===1;
+  document.getElementById('btn-short').disabled = G.pos===-1;
+  document.getElementById('btn-close').disabled = G.pos===0;
+
+  // Hints
+  if(sig && sig!==G.lastSignal && G.hintCount<6){
+    showHint(sig);
+    G.lastSignal=sig;
+  }
+}
+
+function showHint(sig) {
+  const hintEl=document.getElementById('hint-box');
+  const hints={
+    UP:[
+      'SMA-10 just crossed ABOVE SMA-30 — classic BUY signal. Click GO LONG.',
+      'Uptrend signal active. The fast average is pulling above the slow one — momentum building.',
+      'SMA crossover up. Traders following this signal would enter a LONG position now.',
+    ],
+    DOWN:[
+      'SMA-10 just crossed BELOW SMA-30 — classic SELL signal. Click GO SHORT.',
+      'Downtrend signal active. Fast average falling below slow — bearish momentum.',
+      'SMA crossover down. If you\'re long, consider closing and flipping short.',
+    ]
+  };
+  const pool=hints[sig];
+  hintEl.textContent='💡 '+pool[G.hintCount % pool.length];
+  hintEl.classList.remove('hidden');
+  G.hintCount++;
+  if(G.hintCount>=6) setTimeout(()=>hintEl.classList.add('hidden'),4000);
+}
+
+// ── Trades ─────────────────────────────────────────────────────────────────
+function enterLong(){
+  if(G.pos===1) return;
+  if(G.pos===-1) closePosition(true);
+  G.pos=1; G.entryPrice=prices[prices.length-1];
+  toast('Entered LONG at '+G.entryPrice.toFixed(2),'#00d888');
+  addLog('LONG @ '+G.entryPrice.toFixed(2),'');
+}
+function enterShort(){
+  if(G.pos===-1) return;
+  if(G.pos===1) closePosition(true);
+  G.pos=-1; G.entryPrice=prices[prices.length-1];
+  toast('Entered SHORT at '+G.entryPrice.toFixed(2),'#ff3d5a');
+  addLog('SHORT @ '+G.entryPrice.toFixed(2),'');
+}
+function closePosition(silent){
+  if(G.pos===0) return;
+  const cur=prices[prices.length-1];
+  const pnl=(cur-G.entryPrice)*QTY*G.pos;
+  G.rpnl+=pnl; G.trades++;
+  if(pnl>0) G.wins++;
+  const side=G.pos===1?'LONG':'SHORT';
+  addLog('CLOSE '+side+' P&L: '+fmtD(pnl), pnl>0?'win':'loss');
+  if(!silent) toast('Closed '+(pnl>0?'▲ Profit ':'▼ Loss ')+fmtD(pnl), pnl>0?'#00d888':'#ff3d5a');
+  G.pos=0; G.entryPrice=0;
+}
+function addLog(msg,cls){
+  const log=document.getElementById('trade-log');
+  if(log.children.length===1&&log.children[0].textContent==='No trades yet') log.innerHTML='';
+  const d=document.createElement('div');
+  d.className='log-entry '+(cls||'');
+  d.textContent=msg;
+  log.prepend(d);
+}
+
+// ── Timer ──────────────────────────────────────────────────────────────────
+function startTimer(){
+  G.timer=setInterval(()=>{
+    G.elapsed++;
+    const left=GAME_SECS-G.elapsed;
+    const m=Math.floor(left/60);
+    const s=left%60;
+    document.getElementById('hdr-time').textContent=m+':'+(s<10?'0':'')+s;
+    if(left<=0){ clearInterval(G.timer); clearInterval(G.interval); endGame(); }
+  },1000);
+}
+
+// ── Start / End ────────────────────────────────────────────────────────────
+function startGame(){
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
+
+  // Seed prices
+  prices=[100];
+  for(let i=0;i<50;i++){
+    const last=prices[prices.length-1];
+    prices.push(last*Math.exp(0.002*randn()));
+  }
+
+  // Fixed canvas size — avoids any layout-timing issue with offsetWidth
+  setTimeout(()=>{
+    const canvas=document.getElementById('chart');
+    canvas.width  = Math.max(500, window.innerWidth - 310);
+    canvas.height = 280;
+    drawChart();
+    G.interval=setInterval(tick, TICK_MS);
+    startTimer();
+  }, 150);
+}
+
+function endGame(){
+  if(G.pos!==0) closePosition(true);
+  document.getElementById('game').classList.add('hidden');
+  document.getElementById('results').classList.remove('hidden');
+
+  const rpnlEl=document.getElementById('res-rpnl');
+  rpnlEl.textContent=fmtD(G.rpnl);
+  rpnlEl.className='val '+(G.rpnl>0?'pos':G.rpnl<0?'neg':'');
+  document.getElementById('res-trades').textContent=G.trades;
+  const wr=G.trades>0?Math.round(G.wins/G.trades*100):0;
+  document.getElementById('res-winrate').textContent=wr+'%';
+
+  let fb='';
+  if(G.trades===0) fb='You made no trades. Next time: when yellow crosses above blue → go LONG. When it crosses below → go SHORT.';
+  else if(G.rpnl>200) fb='Great instincts! You caught the trends and captured meaningful P&L. Try Spread Trader next to learn mean reversion.';
+  else if(G.rpnl>0) fb='Positive P&L — you have the right direction sense. Focus on staying in winning trades longer (let trends run).';
+  else fb='Negative P&L this time. Key tip: only enter when the SMA spread is clearly diverging. Avoid entering during choppy/flat regimes.';
+  document.getElementById('res-feedback').textContent=fb;
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function toast(msg,color){
+  const t=document.createElement('div');
+  t.className='feedback-toast';
+  t.style.borderLeftColor=color;
+  t.style.background='var(--bg3)';
+  t.style.color=color;
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2200);
+}
+
+function switchMode(m){
+  const isQuant=m==='quant';
+  document.getElementById('setup').classList.toggle('hidden',isQuant);
+  document.getElementById('game').classList.add('hidden');
+  document.getElementById('results').classList.add('hidden');
+  document.getElementById('mt-quant-lab').classList.toggle('hidden',!isQuant);
+  const accent='var(--yellow)';
+  document.getElementById('mode-classic').style.cssText=isQuant
+    ?'padding:5px 16px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--dim);font-size:12px;font-weight:700;cursor:pointer;'
+    :'padding:5px 16px;border-radius:6px;border:1px solid var(--yellow);background:rgba(255,200,64,.15);color:var(--yellow);font-size:12px;font-weight:700;cursor:pointer;';
+  document.getElementById('mode-quant').style.cssText=isQuant
+    ?'padding:5px 16px;border-radius:6px;border:1px solid var(--green);background:rgba(0,216,136,.12);color:var(--green);font-size:12px;font-weight:700;cursor:pointer;'
+    :'padding:5px 16px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--dim);font-size:12px;font-weight:700;cursor:pointer;';
+  if(isQuant) initMTQuantLab();
+}
+</script>
+
+<!-- ═══════════════════════════════════════════════════════
+     QUANT LAB — Momentum Trainer
+═══════════════════════════════════════════════════════ -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+
+<style>
+#mt-quant-lab{display:flex;flex-direction:column;height:calc(100vh - 84px);background:var(--bg)}
+.mtql-layout{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:0}
+.mtql-left{border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0}
+.mtql-right{display:flex;flex-direction:column;min-height:0;overflow-y:auto}
+.mtql-hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.mtql-hdr span{color:var(--bright)}
+.mtql-editor-wrap{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.mtql-toolbar{background:var(--bg2);border-top:1px solid var(--border);padding:8px 14px;display:flex;gap:8px;align-items:center;flex-shrink:0}
+.mtql-err{padding:6px 14px;font-size:11px;font-family:'DM Mono',monospace;color:var(--red);background:rgba(255,61,90,.08);border-top:1px solid rgba(255,61,90,.2);flex-shrink:0;min-height:28px}
+.mtql-sec{padding:14px 16px;border-bottom:1px solid var(--border)}
+.mtql-sec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin-bottom:10px}
+.mtql-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.mtql-metric{background:var(--bg3);border-radius:6px;padding:8px 10px;text-align:center}
+.mtql-metric .val{font-size:18px;font-weight:700;font-family:'DM Mono',monospace;color:var(--bright)}
+.mtql-metric .lbl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.mt-api{background:var(--bg3);border-left:3px solid var(--yellow);padding:10px 12px;font-size:11px;font-family:'DM Mono',monospace;line-height:1.8;color:var(--dim);margin:0}
+.mt-api .cm{opacity:.6}.mt-api .kw{color:var(--blue)}.mt-api .fn{color:var(--green)}.mt-api .st{color:var(--yellow)}
+</style>
+
+<div id="mt-quant-lab" class="hidden">
+  <div class="mtql-layout">
+    <div class="mtql-left">
+      <div class="mtql-hdr">📝 Strategy Editor <span>— Momentum Trainer Quant Lab</span></div>
+      <div class="mtql-editor-wrap"><textarea id="mtql-code"></textarea></div>
+      <div class="mtql-err" id="mtql-error"></div>
+      <div class="mtql-toolbar">
+        <button class="ql-btn backtest" onclick="mtqlBacktest()">📊 Backtest (500 ticks)</button>
+        <button class="ql-btn live" id="mtql-live-btn" onclick="mtqlToggleLive()">▶ Deploy Live</button>
+        <button class="ql-btn reset" onclick="mtqlReset()">↺ Reset</button>
+        <span class="ql-status" id="mtql-status">Ready</span>
+      </div>
+    </div>
+
+    <div class="mtql-right">
+      <div class="mtql-sec">
+        <div class="mtql-sec-title">API reference</div>
+        <pre class="mt-api"><span class="cm">// Called every tick — return your trade decision:</span>
+<span class="kw">function</span> <span class="fn">strategy</span>(ctx) {
+  ctx.prices      <span class="cm">// Float64Array — price history</span>
+  ctx.returns     <span class="cm">// Float64Array — log return history</span>
+  ctx.sma5        <span class="cm">// number — 5-period simple MA</span>
+  ctx.sma20       <span class="cm">// number — 20-period simple MA</span>
+  ctx.sma50       <span class="cm">// number — 50-period simple MA</span>
+  ctx.volatility  <span class="cm">// number — 20-day realised vol (annualised)</span>
+  ctx.position    <span class="cm">// number — current position (−100 to +100)</span>
+  ctx.tick        <span class="cm">// number — tick index</span>
+  <span class="kw">return</span> { action: <span class="st">'buy'</span> | <span class="st">'sell'</span> | <span class="st">'hold'</span>, qty: 10 }
+}</pre>
+      </div>
+
+      <div class="mtql-sec" id="mtql-bt-section" style="display:none">
+        <div class="mtql-sec-title">Backtest results — 500 ticks</div>
+        <div class="mtql-metrics">
+          <div class="mtql-metric"><div class="val" id="mbt-pnl">—</div><div class="lbl">Total P&amp;L</div></div>
+          <div class="mtql-metric"><div class="val" id="mbt-sharpe">—</div><div class="lbl">Sharpe</div></div>
+          <div class="mtql-metric"><div class="val" id="mbt-dd">—</div><div class="lbl">Max DD</div></div>
+          <div class="mtql-metric"><div class="val" id="mbt-wr">—</div><div class="lbl">Win Rate</div></div>
+          <div class="mtql-metric"><div class="val" id="mbt-trades">—</div><div class="lbl">Trades</div></div>
+          <div class="mtql-metric"><div class="val" id="mbt-avg">—</div><div class="lbl">Avg P&amp;L</div></div>
+        </div>
+        <canvas id="mbt-chart" height="120" style="width:100%;display:block;border-radius:6px;margin-top:10px"></canvas>
+      </div>
+
+      <div class="mtql-sec" id="mtql-live-section" style="display:none">
+        <div class="mtql-sec-title">Live deployment</div>
+        <div class="mtql-metrics">
+          <div class="mtql-metric"><div class="val" id="mlv-pnl">€0</div><div class="lbl">P&amp;L</div></div>
+          <div class="mtql-metric"><div class="val" id="mlv-pos">FLAT</div><div class="lbl">Position</div></div>
+          <div class="mtql-metric"><div class="val" id="mlv-tick">0</div><div class="lbl">Ticks</div></div>
+        </div>
+        <canvas id="mlv-chart" height="100" style="width:100%;display:block;border-radius:6px;margin-top:10px"></canvas>
+        <div class="mtql-sec-title" style="margin-top:12px">Trade log</div>
+        <div class="ql-log" id="mlv-log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MT_STARTER = `// Momentum / trend-following strategy
+// Edit and click Backtest or Deploy Live
+
+function strategy(ctx) {
+  const pos = ctx.position;
+
+  // Vol-scaled position sizing
+  const targetSize = Math.min(30, Math.floor(0.15 / (ctx.volatility || 0.15)));
+
+  // SMA crossover signal
+  if (ctx.sma5 > ctx.sma20 && pos <= 0) {
+    return { action: 'buy', qty: targetSize };
+  }
+  if (ctx.sma5 < ctx.sma20 && pos >= 0) {
+    return { action: 'sell', qty: targetSize };
+  }
+  return { action: 'hold' };
+}`;
+
+let mtqlEditor = null;
+let mtqlLiveInterval = null;
+let mtqlLiveState = null;
+
+function initMTQuantLab() {
+  if (mtqlEditor) return;
+  mtqlEditor = CodeMirror.fromTextArea(document.getElementById('mtql-code'), {
+    mode:'javascript', theme:'dracula', lineNumbers:true,
+    tabSize:2, indentWithTabs:false, matchBrackets:true, autoCloseBrackets:true
+  });
+  mtqlEditor.setValue(MT_STARTER);
+  mtqlEditor.setSize('100%','100%');
+}
+
+function mtqlGetStrategy() {
+  const code = mtqlEditor ? mtqlEditor.getValue() : '';
+  document.getElementById('mtql-error').textContent = '';
+  try {
+    const fn = new Function(code + '\nreturn strategy;')();
+    if (typeof fn !== 'function') throw new Error('strategy function not found');
+    return fn;
+  } catch(e) {
+    document.getElementById('mtql-error').textContent = '⚠ ' + e.message;
+    return null;
+  }
+}
+
+function mtqlSMA(arr, i, w) {
+  const s = Math.max(0, i-w+1);
+  let sum=0; for(let j=s;j<=i;j++) sum+=arr[j];
+  return sum/(i-s+1);
+}
+
+function mtqlVol(returns, i, w) {
+  const s=Math.max(0,i-w+1), sl=returns.slice(s,i+1);
+  if(sl.length<2) return 0.15;
+  const m=sl.reduce((a,b)=>a+b,0)/sl.length;
+  const v=Math.sqrt(sl.reduce((a,b)=>a+(b-m)**2,0)/sl.length);
+  return Math.max(0.001, v*Math.sqrt(252));
+}
+
+function mtqlGenPrices(n) {
+  const p=new Float64Array(n), r=new Float64Array(n);
+  p[0]=100;
+  let trend=0.001, trendLen=0;
+  for(let i=1;i<n;i++){
+    if(++trendLen>30+Math.random()*40){trend=(Math.random()-0.5)*0.004;trendLen=0;}
+    const ret=trend+(Math.random()-0.5)*0.015;
+    p[i]=Math.max(5,p[i-1]*(1+ret));
+    r[i]=ret;
+  }
+  return{p,r};
+}
+
+function mtqlDrawEquity(id, data, color) {
+  const c=document.getElementById(id);
+  if(!c)return;
+  c.width=c.offsetWidth||400;
+  const h=c.height, ctx=c.getContext('2d');
+  ctx.clearRect(0,0,c.width,h);
+  const mn=Math.min(...data),mx=Math.max(...data),range=mx-mn||1;
+  ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.beginPath();
+  data.forEach((v,i)=>{
+    const x=i/(data.length-1)*c.width, y=h-(v-mn)/range*(h-8)-4;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  const zy=h-(0-mn)/range*(h-8)-4;
+  ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,zy);ctx.lineTo(c.width,zy);ctx.stroke();
+}
+
+function mtqlBacktest() {
+  const fn=mtqlGetStrategy(); if(!fn)return;
+  document.getElementById('mtql-status').textContent='Backtesting…';
+  const N=500;
+  const {p,r}=mtqlGenPrices(N);
+  let pos=0,cash=0,maxEq=0,maxDD=0,trades=0,wins=0;
+  const equity=[0],tradePnLs=[];
+  for(let i=50;i<N;i++){
+    const ctx={
+      prices:p.slice(0,i+1),returns:r.slice(0,i+1),
+      sma5:mtqlSMA(p,i,5),sma20:mtqlSMA(p,i,20),sma50:mtqlSMA(p,i,50),
+      volatility:mtqlVol(r,i,20),position:pos,tick:i
+    };
+    let res;
+    try{res=fn(ctx);}catch(e){document.getElementById('mtql-error').textContent='⚠ '+e.message;return;}
+    const action=res&&res.action?res.action:'hold';
+    const qty=Math.min(100,res&&res.qty?Math.abs(res.qty):10);
+    const price=p[i];
+    const prevPos=pos;
+    if(action==='buy'&&pos<100){const b=Math.min(qty,100-pos);cash-=price*b;pos+=b;trades++;}
+    else if(action==='sell'&&pos>-100){const s=Math.min(qty,100+pos);cash+=price*s;pos-=s;trades++;
+      if(prevPos>0){const pl=cash+pos*price; tradePnLs.push(pl-equity[equity.length-1]); if(pl>equity[equity.length-1])wins++;}}
+    const eq=cash+pos*price;
+    equity.push(eq);
+    if(eq>maxEq)maxEq=eq;
+    const dd=maxEq-eq; if(dd>maxDD)maxDD=dd;
+  }
+  const finalEq=cash+pos*p[N-1];
+  equity[equity.length-1]=finalEq;
+  const returns2=equity.slice(1).map((v,i)=>v-equity[i]);
+  const mn2=returns2.reduce((a,b)=>a+b,0)/returns2.length;
+  const sd2=Math.sqrt(returns2.reduce((a,b)=>a+(b-mn2)**2,0)/returns2.length)||0.001;
+  const sharpe=(mn2/sd2*Math.sqrt(252)).toFixed(2);
+  const wr=tradePnLs.length?(wins/tradePnLs.length*100).toFixed(0)+'%':'—';
+  const avgPL=tradePnLs.length?(tradePnLs.reduce((a,b)=>a+b,0)/tradePnLs.length).toFixed(1):'0';
+  document.getElementById('mbt-pnl').textContent=(finalEq>=0?'+':'')+finalEq.toFixed(0);
+  document.getElementById('mbt-pnl').style.color=finalEq>=0?'var(--green)':'var(--red)';
+  document.getElementById('mbt-sharpe').textContent=sharpe;
+  document.getElementById('mbt-sharpe').style.color=sharpe>=1?'var(--green)':sharpe>=0?'var(--yellow)':'var(--red)';
+  document.getElementById('mbt-dd').textContent='-'+maxDD.toFixed(0);
+  document.getElementById('mbt-dd').style.color='var(--red)';
+  document.getElementById('mbt-wr').textContent=wr;
+  document.getElementById('mbt-trades').textContent=trades;
+  document.getElementById('mbt-avg').textContent=avgPL;
+  document.getElementById('mtql-bt-section').style.display='';
+  document.getElementById('mtql-status').textContent='Backtest done';
+  setTimeout(()=>mtqlDrawEquity('mbt-chart',equity,'var(--yellow)'),10);
+}
+
+function mtqlToggleLive() {
+  if(mtqlLiveInterval){
+    clearInterval(mtqlLiveInterval);mtqlLiveInterval=null;
+    document.getElementById('mtql-live-btn').textContent='▶ Deploy Live';
+    document.getElementById('mtql-live-btn').className='ql-btn live';
+    document.getElementById('mtql-status').textContent='Live stopped';
+    return;
+  }
+  const fn=mtqlGetStrategy(); if(!fn)return;
+  const {p:initP,r:initR}=mtqlGenPrices(60);
+  mtqlLiveState={fn,prices:Array.from(initP),returns:Array.from(initR),pos:0,cash:0,equity:[0],tick:60};
+  document.getElementById('mtql-live-section').style.display='';
+  document.getElementById('mtql-live-btn').textContent='⏹ Stop';
+  document.getElementById('mtql-live-btn').className='ql-btn stop';
+  document.getElementById('mtql-status').textContent='Live running…';
+  mtqlLiveInterval=setInterval(()=>{
+    const st=mtqlLiveState;
+    const prev=st.prices[st.prices.length-1];
+    const ret=(Math.random()-0.5)*0.015+(Math.random()<0.05?(Math.random()-0.5)*0.02:0);
+    const newP=Math.max(5,prev*(1+ret));
+    st.prices.push(newP); st.returns.push(ret);
+    const i=st.prices.length-1;
+    const ctx={
+      prices:new Float64Array(st.prices),returns:new Float64Array(st.returns),
+      sma5:mtqlSMA(st.prices,i,5),sma20:mtqlSMA(st.prices,i,20),sma50:mtqlSMA(st.prices,i,50),
+      volatility:mtqlVol(st.returns,i,20),position:st.pos,tick:st.tick++
+    };
+    let res; try{res=st.fn(ctx);}catch(e){document.getElementById('mtql-error').textContent='⚠ '+e.message;clearInterval(mtqlLiveInterval);mtqlLiveInterval=null;return;}
+    const action=res&&res.action?res.action:'hold';
+    const qty=Math.min(100,res&&res.qty?Math.abs(res.qty):10);
+    let side='';
+    if(action==='buy'&&st.pos<100){const b=Math.min(qty,100-st.pos);st.cash-=newP*b;st.pos+=b;side='BUY '+b;}
+    else if(action==='sell'&&st.pos>-100){const s=Math.min(qty,100+st.pos);st.cash+=newP*s;st.pos-=s;side='SELL '+s;}
+    const eq=st.cash+st.pos*newP; st.equity.push(eq);
+    if(st.equity.length>200)st.equity.shift();
+    document.getElementById('mlv-pnl').textContent=(eq>=0?'+':'')+'€'+eq.toFixed(0);
+    document.getElementById('mlv-pnl').style.color=eq>=0?'var(--green)':'var(--red)';
+    const pl=st.pos>0?'LONG '+st.pos:st.pos<0?'SHORT '+Math.abs(st.pos):'FLAT';
+    document.getElementById('mlv-pos').textContent=pl;
+    document.getElementById('mlv-pos').style.color=st.pos>0?'var(--green)':st.pos<0?'var(--red)':'var(--dim)';
+    document.getElementById('mlv-tick').textContent=st.tick;
+    if(side){
+      const row=document.createElement('div');row.className='ql-log-row';
+      const cl=side.startsWith('BUY')?'side-l':'side-s';
+      row.innerHTML='<span class="'+cl+'">'+side+'</span><span style="color:var(--dim)">€'+newP.toFixed(2)+'</span>';
+      const lg=document.getElementById('mlv-log');
+      lg.insertBefore(row,lg.firstChild);
+      while(lg.children.length>20)lg.removeChild(lg.lastChild);
+    }
+    setTimeout(()=>mtqlDrawEquity('mlv-chart',st.equity,'var(--yellow)'),10);
+  },400);
+}
+
+function mtqlReset(){
+  if(mtqlEditor)mtqlEditor.setValue(MT_STARTER);
+  document.getElementById('mtql-error').textContent='';
+  document.getElementById('mtql-status').textContent='Ready';
+  document.getElementById('mtql-bt-section').style.display='none';
+  document.getElementById('mtql-live-section').style.display='none';
+  if(mtqlLiveInterval){clearInterval(mtqlLiveInterval);mtqlLiveInterval=null;}
+  document.getElementById('mtql-live-btn').textContent='▶ Deploy Live';
+  document.getElementById('mtql-live-btn').className='ql-btn live';
+}
+</script>
+
+<script>
+(function(){
+  function setTheme(t,save){
+    if(save) localStorage.setItem('imc-theme',t);
+    var root=document.documentElement;
+    if(t==='dark') root.setAttribute('data-theme','dark');
+    else if(t==='light') root.setAttribute('data-theme','light');
+    else root.removeAttribute('data-theme');
+    document.querySelectorAll('.tnb').forEach(function(b){
+      b.classList.toggle('active', b.dataset.t===t);
+    });
+  }
+  window.setTheme=setTheme;
+  // Apply saved theme on load
+  setTheme(localStorage.getItem('imc-theme')||'system', false);
+})();
+</script>
+</body>
+</html>
