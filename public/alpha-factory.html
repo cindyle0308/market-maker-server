@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Alpha Factory | IMC Collaborative</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<style>
+:root{
+  --bg:#060d1a;--panel:#0d1829;--panel2:#0a1220;
+  --border:#1e3a5f;--border2:#1e2d4a;
+  --text:#e2e8f0;--dim:#64748b;--dim2:#94a3b8;
+  --blue:#3b82f6;--blue-l:#60a5fa;
+  --green:#22c55e;--red:#ef4444;
+  --yellow:#eab308;--purple:#a855f7;--cyan:#06b6d4;
+  --teal:#14b8a6;--orange:#f97316;--pink:#ec4899;
+  --green-bg:rgba(34,197,94,0.12);--red-bg:rgba(239,68,68,0.12);
+  --blue-bg:rgba(59,130,246,0.12);--yellow-bg:rgba(234,179,8,0.12);
+  --purple-bg:rgba(168,85,247,0.12);--teal-bg:rgba(20,184,166,0.12);
+  --orange-bg:rgba(249,115,22,0.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;min-height:100vh;overflow-x:hidden;}
+a{color:var(--blue-l);text-decoration:none;}a:hover{text-decoration:underline;}
+.hidden{display:none!important;}
+
+nav{background:#0a1220;border-bottom:1px solid var(--border2);padding:8px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;}
+.brand{color:var(--yellow);font-weight:700;font-size:13px;}
+.cur{color:var(--text);font-weight:700;}
+.sep{color:var(--border);}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .15s;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{background:#2563eb;}
+.btn-green{background:#16a34a;color:#fff;}
+.btn-green:hover{background:#15803d;}
+.btn-orange{background:#c2410c;color:#fff;}
+.btn-orange:hover{background:#9a3412;}
+.btn-ghost{background:var(--panel);color:var(--dim2);border:1px solid var(--border);}
+.btn-ghost:hover{color:var(--text);}
+.btn-sm{padding:5px 12px;font-size:11px;}
+.btn-xs{padding:3px 9px;font-size:11px;}
+.tag{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:3px 7px;border-radius:5px;}
+.tag-trader{background:var(--purple-bg);color:var(--purple);border:1px solid rgba(168,85,247,.3);}
+.tag-coder{background:var(--teal-bg);color:var(--teal);border:1px solid rgba(20,184,166,.3);}
+.tag-live{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.3);}
+.tag-regime{background:var(--orange-bg);color:var(--orange);border:1px solid rgba(249,115,22,.4);}
+
+/* ═══ INTRO ═══ */
+#phase-intro{max-width:740px;margin:40px auto;padding:0 20px;}
+.intro-hero{text-align:center;margin-bottom:28px;}
+.intro-tag{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:8px;}
+.intro-title{font-size:36px;font-weight:900;color:#fff;margin-bottom:8px;}
+.intro-sub{color:var(--dim2);font-size:14px;line-height:1.7;}
+.team-selector{display:flex;align-items:center;gap:12px;margin:20px 0;justify-content:center;flex-wrap:wrap;}
+.team-btn{padding:8px 22px;border-radius:20px;border:1.5px solid var(--border);cursor:pointer;font-size:13px;font-weight:600;color:var(--dim2);background:var(--panel);transition:all .15s;}
+.team-btn.sel{border-color:var(--blue);color:var(--text);background:var(--blue-bg);}
+.role-cards-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0;}
+.rc{background:var(--panel);border:1px solid var(--border2);border-radius:12px;padding:16px 18px;}
+.rc.trader-rc{border-color:rgba(168,85,247,.35);}
+.rc.coder-rc{border-color:rgba(20,184,166,.35);}
+.rc-icon{font-size:24px;margin-bottom:8px;}
+.rc-name{font-size:15px;font-weight:700;margin-bottom:6px;}
+.rc.trader-rc .rc-name{color:var(--purple);}
+.rc.coder-rc .rc-name{color:var(--teal);}
+.rc-desc{font-size:12px;color:var(--dim2);line-height:1.6;}
+.loop-steps{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;margin:16px 0;}
+.ls{font-size:11px;font-weight:600;padding:5px 12px;border-radius:16px;}
+.ls-t{background:var(--purple-bg);color:var(--purple);}
+.ls-c{background:var(--teal-bg);color:var(--teal);}
+.ls-s{background:var(--blue-bg);color:var(--blue-l);}
+.ls-r{background:var(--orange-bg);color:var(--orange);}
+.ls-arr{color:var(--dim);}
+
+/* ═══ GAME SCREEN ═══ */
+#phase-game{display:flex;flex-direction:column;height:calc(100vh - 41px);}
+
+/* Top market bar */
+.market-bar{background:var(--panel2);border-bottom:1px solid var(--border2);padding:8px 16px;display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.market-tick{display:flex;align-items:center;gap:6px;}
+.market-price{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;}
+.market-change{font-size:12px;font-weight:600;}
+.price-up{color:var(--green);}
+.price-dn{color:var(--red);}
+.regime-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;}
+.regime-trend{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.3);}
+.regime-revert{background:var(--blue-bg);color:var(--blue-l);border:1px solid rgba(59,130,246,.3);}
+.regime-volatile{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.3);}
+.regime-choppy{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(234,179,8,.3);}
+.chart-mini{flex:1;max-width:300px;}
+.timer-badge{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--yellow);}
+.loop-badge{font-size:11px;color:var(--dim2);}
+
+/* Main split */
+.game-split{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:0;}
+
+/* Trader panel */
+.trader-panel{border-right:1px solid var(--border2);display:flex;flex-direction:column;overflow:hidden;}
+.panel-header{padding:8px 14px;border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:8px;background:var(--panel2);flex-shrink:0;}
+.panel-title{font-size:12px;font-weight:700;}
+.panel-body{flex:1;overflow-y:auto;padding:12px;}
+
+/* Market chart */
+.chart-box{background:var(--panel2);border:1px solid var(--border2);border-radius:8px;padding:10px;margin-bottom:10px;}
+.chart-label{font-size:10px;color:var(--dim);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+canvas.chart-canvas{width:100%;display:block;background:transparent;}
+
+/* Alpha Notebook */
+.notebook-section{margin-bottom:10px;}
+.nb-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin-bottom:6px;}
+.hypothesis-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;}
+.hyp-card{background:var(--panel);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;}
+.hyp-card.published{border-color:rgba(168,85,247,.4);}
+.hyp-text{font-size:12px;color:var(--text);line-height:1.5;}
+.hyp-meta{display:flex;align-items:center;gap:6px;margin-top:5px;}
+.hyp-conf{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;}
+.hyp-conf.high{background:var(--green-bg);color:var(--green);}
+.hyp-conf.med{background:var(--yellow-bg);color:var(--yellow);}
+.hyp-conf.low{background:var(--red-bg);color:var(--red);}
+.hyp-time{font-size:10px;color:var(--dim);}
+.hyp-status{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--purple-bg);color:var(--purple);font-weight:600;}
+.nb-form{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px;}
+.nb-textarea{width:100%;background:#050d18;border:1px solid var(--border);border-radius:6px;padding:8px;font-size:12px;color:var(--text);resize:vertical;min-height:72px;outline:none;font-family:inherit;line-height:1.5;}
+.nb-textarea:focus{border-color:var(--purple);}
+.nb-row{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.sig-chip{padding:4px 10px;border-radius:12px;font-size:11px;cursor:pointer;border:1px solid var(--border2);color:var(--dim2);}
+.sig-chip.sel-chip{border-color:var(--purple);background:var(--purple-bg);color:var(--purple);}
+.conf-select{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px;color:var(--text);outline:none;}
+
+/* Equity tracker */
+.equity-tracker{background:var(--panel2);border:1px solid var(--border2);border-radius:8px;padding:10px;}
+.team-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border2);}
+.team-row:last-child{border-bottom:none;}
+.team-color{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.team-name{flex:1;font-size:12px;font-weight:600;}
+.team-pnl{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;}
+.team-pnl.pos{color:var(--green);}
+.team-pnl.neg{color:var(--red);}
+.team-sharpe{font-size:11px;color:var(--dim2);min-width:60px;text-align:right;}
+
+/* Coder panel */
+.coder-panel{display:flex;flex-direction:column;overflow:hidden;}
+.code-editor-area{flex:1;display:flex;flex-direction:column;min-height:0;}
+.CodeMirror{height:100%;font-size:12px;background:var(--bg)!important;}
+.CodeMirror-scroll{min-height:200px;}
+.code-toolbar{padding:7px 12px;border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:8px;flex-shrink:0;background:var(--panel2);}
+.code-footer{padding:8px 12px;border-top:1px solid var(--border2);background:var(--panel2);flex-shrink:0;display:flex;flex-direction:column;gap:6px;}
+.live-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.live-metric{background:var(--panel);border-radius:6px;padding:6px 8px;text-align:center;}
+.lm-val{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;}
+.lm-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
+.output-line{font-family:monospace;font-size:11px;line-height:1.6;}
+.out-ok{color:var(--green);}
+.out-err{color:var(--red);}
+.out-warn{color:var(--yellow);}
+.out-info{color:var(--blue-l);}
+.hypothesis-inbox{background:var(--panel2);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;margin-bottom:8px;}
+.inbox-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--purple);margin-bottom:6px;}
+.inbox-item{font-size:11px;color:var(--dim2);padding:5px 0;border-bottom:1px solid var(--border2);cursor:pointer;line-height:1.5;}
+.inbox-item:last-child{border-bottom:none;}
+.inbox-item:hover{color:var(--text);}
+.inbox-item.unread{color:var(--text);}
+.inbox-dot{width:6px;height:6px;border-radius:50%;background:var(--purple);display:inline-block;margin-right:5px;}
+
+/* Results */
+#phase-results{max-width:820px;margin:32px auto;padding:0 20px 60px;}
+.res-header{text-align:center;margin-bottom:24px;}
+.leaderboard{background:var(--panel);border:1px solid var(--border2);border-radius:12px;overflow:hidden;margin-bottom:20px;}
+.lb-row{display:grid;grid-template-columns:40px 1fr 100px 100px 100px 80px;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border2);}
+.lb-row.header{background:var(--panel2);font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;font-weight:700;}
+.lb-row:last-child{border-bottom:none;}
+.lb-rank{font-size:20px;font-weight:900;text-align:center;}
+.lb-name{font-size:14px;font-weight:700;}
+.lb-pnl{font-size:14px;font-weight:700;}
+.lb-sharpe{font-size:13px;font-weight:600;}
+.lb-alpha{font-size:13px;font-weight:600;}
+.lb-adapt{font-size:13px;font-weight:600;}
+.lb-medal{font-size:22px;text-align:center;}
+.medals{font-size:22px;}
+.equity-compare{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:16px;margin-bottom:16px;}
+.ec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--dim2);margin-bottom:10px;}
+.regime-log{background:var(--panel2);border:1px solid var(--border2);border-radius:10px;padding:14px;margin-bottom:16px;}
+.rl-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--orange);margin-bottom:8px;}
+.rl-entry{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--border2);font-size:12px;}
+.rl-entry:last-child{border-bottom:none;}
+.rl-tick{color:var(--dim);min-width:50px;}
+.rl-regime{font-weight:600;}
+.rl-impact{color:var(--dim2);}
+.res-actions{display:flex;gap:12px;justify-content:center;}
+
+/* ── LIGHT MODE ── */
+[data-theme="light"]{
+  --bg:#f0f4f8!important;--panel:#ffffff!important;--panel2:#e8edf3!important;
+  --border:#c5d0de!important;--border2:#d5dde8!important;
+  --text:#1e2d3d!important;--dim:#6b7d8f!important;--dim2:#4a5a6a!important;
+  --blue:#2563eb!important;--blue-l:#1d4ed8!important;
+  --green:#16a34a!important;--red:#dc2626!important;
+  --yellow:#b45309!important;--purple:#7c3aed!important;
+  --cyan:#0e7490!important;--teal:#0f766e!important;--orange:#c2410c!important;
+  --green-bg:rgba(22,163,74,0.12)!important;--red-bg:rgba(220,38,38,0.12)!important;
+  --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
+  --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
+  --orange-bg:rgba(194,65,12,0.12)!important;
+}
+@media(prefers-color-scheme:light){
+  :root:not([data-theme]){
+    --bg:#f0f4f8!important;--panel:#ffffff!important;--panel2:#e8edf3!important;
+    --border:#c5d0de!important;--border2:#d5dde8!important;
+    --text:#1e2d3d!important;--dim:#6b7d8f!important;--dim2:#4a5a6a!important;
+    --blue:#2563eb!important;--blue-l:#1d4ed8!important;
+    --green:#16a34a!important;--red:#dc2626!important;
+    --yellow:#b45309!important;--purple:#7c3aed!important;
+    --cyan:#0e7490!important;--teal:#0f766e!important;--orange:#c2410c!important;
+    --green-bg:rgba(22,163,74,0.12)!important;--red-bg:rgba(220,38,38,0.12)!important;
+    --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
+    --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
+    --orange-bg:rgba(194,65,12,0.12)!important;
+  }
+}
+/* Theme toggle button in nav */
+.theme-nav-btns{margin-left:auto;display:flex;gap:3px;align-items:center;}
+.tnb{padding:3px 8px;border-radius:5px;border:1px solid var(--border2);
+  background:transparent;color:var(--dim);font-size:10px;font-weight:700;
+  cursor:pointer;transition:all .12s;line-height:1;}
+.tnb:hover{color:var(--text);}
+.tnb.active{background:var(--panel);border-color:var(--border);color:var(--text);}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="brand">⌂ Hub</a><span class="sep">|</span>
+  <span style="color:var(--dim);font-size:11px;">Collab:</span>
+  <a href="quant-relay.html">Relay</a>
+  <span class="cur">Alpha Factory</span>
+  <span class="sep">|</span>
+  <span style="color:var(--dim);font-size:11px;">Trading:</span>
+  <a href="price-war.html">Price War</a>
+  <a href="arbitrage-sprint.html">Arb Sprint</a>
+  <a href="cmi-challenge.html">CMI</a>
+  <span class="sep">|</span>
+  <span style="color:var(--dim);font-size:11px;">Tech:</span>
+  <a href="algo-blitz.html">Algo Blitz</a>
+  <a href="bot-builder.html">Bot Builder</a>
+  <span class="sep">|</span>
+  <a href="momentum-trainer.html">Momentum</a>
+  <a href="spread-trader.html">Spread</a>
+  <a href="regime-rider.html">Regime</a>
+  <span class="sep">|</span>
+  <a href="basket-blitz.html">Basket</a>
+  <a href="options-outcry.html">Outcry</a>
+<span class="theme-nav-btns"><button class="tnb" data-t="light" onclick="setTheme('light',true)" title="Light">☀</button><button class="tnb" data-t="system" onclick="setTheme('system',true)" title="System">⊙</button><button class="tnb" data-t="dark" onclick="setTheme('dark',true)" title="Dark">☾</button></span>
+</nav>
+
+<!-- ═══ INTRO ═══ -->
+<div id="phase-intro">
+  <div class="intro-hero">
+    <div class="intro-tag">Collaborative · 2–6 Players · ~35–45 min</div>
+    <div class="intro-title">Alpha Factory</div>
+    <div class="intro-sub">
+      Both roles see the same live market stream.<br>
+      The Trader spots patterns and writes hypotheses. The Coder quantifies them and deploys signals.<br>
+      Teams compete live — regime shifts mid-game force everyone to adapt.
+    </div>
+  </div>
+
+  <div class="loop-steps">
+    <span class="ls ls-s">Market Streams</span><span class="ls-arr">→</span>
+    <span class="ls ls-t">Trader Spots Pattern</span><span class="ls-arr">→</span>
+    <span class="ls ls-t">Publishes Hypothesis</span><span class="ls-arr">→</span>
+    <span class="ls ls-c">Coder Implements Signal</span><span class="ls-arr">→</span>
+    <span class="ls ls-c">Deploys Live</span><span class="ls-arr">→</span>
+    <span class="ls ls-r">Regime Shifts</span><span class="ls-arr">→</span>
+    <span class="ls ls-s">Repeat × 3</span>
+  </div>
+
+  <div class="role-cards-row">
+    <div class="rc trader-rc">
+      <div class="rc-icon">🔬</div>
+      <div class="rc-name">Trader Role</div>
+      <div class="rc-desc">
+        Watch the live price stream. Spot patterns — momentum, mean reversion, volume spikes, range breakouts.<br><br>
+        Write hypotheses in the Alpha Notebook. Be precise: state what signal, what threshold, what edge you expect. Publish to your Coder partner.<br><br>
+        After a regime shift, you must hypothesize why your alpha decayed and propose a new one.
+      </div>
+    </div>
+    <div class="rc coder-rc">
+      <div class="rc-icon">⚡</div>
+      <div class="rc-name">Coder Role</div>
+      <div class="rc-desc">
+        You receive the Trader's hypotheses in your inbox. Read the idea and implement <code style="color:var(--cyan);font-family:monospace">strategy(ctx)</code>.<br><br>
+        You have the full API: sma, ema, rsi, z-score, bollinger, momentum. Deploy your strategy and watch its live PnL.<br><br>
+        When a regime shift hits, diagnose why PnL changed and redeploy a new strategy fast.
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:20px;">
+    <div style="font-size:11px;color:var(--dim2);text-align:center;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;">Number of Teams</div>
+    <div class="team-selector">
+      <div class="team-btn sel" onclick="selectTeams(1,this)">1 Team (solo practice)</div>
+      <div class="team-btn" onclick="selectTeams(2,this)">2 Teams</div>
+      <div class="team-btn" onclick="selectTeams(3,this)">3 Teams</div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:16px;">
+    <button class="btn btn-primary" style="font-size:15px;padding:12px 32px;" onclick="startGame()">Launch Alpha Factory →</button>
+  </div>
+</div>
+
+<!-- ═══ GAME ═══ -->
+<div id="phase-game" class="hidden">
+  <!-- Market bar -->
+  <div class="market-bar">
+    <div class="market-tick">
+      <span style="font-size:11px;color:var(--dim);margin-right:2px;">PRICE</span>
+      <span class="market-price" id="mkt-price">100.00</span>
+      <span class="market-change price-up" id="mkt-change">+0.00%</span>
+    </div>
+    <div id="regime-display" class="regime-badge regime-trend">TREND ↑</div>
+    <div style="flex:1;max-width:280px;">
+      <canvas id="chart-top" class="chart-canvas" height="32"></canvas>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-left:auto;">
+      <span style="font-size:11px;color:var(--dim);">Loop <span id="loop-num">1</span>/3</span>
+      <span class="timer-badge" id="game-timer">10:00</span>
+      <button class="btn btn-ghost btn-sm" onclick="togglePause()" id="pause-btn">⏸ Pause</button>
+    </div>
+  </div>
+
+  <div class="game-split">
+    <!-- ── Trader Panel ── -->
+    <div class="trader-panel">
+      <div class="panel-header">
+        <span class="tag tag-trader">Trader</span>
+        <span class="panel-title">Alpha Notebook</span>
+        <div style="flex:1;"></div>
+        <span style="font-size:11px;color:var(--dim);" id="hyp-count">0 hypotheses</span>
+      </div>
+      <div class="panel-body">
+        <!-- Price chart -->
+        <div class="chart-box">
+          <div class="chart-label">Live Price Stream</div>
+          <canvas id="chart-trader" class="chart-canvas" height="80"></canvas>
+        </div>
+
+        <!-- Volume bar -->
+        <div class="chart-box" style="margin-bottom:10px;">
+          <div class="chart-label">Volume</div>
+          <canvas id="chart-vol" class="chart-canvas" height="30"></canvas>
+        </div>
+
+        <!-- Published hypotheses -->
+        <div class="notebook-section">
+          <div class="nb-title">Published Hypotheses</div>
+          <div class="hypothesis-list" id="hyp-list">
+            <div style="font-size:12px;color:var(--dim);padding:8px 0;">No hypotheses yet — observe the market and write your first idea below.</div>
+          </div>
+        </div>
+
+        <!-- New hypothesis form -->
+        <div class="notebook-section">
+          <div class="nb-title">New Hypothesis</div>
+          <div class="nb-form">
+            <textarea class="nb-textarea" id="hyp-text" placeholder="Describe the pattern you see...&#10;e.g. 'Price has been trending up for 20 ticks with increasing volume. RSI may be approaching 70. Expect continuation until RSI > 70 then fade.'"></textarea>
+            <div class="nb-row">
+              <span style="font-size:11px;color:var(--dim);">Signal:</span>
+              <span class="sig-chip sel-chip" data-sig="momentum" onclick="selectSig(this)">Momentum</span>
+              <span class="sig-chip" data-sig="mean-reversion" onclick="selectSig(this)">Mean Rev</span>
+              <span class="sig-chip" data-sig="breakout" onclick="selectSig(this)">Breakout</span>
+              <span class="sig-chip" data-sig="other" onclick="selectSig(this)">Other</span>
+            </div>
+            <div class="nb-row">
+              <span style="font-size:11px;color:var(--dim);">Confidence:</span>
+              <select class="conf-select" id="hyp-conf">
+                <option value="high">High</option>
+                <option value="med" selected>Medium</option>
+                <option value="low">Low</option>
+              </select>
+              <div style="flex:1;"></div>
+              <button class="btn btn-ghost btn-sm" onclick="clearHypForm()">Clear</button>
+              <button class="btn btn-primary btn-sm" onclick="publishHypothesis()">📤 Publish</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live leaderboard -->
+        <div class="notebook-section">
+          <div class="nb-title">Live Leaderboard</div>
+          <div class="equity-tracker" id="leaderboard-panel">
+            <div style="color:var(--dim);font-size:12px;">Waiting for strategy deployments…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Coder Panel ── -->
+    <div class="coder-panel">
+      <div class="panel-header">
+        <span class="tag tag-coder">Coder</span>
+        <span class="panel-title">Quant Lab</span>
+        <div style="flex:1;"></div>
+        <span id="deploy-status" style="font-size:11px;color:var(--dim);">No strategy deployed</span>
+      </div>
+      <div class="panel-body" style="padding:8px 10px;display:flex;flex-direction:column;gap:8px;height:100%;">
+        <!-- Price chart (mirrored) -->
+        <div class="chart-box">
+          <div class="chart-label">Live Price Stream (same feed)</div>
+          <canvas id="chart-coder" class="chart-canvas" height="80"></canvas>
+        </div>
+
+        <!-- Hypothesis inbox -->
+        <div class="hypothesis-inbox">
+          <div class="inbox-label">📥 Hypothesis Inbox <span id="inbox-badge" style="color:var(--dim);">(empty)</span></div>
+          <div id="hyp-inbox">
+            <div class="inbox-item" style="color:var(--dim);">Waiting for Trader to publish hypotheses…</div>
+          </div>
+        </div>
+
+        <!-- Code toolbar -->
+        <div class="code-toolbar" style="border-radius:8px 8px 0 0;border:1px solid var(--border2);border-bottom:none;">
+          <span style="font-size:11px;color:var(--dim2);">strategy.js</span>
+          <div style="flex:1;"></div>
+          <button class="btn btn-ghost btn-xs" onclick="afResetCode()">↺ Reset</button>
+          <button class="btn btn-ghost btn-xs" onclick="afShowAPI()">API ref</button>
+          <button class="btn btn-orange btn-sm" id="deploy-btn" onclick="afDeploy()">⚡ Deploy</button>
+        </div>
+        <!-- Editor -->
+        <div style="flex:1;min-height:0;border:1px solid var(--border2);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;display:flex;flex-direction:column;">
+          <textarea id="af-code"></textarea>
+        </div>
+      </div>
+      <!-- Metrics footer -->
+      <div class="code-footer">
+        <div class="live-metrics">
+          <div class="live-metric">
+            <div class="lm-val" id="af-pnl" style="color:var(--dim2);">—</div>
+            <div class="lm-lbl">Live PnL</div>
+          </div>
+          <div class="live-metric">
+            <div class="lm-val" id="af-sharpe" style="color:var(--dim2);">—</div>
+            <div class="lm-lbl">Sharpe</div>
+          </div>
+          <div class="live-metric">
+            <div class="lm-val" id="af-trades" style="color:var(--dim2);">0</div>
+            <div class="lm-lbl">Trades</div>
+          </div>
+          <div class="live-metric">
+            <div class="lm-val" id="af-pos" style="color:var(--dim2);">FLAT</div>
+            <div class="lm-lbl">Position</div>
+          </div>
+        </div>
+        <div id="af-output" class="output-line out-info">// Deploy a strategy to begin trading…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RESULTS ═══ -->
+<div id="phase-results" class="hidden">
+  <div class="res-header">
+    <div style="margin-bottom:8px;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;font-weight:700;">Alpha Factory — Final Results</div>
+    <div style="font-size:32px;font-weight:900;color:var(--yellow);" id="res-winner">Results</div>
+  </div>
+  <div class="leaderboard" id="lb-table"></div>
+  <div class="equity-compare">
+    <div class="ec-title">Equity Curves</div>
+    <canvas id="ec-canvas" height="200"></canvas>
+  </div>
+  <div class="regime-log">
+    <div class="rl-title">Regime Shift Log</div>
+    <div id="regime-log-list"></div>
+  </div>
+  <div class="res-actions">
+    <button class="btn btn-ghost" onclick="goToIntro()">↺ Play Again</button>
+  </div>
+</div>
+
+<!-- API reference modal -->
+<div id="api-modal" class="hidden" style="position:fixed;inset:0;background:rgba(6,13,26,.9);z-index:200;display:flex;align-items:center;justify-content:center;">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <span style="font-weight:700;font-size:14px;">Strategy API Reference</span>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('api-modal').classList.add('hidden')">✕</button>
+    </div>
+    <div style="font-family:monospace;font-size:12px;line-height:2;color:var(--cyan);">
+      ctx.prices<span style="color:var(--dim2);">  — number[], latest last</span><br>
+      ctx.returns<span style="color:var(--dim2);">  — log returns[]</span><br>
+      ctx.volume<span style="color:var(--dim2);">  — volume[]</span><br>
+      ctx.sma(w)<span style="color:var(--dim2);">  — simple MA → number</span><br>
+      ctx.ema(w)<span style="color:var(--dim2);">  — exponential MA → number</span><br>
+      ctx.rsi(w)<span style="color:var(--dim2);">  — RSI 0–100 → number</span><br>
+      ctx.zscore(w)<span style="color:var(--dim2);">  — z-score → number</span><br>
+      ctx.bollinger(w)<span style="color:var(--dim2);">  — {upper,mid,lower}</span><br>
+      ctx.momentum(w)<span style="color:var(--dim2);">  — price Δ over w ticks</span><br>
+      ctx.position<span style="color:var(--dim2);">  — current pos (−100 to 100)</span><br>
+      ctx.tick<span style="color:var(--dim2);">  — current tick index</span><br>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:var(--dim2);">Return: <code style="color:var(--cyan);">{action: 'buy'|'sell'|'hold', qty: number}</code></div>
+    <div style="margin-top:16px;font-size:12px;color:var(--dim2);">Example (RSI fade):</div>
+    <pre style="background:#050d18;padding:10px;border-radius:6px;font-size:11px;color:var(--text);margin-top:6px;overflow-x:auto;">function strategy(ctx) {
+  var r = ctx.rsi(14);
+  if (ctx.position === 0) {
+    if (r > 70) return {action:'sell', qty:50};
+    if (r < 30) return {action:'buy',  qty:50};
+  }
+  if (ctx.position > 0 && r > 55) return {action:'sell', qty:50};
+  if (ctx.position < 0 && r < 45) return {action:'buy',  qty:50};
+  return {action:'hold', qty:0};
+}</pre>
+  </div>
+</div>
+
+<script>
+// ─── Global state ────────────────────────────────────────────────────────
+var AF = {
+  numTeams: 1,
+  prices: [],
+  volumes: [],
+  tick: 0,
+  totalTicks: 600,
+  loopTicks: 200,
+  loop: 1,
+  paused: false,
+  interval: null,
+  regime: 'trend',
+  regimeHistory: [],
+  regimeDrift: 0.0005,
+  regimeMeanRev: false,
+  regimeVol: 0.008,
+
+  hypotheses: [],
+  inboxUnread: 0,
+  selectedSig: 'momentum',
+
+  // Team state
+  teams: [],
+  stratFns: [],
+  cash: [],
+  positions: [],
+  equities: [],
+
+  // deployed strategy
+  stratFn: null,
+  playerCash: 10000,
+  playerPos: 0,
+  playerEquity: [],
+  playerTrades: 0,
+  playerReturns: [],
+};
+
+var afEditor = null;
+var REGIME_NAMES = {
+  trend:     { label: 'TREND ↑',  cls: 'regime-trend',    drift:  0.0005, vol: 0.007, meanRev: false },
+  downtrend: { label: 'TREND ↓',  cls: 'regime-trend',    drift: -0.0005, vol: 0.007, meanRev: false },
+  volatile:  { label: 'VOLATILE', cls: 'regime-volatile',  drift:  0.0000, vol: 0.018, meanRev: false },
+  choppy:    { label: 'CHOPPY',   cls: 'regime-choppy',    drift:  0.0000, vol: 0.005, meanRev: true  },
+  revert:    { label: 'MEAN REV', cls: 'regime-revert',    drift:  0.0000, vol: 0.009, meanRev: true  },
+};
+
+// ─── Intro ────────────────────────────────────────────────────────────────
+function selectTeams(n, el) {
+  document.querySelectorAll('.team-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  AF.numTeams = n;
+}
+
+function startGame() {
+  initGame();
+  goToPhase('game');
+  setTimeout(() => {
+    initEditor();
+    startMarket();
+  }, 100);
+}
+
+function goToPhase(name) {
+  ['intro','game','results'].forEach(p => document.getElementById('phase-'+p).classList.add('hidden'));
+  document.getElementById('phase-'+name).classList.remove('hidden');
+}
+function goToIntro() {
+  if (AF.interval) clearInterval(AF.interval);
+  goToPhase('intro');
+}
+
+// ─── Game init ────────────────────────────────────────────────────────────
+function initGame() {
+  AF.prices = [100];
+  AF.volumes = [2000];
+  AF.tick = 0;
+  AF.loop = 1;
+  AF.paused = false;
+  AF.hypotheses = [];
+  AF.inboxUnread = 0;
+  AF.regime = 'trend';
+  AF.regimeHistory = [{tick:0, regime:'trend', note:'Game start'}];
+  AF.stratFn = null;
+  AF.playerCash = 10000;
+  AF.playerPos = 0;
+  AF.playerEquity = [10000];
+  AF.playerTrades = 0;
+  AF.playerReturns = [];
+
+  // Bot teams
+  AF.teams = [];
+  AF.stratFns = [];
+  AF.cash = [];
+  AF.positions = [];
+  AF.equities = [];
+
+  var botNames = ['Team Alpha', 'Team Beta', 'Team Gamma'];
+  var botColors = [TEAM_COLOR, '#60a5fa', '#f97316'];
+  // Player team
+  AF.teams.push({ name: 'Your Team', color: TEAM_COLOR });
+  AF.cash.push(10000);
+  AF.positions.push(0);
+  AF.equities.push([10000]);
+  AF.stratFns.push(null);
+
+  for (var i = 1; i < AF.numTeams; i++) {
+    AF.teams.push({ name: botNames[i], color: botColors[i] });
+    AF.cash.push(10000);
+    AF.positions.push(0);
+    AF.equities.push([10000]);
+    AF.stratFns.push(makeBotStrategy(i));
+  }
+
+  document.getElementById('hyp-list').innerHTML = '<div style="font-size:12px;color:var(--dim);padding:8px 0;">No hypotheses yet — observe the market and write your first idea below.</div>';
+  document.getElementById('hyp-inbox').innerHTML = '<div class="inbox-item" style="color:var(--dim);">Waiting for Trader to publish hypotheses…</div>';
+  document.getElementById('hyp-count').textContent = '0 hypotheses';
+  document.getElementById('loop-num').textContent = '1';
+  document.getElementById('deploy-status').textContent = 'No strategy deployed';
+  document.getElementById('af-pnl').textContent = '—';
+  document.getElementById('af-pnl').style.color = 'var(--dim2)';
+  document.getElementById('af-sharpe').textContent = '—';
+  document.getElementById('af-trades').textContent = '0';
+  document.getElementById('af-pos').textContent = 'FLAT';
+  document.getElementById('af-output').textContent = '// Deploy a strategy to begin trading…';
+  document.getElementById('af-output').className = 'output-line out-info';
+  updateLeaderboard();
+}
+
+var TEAM_COLOR = '#22c55e';
+
+function makeBotStrategy(idx) {
+  if (idx === 1) {
+    return function(ctx) {
+      var z = ctx.zscore(20);
+      if (ctx.position === 0) {
+        if (z < -1.8) return {action:'buy', qty:60};
+        if (z >  1.8) return {action:'sell',qty:60};
+      }
+      if (ctx.position > 0 && z > -0.3) return {action:'sell', qty:Math.abs(ctx.position)};
+      if (ctx.position < 0 && z <  0.3) return {action:'buy',  qty:Math.abs(ctx.position)};
+      return {action:'hold',qty:0};
+    };
+  } else {
+    return function(ctx) {
+      var fast = ctx.sma(8), slow = ctx.sma(25);
+      var gap = (fast - slow) / slow * 100;
+      if (ctx.position === 0) {
+        if (gap >  1.5) return {action:'buy', qty:50};
+        if (gap < -1.5) return {action:'sell',qty:50};
+      }
+      if (ctx.position > 0 && gap < 0.3)  return {action:'sell', qty:Math.abs(ctx.position)};
+      if (ctx.position < 0 && gap > -0.3) return {action:'buy',  qty:Math.abs(ctx.position)};
+      return {action:'hold',qty:0};
+    };
+  }
+}
+
+// ─── Market simulation ────────────────────────────────────────────────────
+function startMarket() {
+  AF.interval = setInterval(marketTick, 350);
+}
+
+function togglePause() {
+  AF.paused = !AF.paused;
+  document.getElementById('pause-btn').textContent = AF.paused ? '▶ Resume' : '⏸ Pause';
+}
+
+function marketTick() {
+  if (AF.paused) return;
+  AF.tick++;
+
+  // Regime transitions at loop boundaries + random
+  var loopBoundary = AF.tick % AF.loopTicks === 0;
+  var randomShift = AF.tick > 30 && Math.random() < 0.008;
+  if (loopBoundary || randomShift) {
+    shiftRegime(loopBoundary);
+  }
+
+  var rInfo = REGIME_NAMES[AF.regime];
+  var prevPrice = AF.prices[AF.prices.length - 1];
+  var ret = rInfo.drift + rInfo.vol * randn();
+  if (rInfo.meanRev) ret += -0.08 * (prevPrice - 100) / 100;
+  var newPrice = Math.max(10, prevPrice * Math.exp(ret));
+  var vol = Math.round(2000 + Math.random() * 6000 * (1 + Math.abs(ret) * 100));
+  AF.prices.push(newPrice);
+  AF.volumes.push(vol);
+
+  // Update market bar
+  var change = (newPrice - AF.prices[Math.max(0, AF.prices.length - 50)]) / AF.prices[Math.max(0, AF.prices.length - 50)] * 100;
+  document.getElementById('mkt-price').textContent = newPrice.toFixed(2);
+  var chEl = document.getElementById('mkt-change');
+  chEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+  chEl.className = 'market-change ' + (change >= 0 ? 'price-up' : 'price-dn');
+
+  // Run player strategy
+  runPlayerStrategy(newPrice);
+
+  // Run bot strategies
+  for (var i = 1; i < AF.teams.length; i++) {
+    runBotStrategy(i, newPrice);
+  }
+
+  // Update charts
+  drawCharts();
+  updateLeaderboard();
+  updateMetrics();
+  updateTimer();
+
+  // End game
+  if (AF.tick >= AF.totalTicks) {
+    endGame();
+  }
+}
+
+function shiftRegime(scheduled) {
+  var regimes = Object.keys(REGIME_NAMES);
+  var newRegime;
+  do { newRegime = regimes[Math.floor(Math.random() * regimes.length)]; }
+  while (newRegime === AF.regime);
+  AF.regime = newRegime;
+  var rInfo = REGIME_NAMES[newRegime];
+  var el = document.getElementById('regime-display');
+  el.textContent = rInfo.label;
+  el.className = 'regime-badge ' + rInfo.cls;
+  var note = scheduled ? 'Scheduled loop shift' : 'Surprise regime shift!';
+  AF.regimeHistory.push({ tick: AF.tick, regime: newRegime, note: note });
+  document.getElementById('af-output').textContent = '⚠ Regime shift → ' + newRegime.toUpperCase() + ' at tick ' + AF.tick;
+  document.getElementById('af-output').className = 'output-line out-warn';
+}
+
+// ─── Player strategy execution ────────────────────────────────────────────
+function runPlayerStrategy(price) {
+  if (!AF.stratFn) {
+    AF.equities[0].push(AF.cash[0] + AF.positions[0] * price);
+    return;
+  }
+  var n = AF.prices.length;
+  var ctx = makeAFCtx(AF.prices, AF.volumes, AF.positions[0], AF.tick);
+  var sig;
+  try { sig = AF.stratFn(ctx); } catch(e) { sig = {action:'hold',qty:0}; }
+  if (!sig) sig = {action:'hold',qty:0};
+  var qty = Math.min(Math.abs(sig.qty||0), 100);
+  if (sig.action === 'buy' && qty > 0) {
+    var canBuy = Math.min(qty, Math.floor(AF.cash[0] / price));
+    if (canBuy > 0 && AF.positions[0] + canBuy <= 100) {
+      AF.cash[0] -= canBuy * price * 1.001;
+      AF.positions[0] += canBuy;
+      AF.playerTrades++;
+    }
+  } else if (sig.action === 'sell' && qty > 0) {
+    var canSell = Math.min(qty, AF.positions[0] + 100);
+    if (canSell > 0 && AF.positions[0] - canSell >= -100) {
+      AF.cash[0] += canSell * price * 0.999;
+      AF.positions[0] -= canSell;
+      AF.playerTrades++;
+    }
+  }
+  var equity = AF.cash[0] + AF.positions[0] * price;
+  AF.equities[0].push(equity);
+  // track returns
+  var prev = AF.equities[0][AF.equities[0].length - 2] || 10000;
+  AF.playerReturns.push((equity - prev) / prev);
+}
+
+function runBotStrategy(i, price) {
+  var fn = AF.stratFns[i];
+  if (!fn) { AF.equities[i].push(AF.cash[i] + AF.positions[i] * price); return; }
+  var ctx = makeAFCtx(AF.prices, AF.volumes, AF.positions[i], AF.tick);
+  var sig; try { sig = fn(ctx); } catch(e) { sig = {action:'hold',qty:0}; }
+  if (!sig) sig = {action:'hold',qty:0};
+  var qty = Math.min(Math.abs(sig.qty||0), 100);
+  if (sig.action === 'buy' && qty > 0) {
+    var cb = Math.min(qty, Math.floor(AF.cash[i] / price));
+    if (cb > 0 && AF.positions[i] + cb <= 100) { AF.cash[i] -= cb * price; AF.positions[i] += cb; }
+  } else if (sig.action === 'sell' && qty > 0) {
+    var cs = Math.min(qty, AF.positions[i] + 100);
+    if (cs > 0 && AF.positions[i] - cs >= -100) { AF.cash[i] += cs * price; AF.positions[i] -= cs; }
+  }
+  AF.equities[i].push(AF.cash[i] + AF.positions[i] * price);
+}
+
+// ─── Strategy API ─────────────────────────────────────────────────────────
+function makeAFCtx(prices, volumes, position, tick) {
+  var n = prices.length;
+  var returns = [];
+  for (var i = 1; i < n; i++) returns.push(Math.log(prices[i]/prices[i-1]));
+  function sma(w){var c=Math.min(w,n),s=0;for(var i=n-c;i<n;i++)s+=prices[i];return s/c;}
+  function ema(w){if(n<2)return prices[n-1];var k=2/(w+1),v=prices[Math.max(0,n-w)];for(var i=Math.max(1,n-w+1);i<n;i++)v=prices[i]*k+v*(1-k);return v;}
+  function mn(w){var c=Math.min(w,n),s=0;for(var i=n-c;i<n;i++)s+=prices[i];return s/c;}
+  function sd(w){var c=Math.min(w,n),m=mn(w),s=0;for(var i=n-c;i<n;i++)s+=(prices[i]-m)*(prices[i]-m);return Math.sqrt(s/c)||1e-9;}
+  function zscore(w){return(prices[n-1]-mn(w))/sd(w);}
+  function bollinger(w){var m=mn(w),s=sd(w)*2;return{upper:m+s,mid:m,lower:m-s};}
+  function rsi(w){var c=Math.min(w,n-1),g=0,l=0;for(var i=n-c;i<n;i++){var d=prices[i]-prices[i-1];if(d>0)g+=d;else l-=d;}var rs=(g/c)/((l/c)||1e-9);return 100-100/(1+rs);}
+  function momentum(w){return n>w?prices[n-1]-prices[n-1-w]:0;}
+  return{prices:prices.slice(),returns:returns,volume:volumes.slice(0,n),sma:sma,ema:ema,rsi:rsi,zscore:zscore,bollinger:bollinger,momentum:momentum,position:position,tick:tick};
+}
+
+// ─── Editor ───────────────────────────────────────────────────────────────
+function initEditor() {
+  if (afEditor) return;
+  afEditor = CodeMirror.fromTextArea(document.getElementById('af-code'), {
+    mode:'javascript', theme:'dracula',
+    lineNumbers:true, indentWithTabs:false, tabSize:2, lineWrapping:false
+  });
+  afEditor.setSize('100%','100%');
+  afEditor.setValue(AF_STARTER);
+}
+var AF_STARTER =
+`// Implement your strategy here.
+// Check the inbox above for Trader's hypothesis!
+// Use the API ref button if you need help.
+
+function strategy(ctx) {
+  // Access: ctx.sma(w), ctx.ema(w), ctx.rsi(w),
+  //         ctx.zscore(w), ctx.bollinger(w), ctx.momentum(w)
+  //         ctx.prices, ctx.returns, ctx.volume
+  //         ctx.position (-100 to 100), ctx.tick
+
+  var rsi = ctx.rsi(14);
+
+  if (ctx.position === 0) {
+    if (rsi < 35) return { action: 'buy',  qty: 50 };
+    if (rsi > 65) return { action: 'sell', qty: 50 };
+  }
+  if (ctx.position > 0 && rsi > 55) return { action: 'sell', qty: Math.abs(ctx.position) };
+  if (ctx.position < 0 && rsi < 45) return { action: 'buy',  qty: Math.abs(ctx.position) };
+
+  return { action: 'hold', qty: 0 };
+}`;
+
+function afResetCode() {
+  if (afEditor) afEditor.setValue(AF_STARTER);
+}
+function afShowAPI() {
+  document.getElementById('api-modal').classList.remove('hidden');
+}
+
+function afDeploy() {
+  var code = afEditor ? afEditor.getValue() : '';
+  var outEl = document.getElementById('af-output');
+  try {
+    var fn = new Function(code + '\nreturn strategy;')();
+    if (typeof fn !== 'function') throw new Error('strategy function not found');
+    AF.stratFn = fn;
+    AF.stratFns[0] = fn;
+    document.getElementById('deploy-status').textContent = '⚡ Strategy live — tick ' + AF.tick;
+    document.getElementById('deploy-status').style.color = 'var(--green)';
+    outEl.textContent = '✓ Strategy deployed at tick ' + AF.tick + ' — watching for signals…';
+    outEl.className = 'output-line out-ok';
+  } catch(e) {
+    outEl.textContent = '✗ ' + e.message;
+    outEl.className = 'output-line out-err';
+  }
+}
+
+// ─── Charts ───────────────────────────────────────────────────────────────
+function drawCharts() {
+  var priceWindow = AF.prices.slice(-150);
+  drawPriceChart('chart-trader', priceWindow);
+  drawPriceChart('chart-coder', priceWindow);
+  drawTopChart('chart-top', priceWindow);
+  drawVolumeChart('chart-vol', AF.volumes.slice(-150));
+}
+
+function drawPriceChart(id, prices) {
+  var c = document.getElementById(id);
+  if (!c) return;
+  var W = c.parentElement.clientWidth - 20;
+  c.width = W; c.height = 80;
+  var ctx = c.getContext('2d');
+  ctx.fillStyle = '#050d18';
+  ctx.fillRect(0,0,W,80);
+  if (prices.length < 2) return;
+  var mn = Math.min(...prices), mx = Math.max(...prices);
+  var rng = mx - mn || 1;
+  function px(i){return (i/(prices.length-1))*W;}
+  function py(v){return 5+(1-(v-mn)/rng)*70;}
+  var last = prices[prices.length-1], prev = prices[prices.length-2];
+  var col = last >= prev ? '#22c55e' : '#ef4444';
+  ctx.beginPath();
+  prices.forEach((v,i)=>i===0?ctx.moveTo(px(i),py(v)):ctx.lineTo(px(i),py(v)));
+  ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.stroke();
+}
+
+function drawTopChart(id, prices) {
+  var c = document.getElementById(id);
+  if (!c) return;
+  var W = c.parentElement.clientWidth;
+  c.width = W; c.height = 32;
+  var ctx = c.getContext('2d');
+  ctx.fillStyle = '#0a1220';
+  ctx.fillRect(0,0,W,32);
+  if (prices.length < 2) return;
+  var mn = Math.min(...prices), mx = Math.max(...prices);
+  var rng = mx - mn || 1;
+  function px(i){return (i/(prices.length-1))*W;}
+  function py(v){return 2+(1-(v-mn)/rng)*28;}
+  ctx.beginPath();
+  prices.forEach((v,i)=>i===0?ctx.moveTo(px(i),py(v)):ctx.lineTo(px(i),py(v)));
+  ctx.strokeStyle='#3b82f6';ctx.lineWidth=1.5;ctx.stroke();
+}
+
+function drawVolumeChart(id, volumes) {
+  var c = document.getElementById(id);
+  if (!c) return;
+  var W = c.parentElement.clientWidth - 20;
+  c.width = W; c.height = 30;
+  var ctx = c.getContext('2d');
+  ctx.fillStyle = '#050d18';
+  ctx.fillRect(0,0,W,30);
+  if (volumes.length < 2) return;
+  var mx = Math.max(...volumes)||1;
+  var bw = Math.max(1, W/volumes.length - 0.5);
+  volumes.forEach((v,i)=>{
+    var h = Math.max(1, (v/mx)*28);
+    var x = (i/(volumes.length-1))*W;
+    ctx.fillStyle = v > mx*0.7 ? '#f97316' : '#1e3a5f';
+    ctx.fillRect(x, 30-h, bw, h);
+  });
+}
+
+// ─── Leaderboard ──────────────────────────────────────────────────────────
+function updateLeaderboard() {
+  var panel = document.getElementById('leaderboard-panel');
+  var rows = AF.teams.map((t, i) => {
+    var eq = AF.equities[i];
+    var pnl = eq.length > 0 ? eq[eq.length-1] - 10000 : 0;
+    return {name:t.name, color:t.color, pnl:pnl, deployed: i===0?!!AF.stratFn:true};
+  });
+  rows.sort((a,b)=>b.pnl-a.pnl);
+  panel.innerHTML = rows.map(r=>`
+    <div class="team-row">
+      <div class="team-color" style="background:${r.color};"></div>
+      <div class="team-name">${r.name}</div>
+      <div class="team-pnl ${r.pnl>=0?'pos':'neg'}">${r.pnl>=0?'+':''}${r.pnl.toFixed(0)}</div>
+      <div class="team-sharpe">${r.deployed?'active':'—'}</div>
+    </div>`).join('');
+}
+
+// ─── Player metrics ───────────────────────────────────────────────────────
+function updateMetrics() {
+  var eq = AF.equities[0];
+  if (eq.length < 2) return;
+  var pnl = eq[eq.length-1] - 10000;
+  var pnlEl = document.getElementById('af-pnl');
+  pnlEl.textContent = (pnl>=0?'+':'')+pnl.toFixed(0);
+  pnlEl.style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+
+  // Sharpe (rolling)
+  var rets = [];
+  var window = Math.min(50, eq.length-1);
+  for(var i=eq.length-window;i<eq.length;i++) rets.push((eq[i]-eq[i-1])/eq[i-1]);
+  var mean = rets.reduce((a,b)=>a+b,0)/rets.length;
+  var variance = rets.reduce((a,b)=>a+(b-mean)*(b-mean),0)/rets.length;
+  var sharpe = mean/(Math.sqrt(variance)||1e-9)*Math.sqrt(252);
+  var shEl = document.getElementById('af-sharpe');
+  shEl.textContent = sharpe.toFixed(2);
+  shEl.style.color = sharpe >= 0.5 ? 'var(--green)' : sharpe >= 0 ? 'var(--yellow)' : 'var(--red)';
+
+  document.getElementById('af-trades').textContent = AF.playerTrades;
+
+  var pos = AF.positions[0];
+  var posEl = document.getElementById('af-pos');
+  posEl.textContent = pos > 0 ? 'L'+pos : pos < 0 ? 'S'+Math.abs(pos) : 'FLAT';
+  posEl.style.color = pos > 0 ? 'var(--green)' : pos < 0 ? 'var(--red)' : 'var(--dim2)';
+}
+
+// ─── Timer ────────────────────────────────────────────────────────────────
+function updateTimer() {
+  var remaining = Math.max(0, AF.totalTicks - AF.tick);
+  var secs = Math.round(remaining * 0.35);
+  var m = Math.floor(secs/60), s = secs%60;
+  document.getElementById('game-timer').textContent = m+':'+(s<10?'0':'')+s;
+  document.getElementById('loop-num').textContent = Math.min(3, Math.floor(AF.tick/AF.loopTicks)+1);
+}
+
+// ─── Hypothesis notebook ──────────────────────────────────────────────────
+function selectSig(el) {
+  document.querySelectorAll('.sig-chip').forEach(c => c.classList.remove('sel-chip'));
+  el.classList.add('sel-chip');
+  AF.selectedSig = el.dataset.sig;
+}
+
+function clearHypForm() {
+  document.getElementById('hyp-text').value = '';
+}
+
+function publishHypothesis() {
+  var text = document.getElementById('hyp-text').value.trim();
+  if (!text) { alert('Write a hypothesis first.'); return; }
+  var conf = document.getElementById('hyp-conf').value;
+  var hyp = {
+    id: AF.hypotheses.length + 1,
+    text: text,
+    sig: AF.selectedSig,
+    conf: conf,
+    tick: AF.tick,
+    price: AF.prices[AF.prices.length-1].toFixed(2)
+  };
+  AF.hypotheses.push(hyp);
+  AF.inboxUnread++;
+  renderHypList();
+  renderInbox();
+  document.getElementById('hyp-text').value = '';
+  document.getElementById('hyp-count').textContent = AF.hypotheses.length + ' hypotheses';
+}
+
+function renderHypList() {
+  var list = document.getElementById('hyp-list');
+  list.innerHTML = AF.hypotheses.map(h=>`
+    <div class="hyp-card published">
+      <div class="hyp-text">${escHtml(h.text)}</div>
+      <div class="hyp-meta">
+        <span class="hyp-conf ${h.conf}">${h.conf}</span>
+        <span class="hyp-status">${h.sig}</span>
+        <span class="hyp-time">tick ${h.tick} @ ${h.price}</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderInbox() {
+  var inbox = document.getElementById('hyp-inbox');
+  var badge = document.getElementById('inbox-badge');
+  if (AF.hypotheses.length === 0) {
+    inbox.innerHTML = '<div class="inbox-item" style="color:var(--dim);">Waiting for Trader to publish hypotheses…</div>';
+    badge.textContent = '(empty)';
+    return;
+  }
+  badge.textContent = AF.inboxUnread > 0 ? '(' + AF.inboxUnread + ' new)' : '(' + AF.hypotheses.length + ' total)';
+  badge.style.color = AF.inboxUnread > 0 ? 'var(--purple)' : 'var(--dim)';
+  inbox.innerHTML = AF.hypotheses.slice().reverse().map(h=>`
+    <div class="inbox-item unread" onclick="loadHypToEditor('${escHtml(h.text).replace(/'/g,"\\'")}','${h.sig}')">
+      <span class="inbox-dot"></span>
+      <strong>[${h.sig}/${h.conf}]</strong> ${escHtml(h.text.substring(0,80))}${h.text.length>80?'…':''}
+      <span style="color:var(--dim);margin-left:4px;">t${h.tick}</span>
+    </div>`).join('');
+  AF.inboxUnread = 0;
+}
+
+function loadHypToEditor(text, sig) {
+  if (!afEditor) return;
+  var comment = '// HYPOTHESIS from Trader:\n// ' + text.replace(/\n/g,'\n// ') + '\n// Signal type: ' + sig + '\n\n';
+  var starters = {
+    'momentum': comment + `function strategy(ctx) {
+  var fast = ctx.sma(10), slow = ctx.sma(30);
+  var gap = (fast - slow) / slow * 100;
+  if (ctx.position === 0) {
+    if (gap >  1.5) return { action: 'buy',  qty: 60 };
+    if (gap < -1.5) return { action: 'sell', qty: 60 };
+  }
+  if (ctx.position > 0 && gap < 0.2)  return { action: 'sell', qty: Math.abs(ctx.position) };
+  if (ctx.position < 0 && gap > -0.2) return { action: 'buy',  qty: Math.abs(ctx.position) };
+  return { action: 'hold', qty: 0 };
+}`,
+    'mean-reversion': comment + `function strategy(ctx) {
+  var z = ctx.zscore(25);
+  if (ctx.position === 0) {
+    if (z < -2.0) return { action: 'buy',  qty: 60 };
+    if (z >  2.0) return { action: 'sell', qty: 60 };
+  }
+  if (ctx.position > 0 && z > -0.5)  return { action: 'sell', qty: Math.abs(ctx.position) };
+  if (ctx.position < 0 && z <  0.5)  return { action: 'buy',  qty: Math.abs(ctx.position) };
+  return { action: 'hold', qty: 0 };
+}`,
+    'breakout': comment + `function strategy(ctx) {
+  var prices = ctx.prices, n = prices.length;
+  if (n < 21) return { action: 'hold', qty: 0 };
+  var window = prices.slice(n-21, n-1);
+  var high = Math.max(...window), low = Math.min(...window);
+  var atr = (high - low) / 20, cur = prices[n-1];
+  if (ctx.position === 0) {
+    if (cur > high + 0.5 * atr) return { action: 'buy',  qty: 60 };
+    if (cur < low  - 0.5 * atr) return { action: 'sell', qty: 60 };
+  }
+  if (ctx.position > 0 && cur < high - atr)  return { action: 'sell', qty: Math.abs(ctx.position) };
+  if (ctx.position < 0 && cur > low  + atr)  return { action: 'buy',  qty: Math.abs(ctx.position) };
+  return { action: 'hold', qty: 0 };
+}`,
+    'other': comment + AF_STARTER
+  };
+  afEditor.setValue(starters[sig] || starters['other']);
+}
+
+// ─── End game ─────────────────────────────────────────────────────────────
+function endGame() {
+  clearInterval(AF.interval);
+  AF.interval = null;
+  showResults();
+}
+
+function showResults() {
+  // Score each team
+  var teamResults = AF.teams.map((t,i)=>{
+    var eq = AF.equities[i];
+    var rets = [];
+    for(var j=1;j<eq.length;j++) rets.push((eq[j]-eq[j-1])/eq[j-1]);
+    var sharpe = calcAfSharpe(rets);
+    var pnl = eq.length > 0 ? eq[eq.length-1]-10000 : 0;
+    var maxDD = calcAfMaxDD(eq);
+    // Alpha quality: based on hypothesis count for player, fixed for bots
+    var alphaScore = i===0 ? Math.min(30, AF.hypotheses.length * 8) : 15 + Math.round(Math.random()*10);
+    // Adaptability: strategies deployed vs regime shifts
+    var adaptScore = i===0 ? Math.min(30, AF.regimeHistory.length * 8) : 10 + Math.round(Math.random()*15);
+    var finalScore = Math.round(Math.max(0, Math.min(100,
+      40 * Math.max(0, Math.min(1, (sharpe+2)/4)) +
+      alphaScore*0.3 + adaptScore*0.3
+    )));
+    return {name:t.name, color:t.color, pnl:pnl, sharpe:sharpe, maxDD:maxDD, alphaScore:alphaScore, adaptScore:adaptScore, finalScore:finalScore};
+  });
+  teamResults.sort((a,b)=>b.finalScore-a.finalScore);
+
+  document.getElementById('res-winner').textContent = teamResults[0].name + ' wins!';
+
+  // Leaderboard table
+  var medals = ['🥇','🥈','🥉',''];
+  var lbHTML = `<div class="lb-row header">
+    <div>#</div><div>Team</div><div>PnL</div><div>Sharpe</div><div>Alpha</div><div>Score</div>
+  </div>`;
+  teamResults.forEach((r,i)=>{
+    lbHTML += `<div class="lb-row">
+      <div class="lb-medal">${medals[i]||''}</div>
+      <div class="lb-name" style="color:${r.color};">${r.name}</div>
+      <div class="lb-pnl" style="color:${r.pnl>=0?'var(--green)':'var(--red)'}">${r.pnl>=0?'+':''}${r.pnl.toFixed(0)}</div>
+      <div class="lb-sharpe" style="color:${r.sharpe>=0.5?'var(--green)':r.sharpe>=0?'var(--yellow)':'var(--red)'}">${r.sharpe.toFixed(2)}</div>
+      <div class="lb-alpha">${r.alphaScore}</div>
+      <div style="font-size:14px;font-weight:800;color:var(--yellow)">${r.finalScore}</div>
+    </div>`;
+  });
+  document.getElementById('lb-table').innerHTML = lbHTML;
+
+  // Equity curves
+  var c = document.getElementById('ec-canvas');
+  var W = (c.parentElement.clientWidth - 32);
+  c.width = W; c.height = 200;
+  var ctx = c.getContext('2d');
+  ctx.fillStyle='#0a1628';ctx.fillRect(0,0,W,200);
+  var allEquity = AF.equities.flat();
+  var mn = Math.min(...allEquity), mx = Math.max(...allEquity);
+  var rng = mx - mn || 1;
+  var maxLen = Math.max(...AF.equities.map(e=>e.length));
+  function px(i){return(i/(maxLen-1))*W;}
+  function py(v){return 10+(1-(v-mn)/rng)*180;}
+  AF.teams.forEach((t,i)=>{
+    var eq = AF.equities[i];
+    ctx.beginPath();
+    eq.forEach((v,j)=>j===0?ctx.moveTo(px(j),py(v)):ctx.lineTo(px(j),py(v)));
+    ctx.strokeStyle=t.color;ctx.lineWidth=2;ctx.stroke();
+  });
+
+  // Regime shift markers on equity chart
+  AF.regimeHistory.forEach(r=>{
+    var x = px(Math.min(r.tick, maxLen-1));
+    ctx.strokeStyle='rgba(249,115,22,0.4)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,200);ctx.stroke();
+  });
+  ctx.setLineDash([]);
+
+  // Regime log
+  var logHTML = AF.regimeHistory.map(r=>`
+    <div class="rl-entry">
+      <div class="rl-tick">t${r.tick}</div>
+      <div class="rl-regime">${r.regime.toUpperCase()}</div>
+      <div class="rl-impact">${r.note}</div>
+    </div>`).join('');
+  document.getElementById('regime-log-list').innerHTML = logHTML;
+
+  goToPhase('results');
+}
+
+function calcAfSharpe(rets) {
+  if (rets.length < 2) return 0;
+  var mean = rets.reduce((a,b)=>a+b,0)/rets.length;
+  var variance = rets.reduce((a,b)=>a+(b-mean)*(b-mean),0)/rets.length;
+  return mean/(Math.sqrt(variance)||1e-9)*Math.sqrt(252);
+}
+function calcAfMaxDD(eq) {
+  var peak=eq[0],maxDD=0;
+  for(var i=1;i<eq.length;i++){if(eq[i]>peak)peak=eq[i];var dd=(peak-eq[i])/peak;if(dd>maxDD)maxDD=dd;}
+  return maxDD;
+}
+function randn(){var u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+
+<script>
+(function(){
+  function setTheme(t,save){
+    if(save) localStorage.setItem('imc-theme',t);
+    var root=document.documentElement;
+    if(t==='dark') root.setAttribute('data-theme','dark');
+    else if(t==='light') root.setAttribute('data-theme','light');
+    else root.removeAttribute('data-theme');
+    document.querySelectorAll('.tnb').forEach(function(b){
+      b.classList.toggle('active', b.dataset.t===t);
+    });
+  }
+  window.setTheme=setTheme;
+  // Apply saved theme on load
+  setTheme(localStorage.getItem('imc-theme')||'system', false);
+})();
+</script>
+</body>
+</html>
