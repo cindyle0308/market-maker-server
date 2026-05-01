@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Options Outcry — IMC Prep Suite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#06090f;--bg2:#0b111c;--bg3:#101824;--bg4:#162030;--border:#1a2d46;--border2:#243d5a;--text:#b0c8e4;--dim:#4a6a8a;--bright:#e0eefa;--green:#00d888;--red:#ff3d5a;--yellow:#ffc840;--blue:#3a90ff;--purple:#9d60ff;--shadow:rgba(0,0,0,.45)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;line-height:1.5;overflow:hidden}
+.mono{font-family:'DM Mono',monospace} .dim{color:var(--dim)} .bright{color:var(--bright)}
+.c-green{color:var(--green)} .c-red{color:var(--red)} .c-yellow{color:var(--yellow)} .c-blue{color:var(--blue)}
+.ta-r{text-align:right} .ta-c{text-align:center}
+
+/* ── Screens ── */
+.screen{display:none}
+.screen.active{display:flex}
+#screen-setup{align-items:center;justify-content:center;min-height:100vh;flex-direction:column;padding:24px}
+#screen-game{flex-direction:column;height:100vh}
+#screen-results{align-items:center;justify-content:center;min-height:100vh;flex-direction:column;padding:24px}
+
+/* ── Suite Nav ── */
+.suite-nav{font-size:.78rem;color:var(--dim);margin-bottom:28px;display:flex;gap:16px;align-items:center}
+.suite-nav a{color:var(--dim);text-decoration:none;transition:.15s}.suite-nav a:hover{color:var(--text)}
+.suite-nav .cur{color:var(--purple);font-weight:500}
+
+/* ── Setup ── */
+.setup-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:40px;max-width:520px;width:100%}
+.setup-icon{font-size:2.2rem;text-align:center;margin-bottom:12px}
+.setup-card h1{font-size:1.8rem;font-weight:700;color:var(--bright);text-align:center;margin-bottom:4px}
+.setup-tagline{font-size:.88rem;color:var(--dim);text-align:center;margin-bottom:24px}
+.form-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:6px;display:block}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--bright);padding:9px 12px;border-radius:7px;font-family:'Inter',sans-serif;font-size:.9rem;outline:none;transition:.15s}
+.form-input:focus{border-color:var(--purple)}
+.form-group{margin-bottom:16px}
+.greek-legend{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:18px}
+.gl-item{background:var(--bg3);border-radius:7px;padding:8px 10px;font-size:.78rem}
+.gl-sym{font-family:'DM Mono',monospace;font-weight:700;margin-right:4px}
+.diff-row{display:flex;gap:8px;margin-bottom:6px}
+.diff-btn{flex:1;padding:8px;background:transparent;border:1px solid var(--border2);color:var(--text);border-radius:7px;cursor:pointer;font-size:.82rem;transition:.15s}
+.diff-btn:hover{background:var(--bg3)}
+.diff-btn.active{border-color:var(--purple);color:var(--purple);background:rgba(157,96,255,.08)}
+.diff-hint{font-size:.76rem;color:var(--dim);min-height:18px;margin-bottom:16px}
+details.rules{margin-bottom:20px}
+summary.rules-sum{font-size:.78rem;color:var(--dim);cursor:pointer;padding:6px 0;user-select:none;list-style:none}
+.rules-body{font-size:.81rem;color:var(--text);padding:8px 0 4px;line-height:1.7}
+.rules-body li{margin-bottom:4px;padding-left:12px;list-style:none;position:relative}
+.rules-body li::before{content:'›';position:absolute;left:0;color:var(--purple)}
+.btn-primary{width:100%;padding:12px;background:rgba(157,96,255,.1);border:1px solid var(--purple);color:var(--purple);border-radius:8px;font-size:.95rem;font-weight:600;cursor:pointer;transition:.15s}
+.btn-primary:hover{background:rgba(157,96,255,.2)}
+
+/* ── Game Header ── */
+.game-header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+.hdr-logo{font-size:.9rem;font-weight:700;color:var(--purple)}
+.hdr-center{display:flex;flex-direction:column;align-items:center;gap:1px}
+.hdr-timer{font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--green)}
+.hdr-timer.warning{color:var(--yellow)} .hdr-timer.danger{color:var(--red);animation:pulse-red 1s infinite}
+.hdr-right{display:flex;gap:18px}
+.hdr-stat{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
+.hdr-stat-val{font-family:'DM Mono',monospace;font-size:.88rem;font-weight:700}
+.hdr-tlabel{font-size:.65rem;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)}
+
+/* ── Game Body ── */
+.game-body{display:grid;grid-template-columns:1.5fr 3.5fr;flex:1;overflow:hidden}
+.game-left{border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.game-right{display:flex;flex-direction:column;overflow:hidden}
+.panel-section{padding:11px 14px;border-bottom:1px solid var(--border)}
+.panel-section.flex-fill{flex:1;border-bottom:none;overflow-y:auto;min-height:0}
+.section-hdr{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin-bottom:9px}
+
+/* ── Left: Underlying ── */
+.und-row{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.und-price{font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:700;color:var(--bright)}
+.und-arrow{font-size:.9rem;transition:.3s}
+.vol-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.vol-bar-track{flex:1;height:5px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.vol-bar{height:100%;border-radius:3px;transition:width .5s ease}
+.t-row{display:flex;justify-content:space-between;font-size:.82rem;margin-top:4px}
+
+/* ── Left: Greeks ── */
+.greek-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:.82rem;border-bottom:1px solid rgba(26,45,70,.4)}
+.greek-row:last-child{border-bottom:none}
+.greek-val{font-family:'DM Mono',monospace;font-size:.88rem;font-weight:700}
+.hedge-btn{width:100%;margin-top:10px;padding:9px;background:rgba(58,144,255,.08);border:1px solid var(--blue);color:var(--blue);border-radius:7px;cursor:pointer;font-size:.82rem;font-weight:600;transition:.15s}
+.hedge-btn:hover{background:rgba(58,144,255,.18)}
+.hedge-btn:active{transform:scale(.98)}
+
+/* ── Left: Events ── */
+.event-item{font-size:.79rem;padding:5px 0;border-bottom:1px solid rgba(26,45,70,.3);line-height:1.5}
+.event-item:last-child{border-bottom:none}
+.event-item.warn{color:var(--yellow)} .event-item.info{color:var(--text)} .event-item.good{color:var(--green)}
+
+/* ── Right: Options Chain ── */
+.chain-section{border-bottom:1px solid var(--border);overflow-y:auto;max-height:44%}
+.chain-table{width:100%;border-collapse:collapse;font-size:.79rem}
+.chain-table th{padding:5px 6px;color:var(--dim);font-weight:600;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:1}
+.chain-table td{padding:5px 6px;border-bottom:1px solid rgba(26,45,70,.35);font-weight:500}
+.chain-table tr:hover td{background:rgba(36,61,90,.25)}
+.chain-table tr.atm-row td{background:rgba(255,200,64,.04)}
+.chain-btn{width:22px;height:22px;border-radius:5px;border:1px solid;cursor:pointer;font-size:.85rem;font-weight:700;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:.12s;background:transparent}
+.chain-btn:active{transform:scale(.92)}
+.chain-btn.buy{border-color:var(--green);color:var(--green)}.chain-btn.buy:hover{background:rgba(0,216,136,.15)}
+.chain-btn.sell{border-color:var(--red);color:var(--red)}.chain-btn.sell:hover{background:rgba(255,61,90,.15)}
+
+/* ── Right: Underlying trade bar ── */
+.und-trade-bar{display:flex;align-items:center;gap:12px;padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg2)}
+.trade-btn{padding:5px 14px;border-radius:6px;border:1.5px solid;cursor:pointer;font-size:.78rem;font-weight:700;background:transparent;transition:.15s}
+.trade-btn:active{transform:scale(.96)}
+.trade-btn.buy-und{border-color:var(--green);color:var(--green)}.trade-btn.buy-und:hover{background:rgba(0,216,136,.12)}
+.trade-btn.sell-und{border-color:var(--red);color:var(--red)}.trade-btn.sell-und:hover{background:rgba(255,61,90,.12)}
+
+/* ── Right: Trade Log ── */
+.tradelog-section{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:10px 14px}
+.tradelog-table{width:100%;border-collapse:collapse;font-size:.79rem}
+.tradelog-table th{padding:5px 6px;color:var(--dim);font-weight:600;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);background:var(--bg2)}
+.tradelog-table td{padding:5px 6px;border-bottom:1px solid rgba(26,45,70,.35)}
+.tradelog-table .you-row td{background:rgba(157,96,255,.04)}
+.log-scroll{flex:1;overflow-y:auto;margin-top:2px}
+
+/* ── Results ── */
+.results-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:36px 40px;max-width:520px;width:100%;text-align:center}
+.results-card h2{font-size:1.1rem;font-weight:600;color:var(--bright);margin-bottom:8px}
+.res-pnl{font-family:'DM Mono',monospace;font-size:2.4rem;font-weight:700;margin:6px 0}
+.res-rank{font-size:.85rem;color:var(--dim);margin-bottom:16px}
+.settle-detail{font-size:.8rem;color:var(--dim);margin-bottom:16px;line-height:1.7}
+.stats-row{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
+.stat-box{flex:1;background:var(--bg3);border-radius:8px;padding:10px;text-align:center}
+.stat-box .sv{font-family:'DM Mono',monospace;font-size:1.2rem;font-weight:700;color:var(--bright)}
+.stat-box .sl{font-size:.72rem;color:var(--dim);margin-top:2px;text-transform:uppercase;letter-spacing:.06em}
+.btn-again{width:100%;padding:11px;background:rgba(157,96,255,.1);border:1px solid var(--purple);color:var(--purple);border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;margin-bottom:10px;transition:.15s}
+.btn-again:hover{background:rgba(157,96,255,.2)}
+.switch-link{display:block;font-size:.82rem;color:var(--dim);text-decoration:none;margin-top:6px;transition:.15s}
+.switch-link:hover{color:var(--text)}
+
+/* ── Toast ── */
+#toast-container{position:fixed;bottom:16px;right:16px;z-index:999;display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none}
+.toast{padding:10px 14px;background:var(--bg2);border-radius:8px;font-size:.82rem;border-left:3px solid;opacity:1;transition:opacity .4s;max-width:290px}
+.toast.trade{border-color:var(--purple)}.toast.warn{border-color:var(--yellow)}.toast.info{border-color:var(--dim)}.toast.good{border-color:var(--green)}.toast.bad{border-color:var(--red)}
+
+/* ── Animations ── */
+@keyframes pulse-red{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes flash-pos{0%{background:rgba(0,216,136,.15)}100%{background:transparent}}
+@keyframes flash-neg{0%{background:rgba(255,61,90,.15)}100%{background:transparent}}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ── LIGHT MODE ── */
+[data-theme="light"]{
+  --bg:#f0f4f8!important;--panel:#ffffff!important;--panel2:#e8edf3!important;
+  --border:#c5d0de!important;--border2:#d5dde8!important;
+  --text:#1e2d3d!important;--dim:#6b7d8f!important;--dim2:#4a5a6a!important;
+  --blue:#2563eb!important;--blue-l:#1d4ed8!important;
+  --green:#16a34a!important;--red:#dc2626!important;
+  --yellow:#b45309!important;--purple:#7c3aed!important;
+  --cyan:#0e7490!important;--teal:#0f766e!important;--orange:#c2410c!important;
+  --green-bg:rgba(22,163,74,0.12)!important;--red-bg:rgba(220,38,38,0.12)!important;
+  --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
+  --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
+  --orange-bg:rgba(194,65,12,0.12)!important;
+}
+@media(prefers-color-scheme:light){
+  :root:not([data-theme]){
+    --bg:#f0f4f8!important;--panel:#ffffff!important;--panel2:#e8edf3!important;
+    --border:#c5d0de!important;--border2:#d5dde8!important;
+    --text:#1e2d3d!important;--dim:#6b7d8f!important;--dim2:#4a5a6a!important;
+    --blue:#2563eb!important;--blue-l:#1d4ed8!important;
+    --green:#16a34a!important;--red:#dc2626!important;
+    --yellow:#b45309!important;--purple:#7c3aed!important;
+    --cyan:#0e7490!important;--teal:#0f766e!important;--orange:#c2410c!important;
+    --green-bg:rgba(22,163,74,0.12)!important;--red-bg:rgba(220,38,38,0.12)!important;
+    --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
+    --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
+    --orange-bg:rgba(194,65,12,0.12)!important;
+  }
+}
+/* Theme toggle button in nav */
+.theme-nav-btns{margin-left:auto;display:flex;gap:3px;align-items:center;}
+.tnb{padding:3px 8px;border-radius:5px;border:1px solid var(--border2);
+  background:transparent;color:var(--dim);font-size:10px;font-weight:700;
+  cursor:pointer;transition:all .12s;line-height:1;}
+.tnb:hover{color:var(--text);}
+.tnb.active{background:var(--panel);border-color:var(--border);color:var(--text);}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ SETUP ══════════════════ -->
+<div id="screen-setup" class="screen active">
+  <div class="suite-nav">
+    <a href="index.html" style="color:var(--yellow);font-weight:700">⌂ Hub</a>
+  <a href="quant-relay.html">Relay</a>
+  <a href="alpha-factory.html">Alpha Factory</a>
+    <span style="color:var(--border2)">|</span>
+    <a href="https://lexie-marketmakerbaos.onrender.com" target="_blank">Market Maker</a>
+    <a href="basket-blitz.html">Basket Blitz</a>
+    <span class="cur">Options Outcry</span>
+    <span style="color:var(--border2)">|</span>
+    <a href="cmi-challenge.html">CMI</a>
+    <a href="arbitrage-sprint.html">Arb Sprint</a>
+    <a href="price-war.html">Price War</a>
+    <span style="color:var(--border2)">|</span>
+    <a href="algo-blitz.html">Algo Blitz</a>
+    <a href="bot-builder.html">Bot Builder</a>
+    <span style="color:var(--border2)">|</span>
+    <a href="momentum-trainer.html">Momentum</a>
+    <a href="spread-trader.html">Spread</a>
+    <a href="regime-rider.html">Regime</a>
+  <span class="theme-nav-btns"><button class="tnb" data-t="light" onclick="setTheme('light',true)" title="Light">☀</button><button class="tnb" data-t="system" onclick="setTheme('system',true)" title="System">⊙</button><button class="tnb" data-t="dark" onclick="setTheme('dark',true)" title="Dark">☾</button></span>
+  </div>
+  <div class="setup-card">
+    <div class="setup-icon">📈</div>
+    <h1>Options Outcry</h1>
+    <p class="setup-tagline">Trade calls &amp; puts on a live market — manage your Greeks, survive the events</p>
+    <div class="form-group">
+      <label class="form-label">Your name</label>
+      <input id="inp-name" class="form-input" placeholder="Enter your name" maxlength="20">
+    </div>
+    <div class="form-group">
+      <label class="form-label" style="margin-bottom:8px">Greek quick reference</label>
+      <div class="greek-legend">
+        <div class="gl-item"><span class="gl-sym c-green">Δ Delta</span><span class="dim">price sensitivity — Δ≈0.5 for ATM</span></div>
+        <div class="gl-item"><span class="gl-sym c-yellow">Γ Gamma</span><span class="dim">rate of Δ change — highest ATM</span></div>
+        <div class="gl-item"><span class="gl-sym c-blue">V Vega</span><span class="dim">vol sensitivity — buy before events</span></div>
+        <div class="gl-item"><span class="gl-sym c-red">Θ Theta</span><span class="dim">daily decay — options lose value daily</span></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Difficulty</label>
+      <div class="diff-row">
+        <button class="diff-btn" data-diff="easy">Easy</button>
+        <button class="diff-btn active" data-diff="medium">Medium</button>
+        <button class="diff-btn" data-diff="hard">Hard</button>
+      </div>
+      <div class="diff-hint" id="diff-hint">Medium: spreads normal, 3 market events over ~3 minutes</div>
+    </div>
+    <details class="rules">
+      <summary class="rules-sum dim">▸ How to play</summary>
+      <div class="rules-body">
+        <ul>
+          <li>STRK starts at $100 with 25 trading days to expiry. Vol starts at 20%.</li>
+          <li>Buy (+) or sell (−) calls &amp; puts from the options chain. Position limit: ±5 per option.</li>
+          <li>Buy/sell the underlying STRK to delta-hedge. Use <strong>Hedge Δ</strong> to auto-neutralize.</li>
+          <li>3 market events are announced ~15s before firing — position ahead of them.</li>
+          <li><strong>Vol events</strong>: buy options (long vega) before, sell after. Events move the underlying too.</li>
+          <li>At expiry (T=0) all options settle at intrinsic value. Final PnL shown vs. bots.</li>
+        </ul>
+      </div>
+    </details>
+    <button class="btn-primary" id="btn-start">Start Game →</button>
+  </div>
+</div>
+
+<!-- ══════════════════ GAME ══════════════════ -->
+<div id="screen-game" class="screen">
+  <div class="game-header">
+    <span class="hdr-logo">📈 Options Outcry</span>
+    <div class="hdr-center">
+      <span class="hdr-tlabel">Time Left</span>
+      <span id="hdr-timer" class="hdr-timer mono">3:00</span>
+    </div>
+    <div class="hdr-right">
+      <div class="hdr-stat">
+        <span class="hdr-tlabel">Net Δ</span>
+        <span id="hdr-delta" class="hdr-stat-val mono">0.00</span>
+      </div>
+      <div class="hdr-stat">
+        <span class="hdr-tlabel">MtM PnL</span>
+        <span id="hdr-pnl" class="hdr-stat-val mono">$0.00</span>
+      </div>
+      <div class="hdr-stat">
+        <span class="hdr-tlabel">T remaining</span>
+        <span id="hdr-t" class="hdr-stat-val mono c-yellow">25d</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="game-body">
+    <!-- ── Left Panel ── -->
+    <div class="game-left">
+      <div class="panel-section">
+        <div class="section-hdr">Underlying</div>
+        <div class="und-row">
+          <span class="sym mono bright" style="font-size:.82rem;font-weight:700">STRK</span>
+          <span class="und-price" id="und-price">$100.00</span>
+          <span class="und-arrow" id="und-arrow">—</span>
+        </div>
+        <div class="vol-row">
+          <span class="dim" style="font-size:.76rem;min-width:22px">σ</span>
+          <div class="vol-bar-track">
+            <div class="vol-bar" id="vol-bar" style="width:40%;background:var(--blue)"></div>
+          </div>
+          <span class="mono" id="vol-val" style="font-size:.82rem;min-width:34px">20%</span>
+        </div>
+        <div class="t-row">
+          <span class="dim">T remaining</span>
+          <span class="mono" id="t-days">25 days</span>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="section-hdr">Portfolio Greeks</div>
+        <div class="greek-row">
+          <span class="dim">Net Δ</span>
+          <span class="greek-val" id="g-delta">0.00</span>
+        </div>
+        <div class="greek-row">
+          <span class="dim">Net Γ</span>
+          <span class="greek-val" id="g-gamma">0.000</span>
+        </div>
+        <div class="greek-row">
+          <span class="dim">Net V (×$)</span>
+          <span class="greek-val" id="g-vega">$0.00</span>
+        </div>
+        <div class="greek-row">
+          <span class="dim">Net Θ/day</span>
+          <span class="greek-val c-red" id="g-theta">−$0.00</span>
+        </div>
+        <div class="greek-row" style="margin-top:4px">
+          <span class="dim">STRK pos</span>
+          <span class="greek-val mono" id="g-und">0</span>
+        </div>
+        <button class="hedge-btn" id="btn-hedge">▲ Hedge Δ (neutralise delta)</button>
+      </div>
+
+      <div class="panel-section flex-fill">
+        <div class="section-hdr">Market Events</div>
+        <div id="events-panel">
+          <span class="dim" style="font-size:.78rem">Monitoring for events…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Right Panel ── -->
+    <div class="game-right">
+      <!-- Options Chain -->
+      <div class="chain-section">
+        <div style="padding:9px 14px 4px;border-bottom:1px solid var(--border)">
+          <div class="section-hdr" style="margin-bottom:0">Options Chain — <span id="chain-sub" class="dim" style="font-weight:400;text-transform:none;letter-spacing:0">STRK $100.00 | σ 20% | T 25d</span></div>
+        </div>
+        <table class="chain-table">
+          <thead>
+            <tr>
+              <th>Strike</th><th>Type</th><th>FV</th><th style="color:var(--red)">Bid</th><th style="color:var(--green)">Ask</th><th>Δ</th><th>Γ</th><th>Pos</th><th class="ta-c">Buy</th><th class="ta-c">Sell</th>
+            </tr>
+          </thead>
+          <tbody id="chain-body"></tbody>
+        </table>
+      </div>
+
+      <!-- Underlying Trade Bar -->
+      <div class="und-trade-bar">
+        <span class="dim" style="font-size:.78rem">STRK</span>
+        <span class="mono bright" id="und-trade-price" style="font-size:.88rem;font-weight:700">$100.00</span>
+        <button class="trade-btn buy-und" id="btn-buy-und">BUY 1</button>
+        <button class="trade-btn sell-und" id="btn-sell-und">SELL 1</button>
+        <span class="dim" style="font-size:.74rem">— use for delta hedging</span>
+      </div>
+
+      <!-- Trade Log -->
+      <div class="tradelog-section">
+        <div class="section-hdr">Trade Log</div>
+        <div class="log-scroll">
+          <table class="tradelog-table">
+            <thead>
+              <tr><th>Time</th><th>Trader</th><th>Action</th><th class="ta-r">Price</th></tr>
+            </thead>
+            <tbody id="log-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ RESULTS ══════════════════ -->
+<div id="screen-results" class="screen">
+  <div class="suite-nav">
+    <a href="index.html" style="color:var(--yellow);font-weight:700">⌂ Hub</a>
+    <span style="color:var(--border2)">|</span>
+    <a href="https://lexie-marketmakerbaos.onrender.com" target="_blank">Market Maker</a>
+    <a href="basket-blitz.html">Basket Blitz</a>
+    <a href="options-outcry.html">Options Outcry</a>
+    <span style="color:var(--border2)">|</span>
+    <a href="momentum-trainer.html">Momentum Trainer</a>
+    <a href="spread-trader.html">Spread Trader</a>
+    <a href="regime-rider.html">Regime Rider</a>
+  </div>
+  <div class="results-card">
+    <div class="setup-icon">📈</div>
+    <h2>Expiry — Settlement</h2>
+    <div class="res-pnl mono" id="res-pnl">+$0.00</div>
+    <div class="res-rank dim" id="res-rank">Ranked — of 4</div>
+    <div class="settle-detail" id="settle-detail"></div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="sv" id="r-trades">0</div><div class="sl">Trades</div></div>
+      <div class="stat-box"><div class="sv" id="r-events">0</div><div class="sl">Events</div></div>
+      <div class="stat-box"><div class="sv" id="r-final-s">$0</div><div class="sl">Final STRK</div></div>
+    </div>
+    <div class="section-hdr" style="margin-bottom:10px;text-align:left">Final Ranking</div>
+    <div id="res-lb" style="margin-bottom:16px"></div>
+    <button class="btn-again" id="btn-again">Play Again</button>
+    <a href="basket-blitz.html" class="switch-link">← Try Basket Blitz</a>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+'use strict';
+
+// ─── Black-Scholes ────────────────────────────────────────────
+function normcdf(x){
+  const t=1/(1+.2316419*Math.abs(x));
+  const d=.3989422820*Math.exp(-x*x/2);
+  const p=d*t*(.3193815+t*(-.3565638+t*(1.7814779+t*(-1.821256+t*1.3302744))));
+  return x>0?1-p:p;
+}
+function normpdf(x){return Math.exp(-x*x/2)/Math.sqrt(2*Math.PI)}
+
+function bsPrice(S,K,T,r,sig,type){
+  if(T<=1e-6) return type==='C'?Math.max(S-K,0):Math.max(K-S,0);
+  const d1=(Math.log(S/K)+(r+.5*sig*sig)*T)/(sig*Math.sqrt(T));
+  const d2=d1-sig*Math.sqrt(T);
+  if(type==='C') return S*normcdf(d1)-K*Math.exp(-r*T)*normcdf(d2);
+  return K*Math.exp(-r*T)*normcdf(-d2)-S*normcdf(-d1);
+}
+function bsDelta(S,K,T,r,sig,type){
+  if(T<=1e-6) return type==='C'?(S>K?1:0):(S<K?-1:0);
+  const d1=(Math.log(S/K)+(r+.5*sig*sig)*T)/(sig*Math.sqrt(T));
+  return type==='C'?normcdf(d1):normcdf(d1)-1;
+}
+function bsGamma(S,K,T,r,sig){
+  if(T<=1e-6) return 0;
+  const d1=(Math.log(S/K)+(r+.5*sig*sig)*T)/(sig*Math.sqrt(T));
+  return normpdf(d1)/(S*sig*Math.sqrt(T));
+}
+function bsVega(S,K,T,r,sig){
+  if(T<=1e-6) return 0;
+  const d1=(Math.log(S/K)+(r+.5*sig*sig)*T)/(sig*Math.sqrt(T));
+  return S*normpdf(d1)*Math.sqrt(T); // in $ per 1.0 vol unit (divide by 100 for per 1% move)
+}
+function bsTheta(S,K,T,r,sig,type){
+  if(T<=1e-6) return 0;
+  const d1=(Math.log(S/K)+(r+.5*sig*sig)*T)/(sig*Math.sqrt(T));
+  const d2=d1-sig*Math.sqrt(T);
+  const term=-S*normpdf(d1)*sig/(2*Math.sqrt(T));
+  if(type==='C') return (term-r*K*Math.exp(-r*T)*normcdf(d2))/252;
+  return (term+r*K*Math.exp(-r*T)*normcdf(-d2))/252;
+}
+
+// ─── Constants ────────────────────────────────────────────────
+const STRIKES=[90,95,100,105,110];
+const TYPES=['C','P'];
+const OPTS=STRIKES.flatMap(k=>TYPES.map(t=>({k,t,key:`${t}${k}`})));
+const T_INIT=25/252;
+const GAME_DUR=180; // 3 minutes
+const TICK_MS=2000;
+const R=0.05;
+const POS_LIMIT=5;
+const SIG_TICK=0.006; // GBM vol per 2s tick
+
+const DIFF_HINTS={
+  easy:'Easy: wider bot spreads, gentler events',
+  medium:'Medium: normal spreads, 3 market events over ~3 minutes',
+  hard:'Hard: tight spreads, larger event moves, faster time decay',
+};
+const DIFF_SPREAD_MULT={easy:1.5, medium:1.0, hard:0.75};
+const DIFF_EVENT_MULT={easy:0.65, medium:1.0, hard:1.45};
+
+// ─── State ────────────────────────────────────────────────────
+let G={};
+let gameInt=null, countInt=null;
+let selectedDiff='medium';
+
+// ─── Math ─────────────────────────────────────────────────────
+function randn(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function fmtPnl(n){return (n>=0?'+$':'−$')+Math.abs(n).toFixed(2)}
+function fmtTime(s){return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`}
+function nowStr(){return new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+
+// ─── Init ─────────────────────────────────────────────────────
+function startGame(){
+  const name=(document.getElementById('inp-name').value.trim()||'You').slice(0,20);
+  const spreadM=DIFF_SPREAD_MULT[selectedDiff];
+  const evM=DIFF_EVENT_MULT[selectedDiff];
+
+  G={
+    phase:'running', playerName:name, spreadMult:spreadM, eventMult:evM,
+    S:100, prevS:100, sigma:0.20,
+    T:T_INIT, elapsed:0,
+    positions:{}, costBasis:{},
+    underlyingPos:0, underlyingCost:0,
+    trades:[],
+    totalTrades:0,
+    events:[],
+    eventsFired:0,
+    bots:[
+      {name:'ThetaGrinder', pnl:0, lastTrade:-99, pos:{}, costB:{}},
+      {name:'VolBuyer',     pnl:0, lastTrade:-99, stradPos:null},
+      {name:'Directional',  pnl:0, lastTrade:-99, trend:0},
+    ],
+    scheduled:[
+      {ann:38, fire:53,  type:'earnings', done:false, announced:false},
+      {ann:92, fire:107, type:'fed',      done:false, announced:false},
+      {ann:143,fire:158, type:'stress',   done:false, announced:false},
+    ],
+  };
+  for(const o of OPTS){G.positions[o.key]=0; G.costBasis[o.key]=0;}
+
+  computeOpts();
+  showScreen('game');
+  renderAll();
+
+  gameInt=setInterval(gameTick, TICK_MS);
+  countInt=setInterval(()=>{
+    const left=Math.max(0, GAME_DUR-G.elapsed);
+    const el=document.getElementById('hdr-timer');
+    el.textContent=fmtTime(left);
+    el.className='hdr-timer mono'+(left<=30?' danger':left<=60?' warning':'');
+  },1000);
+}
+
+// ─── Compute Options ──────────────────────────────────────────
+function computeOpts(){
+  G.opts={};
+  for(const o of OPTS){
+    const {k,t,key}=o;
+    const fv=bsPrice(G.S,k,G.T,R,G.sigma,t);
+    const d =bsDelta(G.S,k,G.T,R,G.sigma,t);
+    const gm=bsGamma(G.S,k,G.T,R,G.sigma);
+    const vg=bsVega(G.S,k,G.T,R,G.sigma);
+    const th=bsTheta(G.S,k,G.T,R,G.sigma,t);
+    const money=Math.abs(G.S-k)/G.S;
+    const sp=G.spreadMult*(money<0.04?0.06:money<0.1?0.10:0.18);
+    const half=Math.max(0.02, fv*sp/2);
+    G.opts[key]={fv,d,gm,vg,th, bid:Math.max(0.01,fv-half), ask:fv+half};
+  }
+}
+
+// ─── Portfolio Greeks ─────────────────────────────────────────
+function calcPortfolio(){
+  let nD=0,nG=0,nV=0,nTh=0,mtm=0;
+  for(const o of OPTS){
+    const pos=G.positions[o.key]; if(!pos) continue;
+    const opt=G.opts[o.key];
+    nD+=pos*opt.d; nG+=pos*opt.gm; nV+=pos*opt.vg; nTh+=pos*opt.th;
+    mtm+=pos*opt.fv-G.costBasis[o.key];
+  }
+  nD+=G.underlyingPos;
+  mtm+=G.underlyingPos*G.S-G.underlyingCost;
+  return{nD,nG,nV,nTh,mtm};
+}
+
+// ─── Game Tick ────────────────────────────────────────────────
+function gameTick(){
+  if(G.phase!=='running') return;
+  G.elapsed+=2;
+
+  // Update T linearly
+  G.T=Math.max(0, T_INIT*(1-G.elapsed/GAME_DUR));
+
+  // GBM price update
+  G.prevS=G.S;
+  G.S=Math.max(10, G.S*Math.exp(-0.5*SIG_TICK*SIG_TICK+SIG_TICK*randn()));
+
+  // Events
+  checkEvents();
+
+  // Bot trading
+  botTick();
+
+  // Recompute options
+  computeOpts();
+
+  // Render
+  renderAll();
+
+  if(G.T<=0||G.elapsed>=GAME_DUR) endGame();
+}
+
+// ─── Events ───────────────────────────────────────────────────
+function checkEvents(){
+  for(const ev of G.scheduled){
+    if(!ev.announced && G.elapsed>=ev.ann){
+      ev.announced=true;
+      announceEvent(ev);
+    }
+    if(!ev.done && ev.announced && G.elapsed>=ev.fire){
+      ev.done=true;
+      fireEvent(ev);
+      G.eventsFired++;
+    }
+  }
+}
+
+const EVENT_META={
+  earnings:{icon:'⚡',pre:'Earnings call in ~15s — expect a large underlying move',col:'warn'},
+  fed:     {icon:'📢',pre:'Fed statement in ~15s — volatility may shift sharply',col:'warn'},
+  stress:  {icon:'📉',pre:'Market stress event in ~15s — prepare for sell-off + vol spike',col:'warn'},
+};
+
+function announceEvent(ev){
+  const m=EVENT_META[ev.type];
+  addEventMsg(m.icon+' '+m.pre,'warn');
+  showToast(m.pre,'warn');
+  // VolBuyer reacts: buys ATM straddle ~3-6 seconds after announcement
+  setTimeout(()=>botVolBuyerBuy(ev), (3+Math.random()*3)*1000);
+}
+
+function fireEvent(ev){
+  const mult=G.eventMult;
+  let msg='';
+  if(ev.type==='earnings'){
+    const jump=(Math.random()<.5?1:-1)*(0.065+Math.random()*0.07)*mult;
+    G.S*=(1+jump);
+    msg=`⚡ Earnings: ${jump>0?'+':''}${(jump*100).toFixed(1)}% move on STRK`;
+    addEventMsg(msg,'good');
+  } else if(ev.type==='fed'){
+    const dv=(Math.random()<.5?.28:-.22)*mult;
+    G.sigma=Math.max(.08,Math.min(.55,G.sigma+dv));
+    G.S*=(1+(Math.random()<.5?.01:-.01)*(0.01+Math.random()*.015));
+    msg=`📢 Fed: vol ${dv>0?'+':''}${(dv*100).toFixed(0)}% → σ now ${(G.sigma*100).toFixed(0)}%`;
+    addEventMsg(msg,'info');
+  } else if(ev.type==='stress'){
+    const drop=-(0.04+Math.random()*.06)*mult;
+    G.S*=(1+drop);
+    G.sigma=Math.min(.55,G.sigma+0.30*mult);
+    msg=`📉 Stress: ${(drop*100).toFixed(1)}% drop, vol → ${(G.sigma*100).toFixed(0)}%`;
+    addEventMsg(msg,'warn');
+  }
+  showToast(msg,'info');
+  // VolBuyer sells straddle ~6-10 seconds after event
+  setTimeout(()=>botVolBuyerSell(), (6+Math.random()*4)*1000);
+}
+
+function addEventMsg(text, cls){
+  G.events.unshift({text,cls});
+  if(G.events.length>8) G.events.pop();
+  const el=document.getElementById('events-panel');
+  if(!el) return;
+  el.innerHTML=G.events.map(e=>`<div class="event-item ${e.cls}">${e.text}</div>`).join('');
+}
+
+// ─── Bot Logic ────────────────────────────────────────────────
+function botTick(){
+  const t=G.elapsed;
+
+  // ThetaGrinder: sells OTM options ~every 16s
+  const tg=G.bots[0];
+  if(t-tg.lastTrade>=16+Math.random()*6){
+    tg.lastTrade=t;
+    const otmCall=OPTS.find(o=>o.t==='C'&&o.k>G.S*1.03);
+    const otmPut =OPTS.find(o=>o.t==='P'&&o.k<G.S*0.97);
+    [otmCall,otmPut].forEach(oc=>{
+      if(!oc) return;
+      const pr=G.opts[oc.key]?.bid||0;
+      if(pr>0.03){
+        tg.pnl+=pr;
+        addLog('ThetaGrinder',`SELL ${oc.key}`,pr,false,'sell');
+      }
+    });
+  }
+
+  // Directional: trades on momentum ~every 22s
+  const dir=G.bots[2];
+  if(t-dir.lastTrade>=22+Math.random()*8){
+    const move=(G.S-G.prevS)/G.prevS;
+    if(Math.abs(move)>0.005){
+      dir.lastTrade=t;
+      const side=move>0?'C':'P';
+      const tgt=side==='C'?OPTS.filter(o=>o.t==='C'&&o.k>G.S)[0]:OPTS.filter(o=>o.t==='P'&&o.k<G.S).pop();
+      if(tgt){
+        const pr=G.opts[tgt.key]?.ask||0;
+        if(pr>0){dir.pnl-=pr; addLog('Directional',`BUY ${tgt.key}`,pr,false,'buy');}
+      }
+    }
+  }
+}
+
+function botVolBuyerBuy(ev){
+  const vb=G.bots[1];
+  const atmK=STRIKES.reduce((a,b)=>Math.abs(a-G.S)<Math.abs(b-G.S)?a:b);
+  const ck=`C${atmK}`, pk=`P${atmK}`;
+  const ca=G.opts[ck]?.ask||0, pa=G.opts[pk]?.ask||0;
+  if(ca>0&&pa>0){
+    vb.stradPos={ck,pk,cost:ca+pa};
+    vb.pnl-=(ca+pa);
+    addLog('VolBuyer',`BUY straddle C${atmK}+P${atmK}`,ca+pa,false,'buy');
+  }
+}
+
+function botVolBuyerSell(){
+  const vb=G.bots[1];
+  if(!vb.stradPos) return;
+  const {ck,pk,cost}=vb.stradPos;
+  const cv=G.opts[ck]?.fv||0, pv=G.opts[pk]?.fv||0;
+  const proceeds=cv+pv;
+  vb.pnl+=proceeds;
+  const profit=proceeds-cost;
+  addLog('VolBuyer',`SELL straddle (${profit>=0?'profit':'loss'})`,proceeds,false,'sell');
+  vb.stradPos=null;
+}
+
+// ─── Player Actions ───────────────────────────────────────────
+function tradeOption(key, side){
+  const opt=G.opts[key]; if(!opt) return;
+  const price=side==='buy'?opt.ask:opt.bid;
+  const qty=side==='buy'?1:-1;
+  const cur=G.positions[key];
+  if(cur+qty>POS_LIMIT){showToast(`Long limit +${POS_LIMIT} reached`,'warn');return;}
+  if(cur+qty<-POS_LIMIT){showToast(`Short limit −${POS_LIMIT} reached`,'warn');return;}
+  G.positions[key]+=qty;
+  G.costBasis[key]+=qty*price;
+  G.totalTrades++;
+  addLog(G.playerName,`${side==='buy'?'BUY':'SELL'} ${key}`,price,true,side);
+  renderChain(); renderLeft(); renderLog();
+}
+
+function tradeUnderlying(side){
+  const price=G.S+(side==='buy'?0.05:-0.05);
+  const qty=side==='buy'?1:-1;
+  G.underlyingPos+=qty;
+  G.underlyingCost+=qty*price;
+  G.totalTrades++;
+  addLog(G.playerName,`${side==='buy'?'BUY':'SELL'} STRK @ $${price.toFixed(2)}`,price,true,side);
+  renderLeft(); renderLog();
+}
+
+function hedgeDelta(){
+  const {nD}=calcPortfolio();
+  const hedge=-Math.round(nD);
+  if(hedge===0){showToast('Delta already near zero — no hedge needed','info');return;}
+  G.underlyingPos+=hedge;
+  G.underlyingCost+=hedge*G.S;
+  G.totalTrades++;
+  const action=hedge>0?`BUY ${hedge} STRK`:`SELL ${Math.abs(hedge)} STRK`;
+  addLog(G.playerName,`HEDGE: ${action} @ $${G.S.toFixed(2)}`,G.S,true,hedge>0?'buy':'sell');
+  showToast(`Delta hedged: ${action}`,'trade');
+  renderLeft(); renderChain(); renderLog();
+}
+
+// ─── UI Renderers ─────────────────────────────────────────────
+function renderAll(){
+  renderHeader();
+  renderLeft();
+  renderChain();
+  renderLog();
+}
+
+function renderHeader(){
+  const {nD,mtm}=calcPortfolio();
+  const left=Math.max(0,GAME_DUR-G.elapsed);
+  const tDays=Math.max(0,Math.round(G.T*252));
+
+  const pnlEl=document.getElementById('hdr-pnl');
+  if(pnlEl){pnlEl.textContent=fmtPnl(mtm);pnlEl.style.color=mtm>=0?'var(--green)':'var(--red)';}
+
+  const dEl=document.getElementById('hdr-delta');
+  if(dEl){dEl.textContent=(nD>=0?'+':'')+nD.toFixed(2);dEl.style.color=Math.abs(nD)>0.5?'var(--yellow)':'var(--text)';}
+
+  const tEl=document.getElementById('hdr-t');
+  if(tEl){tEl.textContent=tDays+'d';tEl.style.color=tDays<=5?'var(--red)':tDays<=10?'var(--yellow)':'var(--yellow)';}
+}
+
+function renderLeft(){
+  const arrow=G.S>G.prevS?'▲':G.S<G.prevS?'▼':'—';
+  const arrColor=G.S>G.prevS?'var(--green)':G.S<G.prevS?'var(--red)':'var(--dim)';
+
+  const priceEl=document.getElementById('und-price');
+  if(priceEl){priceEl.textContent='$'+G.S.toFixed(2);priceEl.style.color=G.S>G.prevS?'var(--green)':G.S<G.prevS?'var(--red)':'var(--bright)';}
+
+  const arEl=document.getElementById('und-arrow');
+  if(arEl){arEl.textContent=arrow;arEl.style.color=arrColor;}
+
+  // Vol bar (0–50% range)
+  const volPct=Math.min(100,(G.sigma/0.5)*100);
+  const volColor=G.sigma<0.18?'var(--blue)':G.sigma<0.30?'var(--yellow)':'var(--red)';
+  const vBar=document.getElementById('vol-bar');
+  if(vBar){vBar.style.width=volPct+'%';vBar.style.background=volColor;}
+  const vVal=document.getElementById('vol-val');
+  if(vVal){vVal.textContent=(G.sigma*100).toFixed(0)+'%';vVal.style.color=volColor;}
+
+  const tDays=Math.max(0,Math.round(G.T*252));
+  const tEl=document.getElementById('t-days');
+  if(tEl){tEl.textContent=tDays+' days';tEl.style.color=tDays<=5?'var(--red)':tDays<=10?'var(--yellow)':'var(--text)';}
+
+  const {nD,nG,nV,nTh,mtm}=calcPortfolio();
+  const dEl=document.getElementById('g-delta');
+  if(dEl){dEl.textContent=(nD>=0?'+':'')+nD.toFixed(2);dEl.style.color=Math.abs(nD)>1?'var(--red)':Math.abs(nD)>0.3?'var(--yellow)':'var(--green)';}
+  const gEl=document.getElementById('g-gamma');
+  if(gEl){gEl.textContent=(nG>=0?'+':'')+nG.toFixed(3);gEl.style.color=nG>0?'var(--green)':'var(--red)';}
+  const vEl=document.getElementById('g-vega');
+  if(vEl){vEl.textContent=fmtPnl(nV*0.01); /* per 1% vol move */ vEl.style.color=nV>0?'var(--green)':'var(--red)';}
+  const thEl=document.getElementById('g-theta');
+  if(thEl){thEl.textContent='−$'+Math.abs(nTh).toFixed(2)+'/day';thEl.style.color='var(--red)';}
+  const uEl=document.getElementById('g-und');
+  if(uEl){uEl.textContent=(G.underlyingPos>=0?'+':'')+G.underlyingPos;uEl.style.color=G.underlyingPos>0?'var(--green)':G.underlyingPos<0?'var(--red)':'var(--dim)';}
+
+  const upEl=document.getElementById('und-trade-price');
+  if(upEl) upEl.textContent='$'+G.S.toFixed(2);
+}
+
+function renderChain(){
+  const tbody=document.getElementById('chain-body');
+  if(!tbody) return;
+  const tDays=Math.max(0,Math.round(G.T*252));
+
+  tbody.innerHTML=OPTS.map(o=>{
+    const{k,t,key}=o;
+    const opt=G.opts[key]; if(!opt) return '';
+    const pos=G.positions[key];
+    const isCall=t==='C';
+    const money=Math.abs(G.S-k)/G.S;
+    const isATM=money<0.035;
+    const rowBg=isATM?'rgba(255,200,64,.05)':isCall?'rgba(0,216,136,.018)':'rgba(255,61,90,.018)';
+    const posColor=pos>0?'var(--green)':pos<0?'var(--red)':'var(--dim)';
+    const gammaFmt=opt.gm.toFixed(3);
+    return`<tr style="background:${rowBg}" class="${isATM?'atm-row':''}">
+      <td class="mono bright">${k}${isATM?'<span style="font-size:.65rem;color:var(--yellow);margin-left:3px">ATM</span>':''}</td>
+      <td class="mono" style="color:${isCall?'var(--green)':'var(--red)'};font-weight:700">${t}</td>
+      <td class="mono dim">${opt.fv.toFixed(2)}</td>
+      <td class="mono" style="color:var(--red)">${opt.bid.toFixed(2)}</td>
+      <td class="mono" style="color:var(--green)">${opt.ask.toFixed(2)}</td>
+      <td class="mono" style="color:${opt.d>=0?'var(--green)':'var(--red)'}">${opt.d.toFixed(2)}</td>
+      <td class="mono" style="color:var(--yellow)">${gammaFmt}</td>
+      <td class="mono" style="color:${posColor};font-weight:700">${pos===0?'—':(pos>0?'+':'')+pos}</td>
+      <td class="ta-c"><button class="chain-btn buy" data-key="${key}" data-side="buy">+</button></td>
+      <td class="ta-c"><button class="chain-btn sell" data-key="${key}" data-side="sell">−</button></td>
+    </tr>`;
+  }).join('');
+
+  const sub=document.getElementById('chain-sub');
+  if(sub) sub.textContent=`STRK $${G.S.toFixed(2)} | σ ${(G.sigma*100).toFixed(0)}% | T ${tDays}d`;
+}
+
+function renderLog(){
+  const tbody=document.getElementById('log-body');
+  if(!tbody) return;
+  tbody.innerHTML=G.trades.slice(0,25).map(tr=>`
+    <tr class="${tr.isYou?'you-row':''}">
+      <td class="mono dim">${tr.t}</td>
+      <td>${tr.isYou?'<span style="color:var(--purple)">★</span> ':''}<span style="${tr.isYou?'color:var(--bright)':''}">${tr.who}</span></td>
+      <td style="font-size:.78rem;color:${tr.side==='buy'?'var(--green)':'var(--red)'}">${tr.action}</td>
+      <td class="mono ta-r" style="color:${tr.side==='buy'?'var(--red)':'var(--green)'}">${tr.side==='buy'?'−':'+'} $${tr.price.toFixed(2)}</td>
+    </tr>`).join('');
+}
+
+function addLog(who,action,price,isYou,side){
+  G.trades.unshift({t:nowStr(),who,action,price,isYou,side});
+  if(G.trades.length>60) G.trades.pop();
+}
+
+// ─── End Game ─────────────────────────────────────────────────
+function endGame(){
+  G.phase='ended';
+  clearInterval(gameInt); clearInterval(countInt);
+
+  // Settle options at intrinsic
+  let settlePnl=0, settleLines=[];
+  for(const o of OPTS){
+    const pos=G.positions[o.key]; if(!pos) continue;
+    const intrinsic=o.t==='C'?Math.max(G.S-o.k,0):Math.max(o.k-G.S,0);
+    const cb=G.costBasis[o.key];
+    const linePnl=pos*intrinsic-cb;
+    settlePnl+=linePnl;
+    settleLines.push(`${o.key} × ${pos>0?'+':''}${pos}: intrinsic $${intrinsic.toFixed(2)} → ${fmtPnl(linePnl)}`);
+  }
+  // Underlying settlement
+  const undPnl=G.underlyingPos*G.S-G.underlyingCost;
+  settlePnl+=undPnl;
+  if(G.underlyingPos!==0) settleLines.push(`STRK × ${G.underlyingPos>0?'+':''}${G.underlyingPos} → ${fmtPnl(undPnl)}`);
+
+  // Finalize bot PnLs (simple estimate)
+  G.bots[0].pnl -= Math.random()*1.5; // ThetaGrinder gave back some theta
+  G.bots[2].pnl += (Math.random()-.5)*2; // Directional random outcome
+
+  const all=[
+    {name:G.playerName, pnl:settlePnl, isYou:true},
+    ...G.bots.map(b=>({name:b.name,pnl:b.pnl,isYou:false}))
+  ].sort((a,b)=>b.pnl-a.pnl);
+  const rank=all.findIndex(p=>p.isYou)+1;
+  const medals=['🥇','🥈','🥉'];
+
+  document.getElementById('res-pnl').textContent=fmtPnl(settlePnl);
+  document.getElementById('res-pnl').style.color=settlePnl>=0?'var(--green)':'var(--red)';
+  document.getElementById('res-rank').textContent=`Ranked #${rank} of ${all.length}`;
+  document.getElementById('r-trades').textContent=G.totalTrades;
+  document.getElementById('r-events').textContent=G.eventsFired;
+  document.getElementById('r-final-s').textContent='$'+G.S.toFixed(2);
+  document.getElementById('settle-detail').innerHTML=
+    settleLines.length?settleLines.map(l=>`<div>${l}</div>`).join(''):'<div>No open positions at expiry.</div>';
+
+  document.getElementById('res-lb').innerHTML=all.map((p,i)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:7px;margin-bottom:4px;
+      background:${p.isYou?'rgba(157,96,255,.07)':'transparent'};border:1px solid ${p.isYou?'rgba(157,96,255,.22)':'transparent'}">
+      <span style="color:var(--dim);min-width:24px">${medals[i]||i+1+'.'}</span>
+      <span style="${p.isYou?'color:var(--bright)':''};font-weight:500">${p.isYou?'★ ':''}${p.name}</span>
+      <span style="font-family:'DM Mono',monospace;font-weight:700;color:${p.pnl>=0?'var(--green)':'var(--red)'}">${fmtPnl(p.pnl)}</span>
+    </div>`).join('');
+
+  showScreen('results');
+}
+
+// ─── Toast ────────────────────────────────────────────────────
+function showToast(msg,type='info'){
+  const c=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  t.className=`toast ${type}`; t.textContent=msg;
+  c.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';},2400);
+  setTimeout(()=>t.remove(),2900);
+}
+
+// ─── Screens ──────────────────────────────────────────────────
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById('screen-'+name);
+  if(el) el.classList.add('active');
+}
+
+// ─── Init ─────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.diff-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.diff-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedDiff=btn.dataset.diff;
+      document.getElementById('diff-hint').textContent=DIFF_HINTS[selectedDiff];
+    });
+  });
+
+  document.getElementById('btn-start').addEventListener('click',startGame);
+  document.getElementById('inp-name').addEventListener('keydown',e=>{if(e.key==='Enter')startGame();});
+  document.getElementById('btn-again').addEventListener('click',()=>showScreen('setup'));
+  document.getElementById('btn-hedge').addEventListener('click',hedgeDelta);
+  document.getElementById('btn-buy-und').addEventListener('click',()=>tradeUnderlying('buy'));
+  document.getElementById('btn-sell-und').addEventListener('click',()=>tradeUnderlying('sell'));
+
+  // Options chain: event delegation
+  document.addEventListener('click',e=>{
+    const btn=e.target.closest('.chain-btn');
+    if(!btn) return;
+    tradeOption(btn.dataset.key, btn.dataset.side);
+  });
+});
+</script>
+
+<script>
+(function(){
+  function setTheme(t,save){
+    if(save) localStorage.setItem('imc-theme',t);
+    var root=document.documentElement;
+    if(t==='dark') root.setAttribute('data-theme','dark');
+    else if(t==='light') root.setAttribute('data-theme','light');
+    else root.removeAttribute('data-theme');
+    document.querySelectorAll('.tnb').forEach(function(b){
+      b.classList.toggle('active', b.dataset.t===t);
+    });
+  }
+  window.setTheme=setTheme;
+  // Apply saved theme on load
+  setTheme(localStorage.getItem('imc-theme')||'system', false);
+})();
+</script>
+</body>
+</html>
