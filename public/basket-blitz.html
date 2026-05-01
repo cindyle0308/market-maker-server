@@ -19,14 +19,16 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 /* ── Screens ── */
 .screen{display:none}
 .screen.active{display:flex}
-#screen-setup{align-items:center;justify-content:center;min-height:100vh;flex-direction:column;padding:24px}
+#screen-setup{align-items:center;justify-content:center;min-height:100vh;flex-direction:column;padding:24px;position:relative;padding-top:72px}
 #screen-game{flex-direction:column;height:100vh}
-#screen-results{align-items:center;justify-content:center;min-height:100vh;flex-direction:column;padding:24px}
+#screen-results{align-items:center;justify-content:center;min-height:100vh;flex-direction:column;padding:24px;position:relative;padding-top:72px}
 
 /* ── Suite Nav ── */
-.suite-nav{font-size:0.78rem;color:var(--dim);margin-bottom:28px;display:flex;gap:16px;align-items:center}
-.suite-nav a{color:var(--dim);text-decoration:none;transition:.15s}.suite-nav a:hover{color:var(--text)}
-.suite-nav .cur{color:var(--blue);font-weight:500}
+.suite-nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%;flex-shrink:0;position:absolute;top:0;left:0;right:0;z-index:10;}
+.suite-nav a{color:var(--dim);text-decoration:none;font-size:0.75rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;transition:color .15s}
+.suite-nav a:hover{color:var(--text)}
+.suite-nav .brand{color:var(--bright);font-weight:700;font-size:0.8rem;margin-right:8px}
+.suite-nav a.active,.suite-nav .cur{color:var(--yellow);font-weight:700}
 
 /* ── Setup Card ── */
 .setup-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:40px;max-width:480px;width:100%}
@@ -179,6 +181,8 @@ summary.rules-sum::marker{display:none}
   --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
   --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
   --orange-bg:rgba(194,65,12,0.12)!important;
+
+  --bg2:#ffffff!important;--bg3:#f5f8fc!important;--bg4:#edf1f7!important;--bright:#0d1b2a!important;--shadow:rgba(0,0,0,.12)!important;
 }
 @media(prefers-color-scheme:light){
   :root:not([data-theme]){
@@ -193,7 +197,9 @@ summary.rules-sum::marker{display:none}
     --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
     --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
     --orange-bg:rgba(194,65,12,0.12)!important;
-  }
+  
+  --bg2:#ffffff!important;--bg3:#f5f8fc!important;--bg4:#edf1f7!important;--bright:#0d1b2a!important;--shadow:rgba(0,0,0,.12)!important;
+}
 }
 /* Theme toggle button in nav */
 .theme-nav-btns{margin-left:auto;display:flex;gap:3px;align-items:center;}
@@ -208,8 +214,8 @@ summary.rules-sum::marker{display:none}
 
 <!-- ══════════════════ SETUP ══════════════════ -->
 <div id="screen-setup" class="screen active">
-  <div class="suite-nav">
-    <a href="index.html" style="color:var(--yellow);font-weight:700">⌂ Hub</a>
+  <nav class="suite-nav">
+    <a href="index.html" class="brand">⌂ Hub</a>
   <a href="quant-relay.html">Relay</a>
   <a href="alpha-factory.html">Alpha Factory</a>
     <span style="color:var(--border2)">|</span>
@@ -228,7 +234,7 @@ summary.rules-sum::marker{display:none}
     <a href="spread-trader.html">Spread</a>
     <a href="regime-rider.html">Regime</a>
   <span class="theme-nav-btns"><button class="tnb" data-t="light" onclick="setTheme('light',true)" title="Light">☀</button><button class="tnb" data-t="system" onclick="setTheme('system',true)" title="System">⊙</button><button class="tnb" data-t="dark" onclick="setTheme('dark',true)" title="Dark">☾</button></span>
-  </div>
+  </nav>
   <div class="setup-card">
     <div class="setup-icon">⚡</div>
     <h1>Basket Blitz</h1>
@@ -391,17 +397,22 @@ summary.rules-sum::marker{display:none}
 
 <!-- ══════════════════ RESULTS ══════════════════ -->
 <div id="screen-results" class="screen">
-  <div class="suite-nav">
-    <a href="index.html" style="color:var(--yellow);font-weight:700">⌂ Hub</a>
-    <span style="color:var(--border2)">|</span>
-    <a href="https://lexie-marketmakerbaos.onrender.com" target="_blank">Market Maker</a>
-    <a href="basket-blitz.html">Basket Blitz</a>
-    <a href="options-outcry.html">Options Outcry</a>
-    <span style="color:var(--border2)">|</span>
-    <a href="momentum-trainer.html">Momentum Trainer</a>
-    <a href="spread-trader.html">Spread Trader</a>
-    <a href="regime-rider.html">Regime Rider</a>
-  </div>
+  <nav class="suite-nav">
+    <a href="index.html" class="brand">⌂ Hub</a>
+    <a href="quant-relay.html">Relay</a>
+    <a href="alpha-factory.html">Alpha Factory</a>
+    <a href="cmi-challenge.html">CMI</a>
+    <a href="arbitrage-sprint.html">Arb Sprint</a>
+    <a href="price-war.html">Price War</a>
+    <a href="algo-blitz.html">Algo Blitz</a>
+    <a href="bot-builder.html">Bot Builder</a>
+    <a href="basket-blitz.html" class="active">Basket</a>
+    <a href="options-outcry.html">Outcry</a>
+    <a href="momentum-trainer.html">Momentum</a>
+    <a href="spread-trader.html">Spread</a>
+    <a href="regime-rider.html">Regime</a>
+    <span class="theme-nav-btns"><button class="tnb" data-t="light" onclick="setTheme('light',true)" title="Light">☀</button><button class="tnb" data-t="system" onclick="setTheme('system',true)" title="System">⊙</button><button class="tnb" data-t="dark" onclick="setTheme('dark',true)" title="Dark">☾</button></span>
+  </nav>
   <div class="results-card">
     <div class="setup-icon">⚡</div>
     <h2>Game Over</h2>
