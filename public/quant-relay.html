@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quant Research Relay | IMC Collaborative</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<style>
+:root{
+  --bg:#060d1a;--panel:#0d1829;--panel2:#101e30;
+  --border:#1e3a5f;--border2:#1e2d4a;
+  --text:#e2e8f0;--dim:#64748b;--dim2:#94a3b8;
+  --blue:#3b82f6;--blue-l:#60a5fa;
+  --green:#22c55e;--red:#ef4444;
+  --yellow:#eab308;--purple:#a855f7;--cyan:#06b6d4;
+  --teal:#14b8a6;--orange:#f97316;
+  --green-bg:rgba(34,197,94,0.12);--red-bg:rgba(239,68,68,0.12);
+  --blue-bg:rgba(59,130,246,0.12);--yellow-bg:rgba(234,179,8,0.12);
+  --purple-bg:rgba(168,85,247,0.12);--teal-bg:rgba(20,184,166,0.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;min-height:100vh;}
+a{color:var(--blue-l);text-decoration:none;}
+a:hover{text-decoration:underline;}
+.hidden{display:none!important;}
+
+/* NAV */
+nav{background:#0a1220;border-bottom:1px solid var(--border2);padding:8px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;}
+.brand{color:var(--yellow);font-weight:700;font-size:13px;}
+.cur{color:var(--text);font-weight:700;}
+.sep{color:var(--border);}
+
+/* SHARED */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .15s;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{background:#2563eb;}
+.btn-green{background:#16a34a;color:#fff;}
+.btn-green:hover{background:#15803d;}
+.btn-ghost{background:var(--panel);color:var(--dim2);border:1px solid var(--border);}
+.btn-ghost:hover{color:var(--text);}
+.btn-sm{padding:6px 14px;font-size:12px;}
+.tag{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 8px;border-radius:5px;}
+.tag-trader{background:var(--purple-bg);color:var(--purple);border:1px solid rgba(168,85,247,.3);}
+.tag-coder{background:var(--teal-bg);color:var(--teal);border:1px solid rgba(20,184,166,.3);}
+.tag-shared{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(234,179,8,.3);}
+
+/* ═══ PHASE 0 — INTRO ═══ */
+#phase-intro{max-width:700px;margin:48px auto;padding:0 20px;}
+.intro-hero{text-align:center;margin-bottom:32px;}
+.intro-tag{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--teal);text-transform:uppercase;margin-bottom:8px;}
+.intro-title{font-size:34px;font-weight:900;color:#fff;margin-bottom:8px;}
+.intro-sub{color:var(--dim2);font-size:15px;line-height:1.6;}
+.role-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:28px 0;}
+.role-card{background:var(--panel);border:1px solid var(--border2);border-radius:12px;padding:18px 20px;}
+.role-card.trader{border-color:rgba(168,85,247,.35);}
+.role-card.coder{border-color:rgba(20,184,166,.35);}
+.role-icon{font-size:28px;margin-bottom:10px;}
+.role-name{font-size:16px;font-weight:700;margin-bottom:6px;}
+.role-card.trader .role-name{color:var(--purple);}
+.role-card.coder .role-name{color:var(--teal);}
+.role-desc{font-size:12px;color:var(--dim2);line-height:1.6;}
+.flow-bar{display:flex;align-items:center;gap:8px;justify-content:center;margin:16px 0;flex-wrap:wrap;}
+.flow-step{font-size:12px;font-weight:600;padding:6px 14px;border-radius:20px;}
+.flow-step.t{background:var(--purple-bg);color:var(--purple);}
+.flow-step.s{background:var(--blue-bg);color:var(--blue-l);}
+.flow-step.c{background:var(--teal-bg);color:var(--teal);}
+.flow-arr{color:var(--dim);font-size:16px;}
+.intro-start{text-align:center;margin-top:24px;}
+
+/* ═══ PHASE 1 — SPEC BUILDER ═══ */
+#phase-spec{max-width:820px;margin:32px auto;padding:0 20px;}
+.spec-header{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+.spec-header h2{font-size:22px;font-weight:800;color:#fff;}
+.spec-section{margin-bottom:22px;}
+.spec-section-title{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim2);margin-bottom:12px;}
+.signal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.signal-card{background:var(--panel);border:1.5px solid var(--border2);border-radius:10px;padding:14px;cursor:pointer;transition:all .15s;text-align:center;}
+.signal-card:hover{border-color:var(--blue);}
+.signal-card.selected{border-color:var(--purple);background:var(--purple-bg);}
+.signal-icon{font-size:22px;margin-bottom:6px;}
+.signal-name{font-size:12px;font-weight:700;color:var(--text);}
+.signal-desc{font-size:11px;color:var(--dim);margin-top:3px;line-height:1.4;}
+.params-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.param-row{background:var(--panel);border:1px solid var(--border2);border-radius:8px;padding:14px 16px;}
+.param-label{font-size:11px;color:var(--dim2);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
+.param-val{font-size:15px;font-weight:700;color:var(--blue-l);}
+.param-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:15px;color:var(--text);outline:none;}
+.param-input:focus{border-color:var(--blue);}
+.param-slider{width:100%;accent-color:var(--purple);}
+.spec-preview{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:16px;font-family:monospace;font-size:12px;color:var(--cyan);line-height:1.8;}
+.spec-locked{background:var(--panel);border:2px solid var(--purple);border-radius:10px;padding:16px;font-family:monospace;font-size:12px;color:var(--text);line-height:1.8;white-space:pre-wrap;}
+
+/* ═══ PHASE 2 — CODE EDITOR ═══ */
+#phase-code{display:grid;grid-template-columns:320px 1fr;gap:0;height:calc(100vh - 41px);}
+.code-sidebar{background:var(--panel2);border-right:1px solid var(--border2);padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
+.code-main{display:flex;flex-direction:column;}
+.code-toolbar{background:var(--panel);border-bottom:1px solid var(--border2);padding:10px 16px;display:flex;align-items:center;gap:10px;}
+.code-editor-wrap{flex:1;display:flex;flex-direction:column;min-height:0;}
+.CodeMirror{flex:1;height:100%;font-size:13px;background:var(--bg)!important;}
+.CodeMirror-scroll{min-height:300px;}
+.spec-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:monospace;font-size:11px;color:var(--cyan);line-height:1.7;white-space:pre-wrap;word-break:break-word;}
+.api-section{margin-top:2px;}
+.api-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin-bottom:8px;}
+.api-item{font-size:11px;padding:5px 0;border-bottom:1px solid var(--border2);color:var(--dim2);}
+.api-item code{color:var(--cyan);font-family:monospace;font-size:11px;}
+.api-item .api-desc{color:var(--dim);font-size:10px;margin-top:2px;}
+.run-output{background:var(--bg);border-top:1px solid var(--border2);padding:10px 16px;font-family:monospace;font-size:12px;min-height:48px;max-height:80px;overflow-y:auto;}
+.out-ok{color:var(--green);}
+.out-err{color:var(--red);}
+
+/* ═══ PHASE 3 — RESULTS ═══ */
+#phase-results{max-width:820px;margin:32px auto;padding:0 20px 60px;}
+.results-header{text-align:center;margin-bottom:28px;}
+.total-score{font-size:56px;font-weight:900;color:var(--yellow);}
+.score-grade{font-size:18px;color:var(--dim2);margin-top:4px;}
+.score-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0;}
+.score-card{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:16px;text-align:center;}
+.score-card-val{font-size:24px;font-weight:800;}
+.score-card-lbl{font-size:11px;color:var(--dim);margin-top:4px;text-transform:uppercase;letter-spacing:.5px;}
+.score-card-sub{font-size:11px;color:var(--dim2);margin-top:6px;}
+.sharpe-card .score-card-val{color:var(--green);}
+.fidelity-card .score-card-val{color:var(--purple);}
+.dd-card .score-card-val{color:var(--blue-l);}
+.equity-wrap{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:16px;margin:16px 0;}
+.equity-title{font-size:12px;font-weight:600;color:var(--dim2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;}
+canvas{width:100%;border-radius:6px;}
+.fidelity-breakdown{background:var(--panel2);border:1px solid var(--border2);border-radius:10px;padding:16px;margin:16px 0;}
+.fidelity-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border2);font-size:12px;}
+.fidelity-row:last-child{border-bottom:none;}
+.fid-icon{font-size:14px;width:20px;text-align:center;}
+.fid-label{flex:1;color:var(--dim2);}
+.fid-result{font-weight:700;}
+.fid-pass{color:var(--green);}
+.fid-fail{color:var(--red);}
+.fid-partial{color:var(--yellow);}
+.results-actions{display:flex;gap:12px;justify-content:center;margin-top:24px;}
+
+/* TICKER HEADER */
+.phase-ticker{background:var(--panel);border:1px solid var(--border2);border-radius:8px;padding:8px 16px;display:flex;align-items:center;gap:16px;margin-bottom:16px;font-size:12px;}
+.ticker-step{display:flex;align-items:center;gap:6px;color:var(--dim);}
+.ticker-step.active{color:var(--text);}
+.ticker-step.done{color:var(--green);}
+.ticker-dot{width:8px;height:8px;border-radius:50%;background:var(--dim);}
+.ticker-step.active .ticker-dot{background:var(--blue);}
+.ticker-step.done .ticker-dot{background:var(--green);}
+
+/* ── LIGHT MODE ── */
+[data-theme="light"]{
+  --bg:#f0f4f8!important;--panel:#ffffff!important;--panel2:#e8edf3!important;
+  --border:#c5d0de!important;--border2:#d5dde8!important;
+  --text:#1e2d3d!important;--dim:#6b7d8f!important;--dim2:#4a5a6a!important;
+  --blue:#2563eb!important;--blue-l:#1d4ed8!important;
+  --green:#16a34a!important;--red:#dc2626!important;
+  --yellow:#b45309!important;--purple:#7c3aed!important;
+  --cyan:#0e7490!important;--teal:#0f766e!important;--orange:#c2410c!important;
+  --green-bg:rgba(22,163,74,0.12)!important;--red-bg:rgba(220,38,38,0.12)!important;
+  --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
+  --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
+  --orange-bg:rgba(194,65,12,0.12)!important;
+}
+@media(prefers-color-scheme:light){
+  :root:not([data-theme]){
+    --bg:#f0f4f8!important;--panel:#ffffff!important;--panel2:#e8edf3!important;
+    --border:#c5d0de!important;--border2:#d5dde8!important;
+    --text:#1e2d3d!important;--dim:#6b7d8f!important;--dim2:#4a5a6a!important;
+    --blue:#2563eb!important;--blue-l:#1d4ed8!important;
+    --green:#16a34a!important;--red:#dc2626!important;
+    --yellow:#b45309!important;--purple:#7c3aed!important;
+    --cyan:#0e7490!important;--teal:#0f766e!important;--orange:#c2410c!important;
+    --green-bg:rgba(22,163,74,0.12)!important;--red-bg:rgba(220,38,38,0.12)!important;
+    --blue-bg:rgba(37,99,235,0.12)!important;--yellow-bg:rgba(180,83,9,0.12)!important;
+    --purple-bg:rgba(124,58,237,0.12)!important;--teal-bg:rgba(15,118,110,0.12)!important;
+    --orange-bg:rgba(194,65,12,0.12)!important;
+  }
+}
+/* Theme toggle button in nav */
+.theme-nav-btns{margin-left:auto;display:flex;gap:3px;align-items:center;}
+.tnb{padding:3px 8px;border-radius:5px;border:1px solid var(--border2);
+  background:transparent;color:var(--dim);font-size:10px;font-weight:700;
+  cursor:pointer;transition:all .12s;line-height:1;}
+.tnb:hover{color:var(--text);}
+.tnb.active{background:var(--panel);border-color:var(--border);color:var(--text);}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="brand">⌂ Hub</a><span class="sep">|</span>
+  <span style="color:var(--dim);font-size:11px;">Collab:</span>
+  <span class="cur">Relay</span>
+  <a href="alpha-factory.html">Alpha Factory</a>
+  <span class="sep">|</span>
+  <span style="color:var(--dim);font-size:11px;">Trading:</span>
+  <a href="price-war.html">Price War</a>
+  <a href="arbitrage-sprint.html">Arb Sprint</a>
+  <a href="cmi-challenge.html">CMI</a>
+  <span class="sep">|</span>
+  <span style="color:var(--dim);font-size:11px;">Tech:</span>
+  <a href="algo-blitz.html">Algo Blitz</a>
+  <a href="bot-builder.html">Bot Builder</a>
+  <span class="sep">|</span>
+  <a href="momentum-trainer.html">Momentum</a>
+  <a href="spread-trader.html">Spread</a>
+  <a href="regime-rider.html">Regime</a>
+  <span class="sep">|</span>
+  <a href="basket-blitz.html">Basket</a>
+  <a href="options-outcry.html">Outcry</a>
+<span class="theme-nav-btns"><button class="tnb" data-t="light" onclick="setTheme('light',true)" title="Light">☀</button><button class="tnb" data-t="system" onclick="setTheme('system',true)" title="System">⊙</button><button class="tnb" data-t="dark" onclick="setTheme('dark',true)" title="Dark">☾</button></span>
+</nav>
+
+<!-- ═══ PHASE 0: INTRO ═══ -->
+<div id="phase-intro">
+  <div class="intro-hero">
+    <div class="intro-tag">Collaborative · 2 Players · ~25 min</div>
+    <div class="intro-title">Quant Research Relay</div>
+    <div class="intro-sub">One player designs the strategy. The other implements it.<br>Together you backtest and score — mirroring real quant workflow.</div>
+  </div>
+  <div class="flow-bar">
+    <span class="flow-step t">Trader: Design Spec</span>
+    <span class="flow-arr">→</span>
+    <span class="flow-step s">Spec Locks</span>
+    <span class="flow-arr">→</span>
+    <span class="flow-step c">Coder: Implement</span>
+    <span class="flow-arr">→</span>
+    <span class="flow-step s">Backtest</span>
+    <span class="flow-arr">→</span>
+    <span class="flow-step s">Joint Score</span>
+  </div>
+  <div class="role-cards">
+    <div class="role-card trader">
+      <div class="role-icon">📊</div>
+      <div class="role-name">Trader Role</div>
+      <div class="role-desc">
+        You choose the strategy type, set entry/exit thresholds, position sizing and risk limits — all with no code.<br><br>
+        Your job: specify the edge you believe exists in the market. Be precise — the Coder will implement exactly what you describe.
+      </div>
+    </div>
+    <div class="role-card coder">
+      <div class="role-icon">💻</div>
+      <div class="role-name">Coder Role</div>
+      <div class="role-desc">
+        You receive the Trader's locked spec as a comment block in a code editor.<br><br>
+        Your job: implement <code style="color:var(--cyan);font-family:monospace">strategy(ctx)</code> in JavaScript. Full API available — sma, ema, rsi, z-score, bollinger. Bonus points for optimising beyond the spec.
+      </div>
+    </div>
+  </div>
+  <div class="intro-start">
+    <button class="btn btn-primary" onclick="startSpec()">Start — Trader's Turn →</button>
+  </div>
+</div>
+
+<!-- ═══ PHASE 1: SPEC BUILDER ═══ -->
+<div id="phase-spec" class="hidden">
+  <div class="spec-header">
+    <span class="tag tag-trader">Trader's Turn</span>
+    <h2>Design Your Strategy Spec</h2>
+  </div>
+
+  <div class="spec-section">
+    <div class="spec-section-title">1. Signal Type</div>
+    <div class="signal-grid">
+      <div class="signal-card" id="sig-momentum" onclick="selectSignal('momentum')">
+        <div class="signal-icon">📈</div>
+        <div class="signal-name">Momentum</div>
+        <div class="signal-desc">Buy strength, sell weakness. Trend following.</div>
+      </div>
+      <div class="signal-card" id="sig-mean-reversion" onclick="selectSignal('mean-reversion')">
+        <div class="signal-icon">↔️</div>
+        <div class="signal-name">Mean Reversion</div>
+        <div class="signal-desc">Buy dips, sell spikes. Price returns to mean.</div>
+      </div>
+      <div class="signal-card" id="sig-breakout" onclick="selectSignal('breakout')">
+        <div class="signal-icon">🔥</div>
+        <div class="signal-name">Breakout</div>
+        <div class="signal-desc">Enter when price escapes a consolidation range.</div>
+      </div>
+      <div class="signal-card" id="sig-pairs" onclick="selectSignal('pairs')">
+        <div class="signal-icon">🔗</div>
+        <div class="signal-name">Pairs / Stat-Arb</div>
+        <div class="signal-desc">Trade the spread between two correlated assets.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="params-grid">
+    <div class="param-row">
+      <div class="param-label">
+        Entry Threshold
+        <span class="param-val" id="entry-display">2.0</span>
+      </div>
+      <input type="range" class="param-slider" id="entry-slider" min="0.5" max="5" step="0.1" value="2.0"
+        oninput="updateParam('entry','entry-display',this.value)">
+      <div style="font-size:10px;color:var(--dim);margin-top:4px;" id="entry-hint">Signal must exceed this level to trigger entry</div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">
+        Exit Threshold
+        <span class="param-val" id="exit-display">0.5</span>
+      </div>
+      <input type="range" class="param-slider" id="exit-slider" min="0.1" max="3" step="0.1" value="0.5"
+        oninput="updateParam('exit','exit-display',this.value)">
+      <div style="font-size:10px;color:var(--dim);margin-top:4px;" id="exit-hint">Close position when signal falls below this level</div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">
+        Lookback Window
+        <span class="param-val" id="lookback-display">20</span>
+      </div>
+      <input type="range" class="param-slider" id="lookback-slider" min="5" max="60" step="1" value="20"
+        oninput="updateParam('lookback','lookback-display',this.value)">
+      <div style="font-size:10px;color:var(--dim);margin-top:4px;">Number of ticks used to compute the signal</div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">
+        Position Size
+        <span class="param-val" id="possize-display">50</span>
+      </div>
+      <input type="range" class="param-slider" id="possize-slider" min="10" max="100" step="5" value="50"
+        oninput="updateParam('possize','possize-display',this.value)">
+      <div style="font-size:10px;color:var(--dim);margin-top:4px;">Units per trade (max 100)</div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">
+        Stop-Loss %
+        <span class="param-val" id="stoploss-display">5%</span>
+      </div>
+      <input type="range" class="param-slider" id="stoploss-slider" min="1" max="20" step="0.5" value="5"
+        oninput="document.getElementById('stoploss-display').textContent=this.value+'%';SPEC.stoploss=parseFloat(this.value);updatePreview()">
+      <div style="font-size:10px;color:var(--dim);margin-top:4px;">Max loss per position before forced exit</div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">
+        Notes for Coder
+        <span style="font-size:10px;color:var(--dim);">(optional)</span>
+      </div>
+      <input type="text" class="param-input" id="trader-notes" placeholder="e.g. use log returns, avoid holding overnight…"
+        oninput="SPEC.notes=this.value;updatePreview()">
+    </div>
+  </div>
+
+  <div class="spec-section" style="margin-top:20px;">
+    <div class="spec-section-title">Live Spec Preview</div>
+    <div class="spec-preview" id="spec-preview">// Select a signal type to begin building your spec…</div>
+  </div>
+
+  <div style="margin-top:20px;display:flex;gap:12px;align-items:center;">
+    <button class="btn btn-primary" id="lock-btn" onclick="lockSpec()" disabled>🔒 Lock Spec &amp; Hand to Coder →</button>
+    <span style="font-size:12px;color:var(--dim);" id="lock-hint">Select a signal type first</span>
+  </div>
+</div>
+
+<!-- ═══ PHASE 2: CODE EDITOR ═══ -->
+<div id="phase-code" class="hidden">
+  <div class="code-sidebar">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span class="tag tag-coder">Coder's Turn</span>
+        <span style="font-size:12px;color:var(--dim2);">Implement the spec</span>
+      </div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;">Locked Spec</div>
+      <div class="spec-box" id="sidebar-spec"></div>
+    </div>
+    <div class="api-section">
+      <div class="api-title">Strategy API — ctx object</div>
+      <div class="api-item"><code>ctx.prices</code><div class="api-desc">number[] — full price history, latest last</div></div>
+      <div class="api-item"><code>ctx.returns</code><div class="api-desc">number[] — log returns array</div></div>
+      <div class="api-item"><code>ctx.volume</code><div class="api-desc">number[] — volume history</div></div>
+      <div class="api-item"><code>ctx.sma(w)</code><div class="api-desc">simple MA over last w prices → number</div></div>
+      <div class="api-item"><code>ctx.ema(w)</code><div class="api-desc">exponential MA → number</div></div>
+      <div class="api-item"><code>ctx.rsi(w)</code><div class="api-desc">RSI 0–100 → number</div></div>
+      <div class="api-item"><code>ctx.zscore(w)</code><div class="api-desc">z-score of latest price in window → number</div></div>
+      <div class="api-item"><code>ctx.bollinger(w)</code><div class="api-desc">{upper, mid, lower} → object</div></div>
+      <div class="api-item"><code>ctx.momentum(w)</code><div class="api-desc">price change over w ticks → number</div></div>
+      <div class="api-item"><code>ctx.position</code><div class="api-desc">current position (−100 to 100)</div></div>
+      <div class="api-item"><code>ctx.tick</code><div class="api-desc">current tick index</div></div>
+      <div style="margin-top:10px;font-size:11px;color:var(--dim);">Return: <code style="color:var(--cyan);">{action:'buy'|'sell'|'hold', qty:number}</code></div>
+    </div>
+  </div>
+  <div class="code-main">
+    <div class="code-toolbar">
+      <span style="font-size:12px;color:var(--dim2);">strategy.js</span>
+      <div style="flex:1;"></div>
+      <button class="btn btn-ghost btn-sm" onclick="resetCode()">↺ Reset</button>
+      <button class="btn btn-green" onclick="runBacktest()">▶ Run Backtest</button>
+    </div>
+    <div class="code-editor-wrap">
+      <textarea id="relay-code"></textarea>
+    </div>
+    <div class="run-output" id="run-output">
+      <span style="color:var(--dim);">// Output will appear here after backtest…</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PHASE 3: RESULTS ═══ -->
+<div id="phase-results" class="hidden">
+  <div class="results-header">
+    <div style="margin-bottom:8px;"><span class="tag tag-shared">Results</span></div>
+    <div class="total-score" id="res-total">—</div>
+    <div class="score-grade" id="res-grade"></div>
+  </div>
+
+  <div class="score-cards">
+    <div class="score-card sharpe-card">
+      <div class="score-card-val" id="res-sharpe">—</div>
+      <div class="score-card-lbl">Sharpe Ratio</div>
+      <div class="score-card-sub" id="res-sharpe-pts">— / 50 pts</div>
+    </div>
+    <div class="score-card fidelity-card">
+      <div class="score-card-val" id="res-fidelity">—</div>
+      <div class="score-card-lbl">Spec Fidelity</div>
+      <div class="score-card-sub" id="res-fidelity-pts">— / 25 pts</div>
+    </div>
+    <div class="score-card dd-card">
+      <div class="score-card-val" id="res-dd">—</div>
+      <div class="score-card-lbl">Max Drawdown</div>
+      <div class="score-card-sub" id="res-dd-pts">— / 25 pts</div>
+    </div>
+  </div>
+
+  <div class="equity-wrap">
+    <div class="equity-title">Equity Curve</div>
+    <canvas id="equity-canvas" height="180"></canvas>
+  </div>
+
+  <div class="fidelity-breakdown" id="fidelity-breakdown">
+    <div style="font-size:12px;font-weight:700;color:var(--purple);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Spec Fidelity Breakdown</div>
+  </div>
+
+  <div class="results-actions">
+    <button class="btn btn-ghost" onclick="goToPhase('intro')">↺ Play Again</button>
+    <button class="btn btn-primary" onclick="goToPhase('code')">← Back to Editor</button>
+  </div>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────
+var SPEC = {
+  signal: null,
+  entry: 2.0, exit: 0.5, lookback: 20, possize: 50, stoploss: 5, notes: ''
+};
+var relayEditor = null;
+var PRICES = [], VOLUMES = [];
+
+// ─── Phase management ────────────────────────────────────────────────────
+function goToPhase(name) {
+  ['intro','spec','code','results'].forEach(p => {
+    document.getElementById('phase-'+p).classList.add('hidden');
+  });
+  document.getElementById('phase-'+name).classList.remove('hidden');
+}
+function startSpec() { goToPhase('spec'); }
+
+// ─── Signal selector ─────────────────────────────────────────────────────
+function selectSignal(type) {
+  ['momentum','mean-reversion','breakout','pairs'].forEach(s => {
+    document.getElementById('sig-'+s).classList.remove('selected');
+  });
+  document.getElementById('sig-'+type).classList.add('selected');
+  SPEC.signal = type;
+  document.getElementById('lock-btn').disabled = false;
+  document.getElementById('lock-hint').textContent = 'Ready to lock — review parameters above';
+  updateHints(type);
+  updatePreview();
+}
+
+function updateHints(type) {
+  var eh = document.getElementById('entry-hint');
+  var xh = document.getElementById('exit-hint');
+  if (type === 'momentum') {
+    eh.textContent = 'SMA crossover gap or momentum strength to trigger entry';
+    xh.textContent = 'Momentum falls below this → exit position';
+  } else if (type === 'mean-reversion') {
+    eh.textContent = 'Z-score magnitude to trigger entry (e.g. 2 = 2 std devs)';
+    xh.textContent = 'Z-score falls below this → close mean-reversion position';
+  } else if (type === 'breakout') {
+    eh.textContent = 'Price must exceed rolling high by this multiple of ATR';
+    xh.textContent = 'Breakout momentum below this → exit';
+  } else if (type === 'pairs') {
+    eh.textContent = 'Spread z-score to enter pairs trade';
+    xh.textContent = 'Spread z-score reverses below this → close pairs position';
+  }
+}
+
+function updateParam(key, displayId, val) {
+  document.getElementById(displayId).textContent = parseFloat(val).toFixed(1);
+  SPEC[key] = parseFloat(val);
+  updatePreview();
+}
+
+function updatePreview() {
+  if (!SPEC.signal) return;
+  var lines = buildSpecComment(SPEC);
+  document.getElementById('spec-preview').textContent = lines;
+}
+
+function buildSpecComment(s) {
+  var lines = [
+    '/**',
+    ' * STRATEGY SPEC — by Trader',
+    ' *',
+    ' * Signal Type  : ' + (s.signal||'(not set)').toUpperCase(),
+    ' * Entry Thresh : ' + s.entry,
+    ' * Exit Thresh  : ' + s.exit,
+    ' * Lookback Win : ' + s.lookback + ' ticks',
+    ' * Position Size: ' + s.possize + ' units',
+    ' * Stop-Loss    : ' + s.stoploss + '%',
+    ' * Notes        : ' + (s.notes || '(none)'),
+    ' *',
+    signalHintLine(s),
+    ' */',
+  ].join('\n');
+  return lines;
+}
+
+function signalHintLine(s) {
+  var hints = {
+    'momentum': ' * Hint: Long when short-term MA crosses above long-term MA by entry threshold.',
+    'mean-reversion': ' * Hint: Long when z-score < -entry, short when z-score > +entry. Exit at |z| < exit.',
+    'breakout': ' * Hint: Enter long when price breaks rolling high by entry × ATR. Exit below rolling mid.',
+    'pairs': ' * Hint: Trade spread = assetA - ratio × assetB. Long spread when z < -entry, short when z > +entry.',
+  };
+  return hints[s.signal] || ' * Hint: (select signal type)';
+}
+
+// ─── Lock spec ────────────────────────────────────────────────────────────
+function lockSpec() {
+  if (!SPEC.signal) return;
+  var specText = buildSpecComment(SPEC);
+  // Generate price data
+  PRICES = genPrices(600);
+  VOLUMES = genVolumes(600);
+  // Init editor
+  document.getElementById('sidebar-spec').textContent = specText;
+  goToPhase('code');
+  setTimeout(() => {
+    if (!relayEditor) {
+      relayEditor = CodeMirror.fromTextArea(document.getElementById('relay-code'), {
+        mode: 'javascript', theme: 'dracula',
+        lineNumbers: true, indentWithTabs: false, tabSize: 2,
+        lineWrapping: false
+      });
+      relayEditor.setSize('100%', '100%');
+    }
+    relayEditor.setValue(buildStarterCode(SPEC));
+    relayEditor.refresh();
+  }, 60);
+}
+
+function resetCode() {
+  if (relayEditor) relayEditor.setValue(buildStarterCode(SPEC));
+}
+
+function buildStarterCode(s) {
+  var header = buildSpecComment(s) + '\n\n';
+  var templates = {
+    'momentum': header +
+`function strategy(ctx) {
+  // TODO: implement momentum strategy per spec above
+  var fast = ctx.sma(${Math.max(5, Math.round(s.lookback/3))});
+  var slow = ctx.sma(${s.lookback});
+  var gap = (fast - slow) / slow * 100;
+
+  if (ctx.position === 0) {
+    if (gap > ${s.entry}) return { action: 'buy',  qty: ${s.possize} };
+    if (gap < -${s.entry}) return { action: 'sell', qty: ${s.possize} };
+  }
+  if (ctx.position > 0 && gap < ${s.exit})  return { action: 'sell', qty: Math.abs(ctx.position) };
+  if (ctx.position < 0 && gap > -${s.exit}) return { action: 'buy',  qty: Math.abs(ctx.position) };
+
+  return { action: 'hold', qty: 0 };
+}`,
+    'mean-reversion': header +
+`function strategy(ctx) {
+  // TODO: implement mean-reversion strategy per spec above
+  var z = ctx.zscore(${s.lookback});
+
+  if (ctx.position === 0) {
+    if (z < -${s.entry}) return { action: 'buy',  qty: ${s.possize} };
+    if (z >  ${s.entry}) return { action: 'sell', qty: ${s.possize} };
+  }
+  if (ctx.position > 0 && z > -${s.exit})  return { action: 'sell', qty: Math.abs(ctx.position) };
+  if (ctx.position < 0 && z <  ${s.exit})  return { action: 'buy',  qty: Math.abs(ctx.position) };
+
+  return { action: 'hold', qty: 0 };
+}`,
+    'breakout': header +
+`function strategy(ctx) {
+  // TODO: implement breakout strategy per spec above
+  var prices = ctx.prices;
+  var n = prices.length;
+  if (n < ${s.lookback} + 1) return { action: 'hold', qty: 0 };
+
+  var window = prices.slice(n - ${s.lookback} - 1, n - 1);
+  var highest = Math.max(...window);
+  var lowest  = Math.min(...window);
+  var atr = (highest - lowest) / ${s.lookback};
+  var cur = prices[n - 1];
+
+  if (ctx.position === 0) {
+    if (cur > highest + ${s.entry} * atr) return { action: 'buy',  qty: ${s.possize} };
+    if (cur < lowest  - ${s.entry} * atr) return { action: 'sell', qty: ${s.possize} };
+  }
+  if (ctx.position > 0 && cur < highest - ${s.exit} * atr) return { action: 'sell', qty: Math.abs(ctx.position) };
+  if (ctx.position < 0 && cur > lowest  + ${s.exit} * atr) return { action: 'buy',  qty: Math.abs(ctx.position) };
+
+  return { action: 'hold', qty: 0 };
+}`,
+    'pairs': header +
+`function strategy(ctx) {
+  // TODO: implement pairs/stat-arb strategy per spec above
+  // Note: ctx.prices is asset A. Asset B generated internally (0.98 correlation).
+  var z = ctx.zscore(${s.lookback});  // spread z-score
+
+  if (ctx.position === 0) {
+    if (z < -${s.entry}) return { action: 'buy',  qty: ${s.possize} };  // spread too low → long
+    if (z >  ${s.entry}) return { action: 'sell', qty: ${s.possize} };  // spread too high → short
+  }
+  if (ctx.position > 0 && z > -${s.exit})  return { action: 'sell', qty: Math.abs(ctx.position) };
+  if (ctx.position < 0 && z <  ${s.exit})  return { action: 'buy',  qty: Math.abs(ctx.position) };
+
+  return { action: 'hold', qty: 0 };
+}`
+  };
+  return templates[s.signal] || templates['momentum'];
+}
+
+// ─── Price generation ─────────────────────────────────────────────────────
+function genPrices(n) {
+  var prices = [100];
+  var trend = 0;
+  for (var i = 1; i < n; i++) {
+    if (i % 120 === 0) trend = (Math.random() - 0.5) * 0.002;
+    var vol = 0.008 + Math.random() * 0.004;
+    var ret = trend + vol * randn();
+    prices.push(Math.max(50, prices[i-1] * Math.exp(ret)));
+  }
+  return prices;
+}
+function genVolumes(n) {
+  var vols = [];
+  for (var i = 0; i < n; i++) vols.push(1000 + Math.round(Math.random() * 4000));
+  return vols;
+}
+function randn() {
+  var u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+// ─── Strategy API helpers ─────────────────────────────────────────────────
+function makeCtx(prices, volumes, position, tick) {
+  var n = prices.length;
+  var returns = [];
+  for (var i = 1; i < n; i++) returns.push(Math.log(prices[i] / prices[i-1]));
+
+  function sma(w) {
+    w = Math.min(w, n);
+    var s = 0; for (var i = n - w; i < n; i++) s += prices[i];
+    return s / w;
+  }
+  function ema(w) {
+    if (n < 2) return prices[n-1];
+    var k = 2 / (w + 1), v = prices[Math.max(0, n - w)];
+    for (var i = Math.max(1, n - w + 1); i < n; i++) v = prices[i] * k + v * (1 - k);
+    return v;
+  }
+  function mean(w) { var s=0,c=Math.min(w,n); for(var i=n-c;i<n;i++) s+=prices[i]; return s/c; }
+  function std(w) {
+    var c=Math.min(w,n), m=mean(w), s=0;
+    for(var i=n-c;i<n;i++) s+=(prices[i]-m)*(prices[i]-m);
+    return Math.sqrt(s/c)||1e-9;
+  }
+  function zscore(w) { return (prices[n-1] - mean(w)) / std(w); }
+  function bollinger(w) { var m=mean(w), s=std(w)*2; return {upper:m+s, mid:m, lower:m-s}; }
+  function rsi(w) {
+    var c=Math.min(w,n-1), gains=0, losses=0;
+    for(var i=n-c;i<n;i++){var d=prices[i]-prices[i-1];if(d>0)gains+=d;else losses-=d;}
+    var rs=(gains/c)/(losses/c||1e-9);
+    return 100 - 100/(1+rs);
+  }
+  function momentum(w) { return n>w ? prices[n-1]-prices[n-1-w] : 0; }
+
+  return {
+    prices: prices.slice(),
+    returns: returns,
+    volume: volumes.slice(0, n),
+    sma: sma, ema: ema, rsi: rsi,
+    zscore: zscore, bollinger: bollinger, momentum: momentum,
+    position: position, tick: tick
+  };
+}
+
+// ─── Backtest engine ──────────────────────────────────────────────────────
+function runBacktest() {
+  var code = relayEditor ? relayEditor.getValue() : '';
+  var output = document.getElementById('run-output');
+  var stratFn;
+  try {
+    stratFn = new Function(code + '\nreturn strategy;')();
+    if (typeof stratFn !== 'function') throw new Error('strategy function not found');
+  } catch(e) {
+    output.innerHTML = '<span class="out-err">✗ ' + escHtml(e.message) + '</span>';
+    return;
+  }
+  output.innerHTML = '<span style="color:var(--dim);">Running backtest on 600 ticks…</span>';
+
+  try {
+    var result = backtestRun(stratFn);
+    var code2 = relayEditor.getValue();
+    var fid = calcFidelity(code2, SPEC);
+    showResults(result, fid);
+  } catch(e) {
+    output.innerHTML = '<span class="out-err">✗ Runtime error: ' + escHtml(e.message) + '</span>';
+  }
+}
+
+function backtestRun(stratFn) {
+  var prices = PRICES, volumes = VOLUMES;
+  var cash = 10000, position = 0;
+  var equity = [cash];
+  var trades = 0, wins = 0;
+  var slPct = SPEC.stoploss / 100;
+  var entryPrice = null;
+
+  for (var i = 20; i < prices.length; i++) {
+    var ctx = makeCtx(prices.slice(0, i+1), volumes.slice(0, i+1), position, i);
+    var sig;
+    try { sig = stratFn(ctx); } catch(e) { sig = {action:'hold',qty:0}; }
+    if (!sig) sig = {action:'hold',qty:0};
+    var qty = Math.min(Math.abs(sig.qty||0), 100);
+    var price = prices[i];
+
+    // stop-loss check
+    if (position !== 0 && entryPrice !== null) {
+      var pnlPct = position > 0
+        ? (price - entryPrice) / entryPrice
+        : (entryPrice - price) / entryPrice;
+      if (pnlPct < -slPct) {
+        cash += position * price;
+        position = 0;
+        entryPrice = null;
+        trades++;
+      }
+    }
+
+    if (sig.action === 'buy' && qty > 0) {
+      var canBuy = Math.min(qty, Math.floor(cash / price));
+      if (canBuy > 0 && position + canBuy <= 100) {
+        var prevPos = position;
+        cash -= canBuy * price * 1.001; // 0.1% commission
+        position += canBuy;
+        if (prevPos <= 0 && position > 0) entryPrice = price;
+        if (prevPos < 0) { wins += (entryPrice - price) > 0 ? 1 : 0; trades++; entryPrice = position > 0 ? price : null; }
+      }
+    } else if (sig.action === 'sell' && qty > 0) {
+      var canSell = Math.min(qty, position + 100);
+      if (canSell > 0 && position - canSell >= -100) {
+        var prevPos2 = position;
+        cash += canSell * price * 0.999;
+        position -= canSell;
+        if (prevPos2 > 0 && position <= 0) { wins += (price - entryPrice) > 0 ? 1 : 0; trades++; entryPrice = position < 0 ? price : null; }
+        else if (prevPos2 === 0) entryPrice = price;
+      }
+    }
+    equity.push(cash + position * price);
+  }
+
+  // close out
+  if (position !== 0) cash += position * prices[prices.length-1];
+  equity[equity.length-1] = cash;
+
+  var rets = [];
+  for (var j = 1; j < equity.length; j++) rets.push((equity[j]-equity[j-1])/equity[j-1]);
+  var sharpe = calcSharpe(rets);
+  var maxDD = calcMaxDD(equity);
+  var winRate = trades > 0 ? wins/trades : 0;
+  var finalPnL = equity[equity.length-1] - 10000;
+
+  return { equity: equity, sharpe: sharpe, maxDD: maxDD, trades: trades, winRate: winRate, finalPnL: finalPnL };
+}
+
+function calcSharpe(rets) {
+  if (rets.length < 2) return 0;
+  var mean = rets.reduce((a,b)=>a+b,0)/rets.length;
+  var variance = rets.reduce((a,b)=>a+(b-mean)*(b-mean),0)/rets.length;
+  var std = Math.sqrt(variance)||1e-9;
+  return mean/std * Math.sqrt(252);
+}
+
+function calcMaxDD(equity) {
+  var peak = equity[0], maxDD = 0;
+  for (var i = 1; i < equity.length; i++) {
+    if (equity[i] > peak) peak = equity[i];
+    var dd = (peak - equity[i]) / peak;
+    if (dd > maxDD) maxDD = dd;
+  }
+  return maxDD;
+}
+
+// ─── Fidelity scoring ─────────────────────────────────────────────────────
+function calcFidelity(code, spec) {
+  var lower = code.toLowerCase();
+  var checks = [];
+  var score = 0;
+
+  // Signal type keywords
+  var sigKw = {
+    'momentum': ['sma','ema','crossover','momentum','trend','ma'],
+    'mean-reversion': ['zscore','z-score','bollinger','revert','mean','std','deviation'],
+    'breakout': ['high','low','breakout','range','atr','channel'],
+    'pairs': ['spread','ratio','pairs','correlation','hedge','zscore','z-score']
+  };
+  var kws = sigKw[spec.signal] || [];
+  var found = kws.filter(k => lower.includes(k));
+  var sigOk = found.length >= 2;
+  checks.push({
+    label: 'Signal type (' + spec.signal + ') keywords present',
+    pass: sigOk,
+    detail: sigOk ? 'Found: ' + found.slice(0,3).join(', ') : 'Expected keywords: ' + kws.slice(0,3).join(', ')
+  });
+  if (sigOk) score += 8;
+  else if (found.length >= 1) { score += 4; checks[checks.length-1].pass = 'partial'; }
+
+  // Entry threshold used
+  var entStr = spec.entry.toFixed(1);
+  var entUsed = lower.includes(entStr) || lower.includes(spec.entry.toString());
+  checks.push({ label: 'Entry threshold (' + entStr + ') referenced in code', pass: entUsed, detail: entUsed ? '✓' : 'Use the entry threshold value' });
+  if (entUsed) score += 5;
+
+  // Exit threshold used
+  var exitStr = spec.exit.toFixed(1);
+  var exitUsed = lower.includes(exitStr) || lower.includes(spec.exit.toString());
+  checks.push({ label: 'Exit threshold (' + exitStr + ') referenced in code', pass: exitUsed, detail: exitUsed ? '✓' : 'Use the exit threshold value' });
+  if (exitUsed) score += 4;
+
+  // Lookback window
+  var lbStr = spec.lookback.toString();
+  var lbUsed = lower.includes(lbStr);
+  checks.push({ label: 'Lookback window (' + lbStr + ') used in code', pass: lbUsed, detail: lbUsed ? '✓' : 'Reference the lookback window' });
+  if (lbUsed) score += 4;
+
+  // Position size
+  var psStr = spec.possize.toString();
+  var psUsed = lower.includes(psStr);
+  checks.push({ label: 'Position size (' + psStr + ') used', pass: psUsed, detail: psUsed ? '✓' : 'Use specified position size in qty' });
+  if (psUsed) score += 2;
+
+  // Returns valid object
+  var returnsAction = lower.includes("'buy'") || lower.includes('"buy"') || lower.includes("'sell'") || lower.includes('"sell"');
+  checks.push({ label: 'Returns valid {action, qty} object', pass: returnsAction, detail: returnsAction ? '✓' : "Return {action:'buy'|'sell'|'hold', qty:number}" });
+  if (returnsAction) score += 2;
+
+  // Notes followed
+  if (spec.notes) {
+    var noteKw = spec.notes.toLowerCase().split(/\s+/).filter(w=>w.length>3);
+    var noteOk = noteKw.some(k => lower.includes(k));
+    checks.push({ label: "Trader's note considered", pass: noteOk, detail: noteOk ? '✓' : 'Notes: ' + spec.notes });
+    if (noteOk) score += 0; // bonus
+  }
+
+  return { score: Math.min(score, 25), checks: checks };
+}
+
+// ─── Show results ─────────────────────────────────────────────────────────
+function showResults(result, fid) {
+  // Score calc
+  var sharpeScore = Math.max(0, Math.min(50, Math.round(result.sharpe * 15 + 25)));
+  var ddScore = Math.max(0, Math.min(25, Math.round((1 - result.maxDD * 4) * 25)));
+  var fidScore = fid.score;
+  var total = sharpeScore + ddScore + fidScore;
+
+  document.getElementById('res-total').textContent = total + ' / 100';
+  var grades = [[90,'A+'],[80,'A'],[70,'B'],[60,'C'],[0,'D']];
+  var grade = grades.find(g => total >= g[0])[1];
+  var msgs = {'A+':'Outstanding alpha. Hire both.','A':'Solid strategy, clean implementation.','B':'Good effort — tune the thresholds.','C':'Strategy has edge, but implementation drift.','D':'Back to the drawing board.'};
+  document.getElementById('res-grade').textContent = grade + ' — ' + msgs[grade] || '';
+
+  document.getElementById('res-sharpe').textContent = result.sharpe.toFixed(2);
+  document.getElementById('res-sharpe-pts').textContent = sharpeScore + ' / 50 pts';
+  document.getElementById('res-fidelity').textContent = fid.score + ' / 25';
+  document.getElementById('res-fidelity-pts').textContent = fidScore + ' / 25 pts';
+  document.getElementById('res-dd').textContent = (result.maxDD * 100).toFixed(1) + '%';
+  document.getElementById('res-dd-pts').textContent = ddScore + ' / 25 pts';
+
+  // Equity curve
+  drawEquity('equity-canvas', result.equity);
+
+  // Fidelity breakdown
+  var fb = document.getElementById('fidelity-breakdown');
+  fb.innerHTML = '<div style="font-size:12px;font-weight:700;color:var(--purple);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Spec Fidelity Breakdown — ' + fid.score + '/25 pts</div>';
+  fid.checks.forEach(c => {
+    var icon = c.pass === true ? '✓' : c.pass === 'partial' ? '~' : '✗';
+    var cls = c.pass === true ? 'fid-pass' : c.pass === 'partial' ? 'fid-partial' : 'fid-fail';
+    fb.innerHTML += '<div class="fidelity-row"><div class="fid-icon ' + cls + '">' + icon + '</div><div class="fid-label">' + c.label + '</div><div class="fid-result ' + cls + '">' + c.detail + '</div></div>';
+  });
+
+  var outputEl = document.getElementById('run-output');
+  outputEl.innerHTML = '<span class="out-ok">✓ Backtest complete — ' + result.trades + ' trades, Sharpe ' + result.sharpe.toFixed(2) + ', PnL ' + (result.finalPnL >= 0 ? '+' : '') + result.finalPnL.toFixed(0) + '</span>';
+
+  goToPhase('results');
+}
+
+function drawEquity(canvasId, equity) {
+  var canvas = document.getElementById(canvasId);
+  var W = canvas.parentElement.clientWidth - 32;
+  canvas.width = W; canvas.height = 180;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0a1628';
+  ctx.fillRect(0, 0, W, 180);
+
+  var min = Math.min(...equity), max = Math.max(...equity);
+  var range = max - min || 1;
+  function px(v) { return W * 0 + (v / (equity.length-1)) * W; }
+  function py(v) { return 10 + (1 - (v - min) / range) * 160; }
+
+  // zero line
+  ctx.strokeStyle = '#1e3a5f';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4,4]);
+  var zero = py(10000);
+  ctx.beginPath(); ctx.moveTo(0, zero); ctx.lineTo(W, zero); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // equity curve
+  var color = equity[equity.length-1] >= equity[0] ? '#22c55e' : '#ef4444';
+  ctx.beginPath();
+  for (var i = 0; i < equity.length; i++) {
+    var x = px(i), y = py(equity[i]);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // fill
+  ctx.lineTo(W, 180); ctx.lineTo(0, 180); ctx.closePath();
+  var grad = ctx.createLinearGradient(0, 0, 0, 180);
+  grad.addColorStop(0, color + '30');
+  grad.addColorStop(1, color + '05');
+  ctx.fillStyle = grad;
+  ctx.fill();
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+
+<script>
+(function(){
+  function setTheme(t,save){
+    if(save) localStorage.setItem('imc-theme',t);
+    var root=document.documentElement;
+    if(t==='dark') root.setAttribute('data-theme','dark');
+    else if(t==='light') root.setAttribute('data-theme','light');
+    else root.removeAttribute('data-theme');
+    document.querySelectorAll('.tnb').forEach(function(b){
+      b.classList.toggle('active', b.dataset.t===t);
+    });
+  }
+  window.setTheme=setTheme;
+  // Apply saved theme on load
+  setTheme(localStorage.getItem('imc-theme')||'system', false);
+})();
+</script>
+</body>
+</html>
